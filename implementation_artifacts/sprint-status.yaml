@@ -1,0 +1,159 @@
+# generated: 2026-05-25
+# last_updated: 2026-05-25
+# project: Lapdev
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: implementation_artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: When first story is created
+#   - in-progress → done: When all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates next story after previous one is 'done'
+# - Dev moves story to 'review', then runs code-review
+
+generated: 2026-05-25
+last_updated: 2026-05-25
+project: Lapdev
+project_key: NOKEY
+tracking_system: file-system
+story_location: implementation_artifacts
+
+development_status:
+  # Epic 1: 基础IDE功能 (3 stories)
+  epic-1: backlog
+  1-1-file-tree: backlog
+  1-2-code-editor: backlog
+  1-3-terminal: backlog
+  epic-1-retrospective: optional
+
+  # Epic 2: 高级IDE功能 (2 stories)
+  epic-2: backlog
+  2-1-git-visualization: backlog
+  2-2-lsp-intelligence: backlog
+  epic-2-retrospective: optional
+
+  # Epic 3: AI功能 (4 stories)
+  epic-3: backlog
+  3-1-ai-model-config: backlog
+  3-2-ai-chat-panel: backlog
+  3-3-ai-inline-completion: backlog
+  3-4-agent-mode: backlog
+  epic-3-retrospective: optional
+
+  # Epic 4: Skill系统 (2 stories)
+  epic-4: backlog
+  4-1-skill-development: backlog
+  4-2-skill-auto-match: backlog
+  epic-4-retrospective: optional
+
+  # Epic 5: BMAD支持 (2 stories)
+  epic-5: backlog
+  5-1-bmad-one-click: backlog
+  5-2-bmad-offline: backlog
+  epic-5-retrospective: optional
+
+  # Epic 6: 部署适配 (2 stories)
+  epic-6: backlog
+  6-1-podman-support: backlog
+  6-2-domestic-hosting: backlog
+  epic-6-retrospective: optional
+
+summary:
+  total_epics: 6
+  total_stories: 17
+  epics_in_progress: 0
+  stories_ready_for_dev: 0
+  stories_in_progress: 0
+  stories_in_review: 0
+  stories_completed: 0
+
+story_mapping:
+  epic-1:
+    - id: "1-1"
+      title: "文件树浏览与管理"
+      key: "1-1-file-tree"
+      frs: ["FR-001", "FR-002"]
+    - id: "1-2"
+      title: "现代代码编辑器体验"
+      key: "1-2-code-editor"
+      frs: ["FR-003", "FR-004", "FR-005", "FR-006"]
+    - id: "1-3"
+      title: "内置终端"
+      key: "1-3-terminal"
+      frs: ["FR-007", "FR-008"]
+  epic-2:
+    - id: "2-1"
+      title: "Git版本控制可视化"
+      key: "2-1-git-visualization"
+      frs: ["FR-009", "FR-010"]
+    - id: "2-2"
+      title: "LSP代码智能"
+      key: "2-2-lsp-intelligence"
+      frs: ["FR-011", "FR-012", "FR-013", "FR-014"]
+  epic-3:
+    - id: "3-1"
+      title: "AI模型配置"
+      key: "3-1-ai-model-config"
+      frs: ["FR-015", "FR-016", "FR-017"]
+    - id: "3-2"
+      title: "AI聊天面板"
+      key: "3-2-ai-chat-panel"
+      frs: ["FR-018", "FR-019", "FR-020"]
+    - id: "3-3"
+      title: "AI内联代码补全"
+      key: "3-3-ai-inline-completion"
+      frs: ["FR-021"]
+    - id: "3-4"
+      title: "Agent模式"
+      key: "3-4-agent-mode"
+      frs: ["FR-022", "FR-023", "FR-024"]
+  epic-4:
+    - id: "4-1"
+      title: "Skill开发与加载"
+      key: "4-1-skill-development"
+      frs: ["FR-025", "FR-026", "FR-027"]
+    - id: "4-2"
+      title: "Skill自动匹配"
+      key: "4-2-skill-auto-match"
+      frs: ["FR-028"]
+  epic-5:
+    - id: "5-1"
+      title: "BMAD一键启用"
+      key: "5-1-bmad-one-click"
+      frs: ["FR-029", "FR-030"]
+    - id: "5-2"
+      title: "BMAD离线降级"
+      key: "5-2-bmad-offline"
+      frs: ["FR-031", "FR-032"]
+  epic-6:
+    - id: "6-1"
+      title: "Podman原生支持"
+      key: "6-1-podman-support"
+      frs: ["FR-033", "FR-034"]
+    - id: "6-2"
+      title: "国内代码托管与社区"
+      key: "6-2-domestic-hosting"
+      frs: ["FR-035", "FR-036"]
