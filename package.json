@@ -1,0 +1,20 @@
+{
+  "name": "lapdev",
+  "version": "1.0.0",
+  "description": "Open-source Web IDE with AI integration",
+  "type": "module",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:report": "playwright show-report",
+    "test:unit": "deno test --allow-all",
+    "test:rust": "cargo test --all",
+    "test": "npm run test:e2e && npm run test:unit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "@types/node": "^20.11.0",
+    "typescript": "^5.4.0"
+  }
+}
