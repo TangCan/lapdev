@@ -33,3 +33,6 @@ test-results/
 # Temporary
 *.tmp
 *.bak
+
+# Workspace (test files)
+workspace/
