@@ -8,17 +8,43 @@ const MAX_DEPTH = 20;
  * Uses canonicalization to prevent path traversal attacks
  */
 function sanitizePath(path: string): string {
-  const normalized = path.replace(/\\/g, '/');
+  const normalized = path.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/\/$/, '');
   
-  // Build absolute path within workspace
-  let resolved: string;
-  try {
-    resolved = new URL(normalized, `file://${WORKSPACE_DIR}/`).pathname;
-  } catch {
-    throw new Error('Invalid path format');
+  // Check for path traversal attempts in original path
+  if (normalized.includes('..')) {
+    throw new Error('invalid path traversal attempt');
   }
   
-  // Normalize and resolve to prevent traversal
+  let resolved: string;
+  
+  // If path is /workspace, map directly to workspace directory
+  if (normalized === '/workspace') {
+    resolved = WORKSPACE_DIR;
+  }
+  // If path starts with /workspace/, treat it as relative to workspace root
+  else if (normalized.startsWith('/workspace/')) {
+    resolved = WORKSPACE_DIR + normalized.substring('/workspace'.length);
+  }
+  // If path starts with /workspace (exact match handled above)
+  else if (normalized === '/') {
+    throw new Error('Invalid path: root access denied');
+  }
+  // Reject absolute paths that bypass workspace
+  else if (normalized.startsWith('/')) {
+    throw new Error('Invalid path: absolute path not allowed');
+  } else {
+    // Build absolute path within workspace
+    try {
+      resolved = new URL(normalized, `file://${WORKSPACE_DIR}/`).pathname;
+    } catch {
+      throw new Error('Invalid path format');
+    }
+  }
+  
+  // Normalize path
+  resolved = resolved.replace(/\/+/g, '/').replace(/\/$/, '');
+  
+  // Verify path is within workspace
   if (!resolved.startsWith(WORKSPACE_DIR + '/') && resolved !== WORKSPACE_DIR) {
     throw new Error('Access denied: Path outside workspace');
   }
@@ -97,6 +123,18 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
+/**
+ * Converts absolute path to workspace-relative path
+ */
+function toWorkspacePath(absolutePath: string): string {
+  if (absolutePath === WORKSPACE_DIR) {
+    return '/workspace';
+  } else if (absolutePath.startsWith(WORKSPACE_DIR + '/')) {
+    return '/workspace' + absolutePath.substring(WORKSPACE_DIR.length);
+  }
+  return absolutePath;
+}
+
 async function readDirRecursive(
   path: string,
   depth: number,
@@ -106,7 +144,7 @@ async function readDirRecursive(
   if (depth <= 0) {
     return {
       name: path.split('/').pop() || '/',
-      path,
+      path: toWorkspacePath(path),
       type: 'directory',
       children: []
     };
@@ -144,14 +182,14 @@ async function readDirRecursive(
     
     return {
       name: path.split('/').pop() || '/',
-      path,
+      path: toWorkspacePath(path),
       type: 'directory',
       children: entries
     };
   } else {
     return {
       name: path.split('/').pop() || '',
-      path,
+      path: toWorkspacePath(path),
       type: 'file',
       size: stat.size,
       lastModified: stat.mtime?.toISOString()
@@ -178,7 +216,7 @@ export async function readFile(path: string): Promise<FileContentResult> {
     return {
       status: 'success',
       data: {
-        path: sanitizedPath,
+        path: toWorkspacePath(sanitizedPath),
         content
       }
     };

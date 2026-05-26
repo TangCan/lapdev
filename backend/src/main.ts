@@ -6,7 +6,7 @@ import {
   handleRenameFile,
   handleDeleteFile
 } from './handlers/fileHandler.ts';
-import { handleWebSocket } from './websocket/fileWatcher.ts';
+import { handleWebSocket, startFileWatcher } from './websocket/fileWatcher.ts';
 
 const PORT = parseInt(Deno.env.get('PORT') || '3000');
 const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') || 'http://localhost:3000').split(',');
@@ -15,18 +15,29 @@ const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') || 'http://localhost:30
 function getCorsHeaders(origin: string | null): Headers {
   const headers = new Headers({
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Content-Type': 'application/json'
   });
   
-  // In production, validate origin strictly
+  // Only allow specified origins
   if (origin && ALLOWED_ORIGINS.includes(origin)) {
     headers.set('Access-Control-Allow-Origin', origin);
-  } else if (Deno.env.get('DEV_MODE') === 'true') {
-    // Allow any origin in dev mode
-    headers.set('Access-Control-Allow-Origin', '*');
   }
   
   return headers;
+}
+
+// Helper to add CORS headers to response
+function addCorsHeaders(response: Response, corsHeaders: Headers): Response {
+  const newHeaders = new Headers(response.headers);
+  corsHeaders.forEach((value, key) => {
+    newHeaders.set(key, value);
+  });
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: newHeaders
+  });
 }
 
 async function handleRequest(req: Request): Promise<Response> {
@@ -41,51 +52,67 @@ async function handleRequest(req: Request): Promise<Response> {
   }
 
   // Build CORS headers
-  const headers = getCorsHeaders(origin);
+  const corsHeaders = getCorsHeaders(origin);
 
   // Preflight OPTIONS request
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers });
+    return new Response(null, { headers: corsHeaders });
   }
 
   // API routes
+  let response: Response;
   switch (url.pathname) {
     case '/api/v1/files/tree':
       if (req.method === 'GET') {
-        return await handleFileTree(req);
+        response = await handleFileTree(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
       }
       break;
     case '/api/v1/files/read':
       if (req.method === 'GET') {
-        return await handleReadFile(req);
+        response = await handleReadFile(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
       }
       break;
     case '/api/v1/files/write':
       if (req.method === 'POST') {
-        return await handleWriteFile(req);
+        response = await handleWriteFile(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
       }
       break;
     case '/api/v1/files/create':
       if (req.method === 'POST') {
-        return await handleCreateFile(req);
+        response = await handleCreateFile(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
       }
       break;
     case '/api/v1/files/rename':
       if (req.method === 'POST') {
-        return await handleRenameFile(req);
+        response = await handleRenameFile(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
       }
       break;
     case '/api/v1/files/delete':
       if (req.method === 'DELETE') {
-        return await handleDeleteFile(req);
+        response = await handleDeleteFile(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
       }
       break;
     default:
-      return new Response('Not Found', { status: 404, headers });
+      response = new Response('Not Found', { status: 404 });
   }
 
-  return new Response('Method Not Allowed', { status: 405, headers });
+  return addCorsHeaders(response, corsHeaders);
 }
+
+// Start file watcher
+startFileWatcher();
 
 console.log(`Server running on http://localhost:${PORT}`);
 

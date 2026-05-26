@@ -7,35 +7,46 @@ const WORKSPACE_DIR = Deno.env.get('WORKSPACE_DIR') || '/workspace';
 type WebSocket = any;
 
 const clients = new Set<WebSocket>();
+let watcher: Deno.FsWatcher | null = null;
 
-export async function handleWebSocket(ws: WebSocket): Promise<void> {
+export function handleWebSocket(ws: WebSocket): void {
   clients.add(ws);
 
-  try {
-    for await (const event of ws) {
-      if (typeof event === 'string') {
-        const message = JSON.parse(event);
-        
-        switch (message.type) {
-          case 'subscribe':
-            await handleSubscribe(ws, message);
-            break;
-          case 'unsubscribe':
-            await handleUnsubscribe(ws, message);
-            break;
-          default:
-            await ws.send(JSON.stringify({
-              type: 'error',
-              message: 'Unknown message type'
-            }));
-        }
-      } else if (event.type === 'close') {
-        break;
+  ws.onopen = () => {
+    console.log('WebSocket connection opened');
+  };
+
+  ws.onmessage = async (event: { data: string }) => {
+    try {
+      const message = JSON.parse(event.data);
+      
+      switch (message.type) {
+        case 'subscribe':
+          await handleSubscribe(ws, message);
+          break;
+        case 'unsubscribe':
+          await handleUnsubscribe(ws, message);
+          break;
+        default:
+          await ws.send(JSON.stringify({
+            type: 'error',
+            message: 'Unknown message type'
+          }));
       }
+    } catch (error) {
+      console.error('Error handling WebSocket message:', error);
     }
-  } finally {
+  };
+
+  ws.onerror = (error: unknown) => {
+    console.error('WebSocket error:', error);
     clients.delete(ws);
-  }
+  };
+
+  ws.onclose = () => {
+    console.log('WebSocket connection closed');
+    clients.delete(ws);
+  };
 }
 
 async function handleSubscribe(ws: WebSocket, _message: unknown): Promise<void> {
@@ -50,8 +61,17 @@ async function handleUnsubscribe(_ws: WebSocket, _message: unknown): Promise<voi
 }
 
 export async function broadcastFileChange(eventType: string, path: string): Promise<void> {
+  let messageType = 'fileChange';
+  if (eventType === 'create') {
+    messageType = 'fileCreated';
+  } else if (eventType === 'modify') {
+    messageType = 'fileModified';
+  } else if (eventType === 'remove') {
+    messageType = 'fileDeleted';
+  }
+  
   const message = JSON.stringify({
-    type: 'fileChange',
+    type: messageType,
     eventType,
     path,
     timestamp: new Date().toISOString()
@@ -63,5 +83,48 @@ export async function broadcastFileChange(eventType: string, path: string): Prom
     } catch {
       clients.delete(client);
     }
+  }
+}
+
+/**
+ * Starts the file system watcher to monitor workspace changes
+ * Runs in the background without blocking
+ */
+export function startFileWatcher(): void {
+  if (watcher) {
+    return;
+  }
+
+  (async () => {
+    try {
+      watcher = Deno.watchFs(WORKSPACE_DIR, { recursive: true });
+      console.log('File watcher started successfully');
+      
+      for await (const event of watcher) {
+        for (const path of event.paths) {
+          // Convert absolute path to workspace-relative path
+          let relativePath = path;
+          if (path.startsWith(WORKSPACE_DIR)) {
+            relativePath = '/workspace' + path.substring(WORKSPACE_DIR.length);
+          }
+          
+          // Broadcast file change event
+          await broadcastFileChange(event.kind, relativePath);
+        }
+      }
+    } catch (error) {
+      console.error('Error in file watcher:', error);
+      watcher = null;
+    }
+  })();
+}
+
+/**
+ * Stops the file system watcher
+ */
+export function stopFileWatcher(): void {
+  if (watcher) {
+    watcher.close();
+    watcher = null;
   }
 }

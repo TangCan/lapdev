@@ -2,7 +2,6 @@
   "name": "lapdev",
   "version": "1.0.0",
   "description": "Open-source Web IDE with AI integration",
-  "type": "module",
   "scripts": {
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
