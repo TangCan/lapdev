@@ -1,0 +1,35 @@
+# Rust
+target/
+**/*.rs.bk
+
+# Deno
+.deno/
+node_modules/
+
+# Node.js
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build artifacts
+dist/
+build/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+playwright-report/
+test-results/
+
+# Temporary
+*.tmp
+*.bak
