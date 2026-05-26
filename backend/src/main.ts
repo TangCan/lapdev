@@ -4,7 +4,9 @@ import {
   handleWriteFile,
   handleCreateFile,
   handleRenameFile,
-  handleDeleteFile
+  handleDeleteFile,
+  handleFormat,
+  handleGetLanguages
 } from './handlers/fileHandler.ts';
 import { handleWebSocket, startFileWatcher } from './websocket/fileWatcher.ts';
 
@@ -100,6 +102,20 @@ async function handleRequest(req: Request): Promise<Response> {
     case '/api/v1/files/delete':
       if (req.method === 'DELETE') {
         response = await handleDeleteFile(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/files/format':
+      if (req.method === 'POST') {
+        response = await handleFormat(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/languages':
+      if (req.method === 'GET') {
+        response = await handleGetLanguages(req);
       } else {
         response = new Response('Method Not Allowed', { status: 405 });
       }

@@ -55,3 +55,33 @@ export async function deleteFile(request: DeleteRequest): Promise<OperationResul
   });
   return await response.json();
 }
+
+export interface FormatResult {
+  status: 'success' | 'error';
+  data?: {
+    formatted: string;
+  };
+  message?: string;
+}
+
+export async function formatCode(content: string, language: string): Promise<FormatResult> {
+  const response = await fetch(`${BASE_URL}/api/v1/files/format`, {
+    method: 'POST',
+    body: JSON.stringify({ content, language }),
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+  return await response.json();
+}
+
+export interface LanguagesResult {
+  status: 'success' | 'error';
+  data?: string[];
+  message?: string;
+}
+
+export async function getSupportedLanguages(): Promise<LanguagesResult> {
+  const response = await fetch(`${BASE_URL}/api/v1/languages`);
+  return await response.json();
+}

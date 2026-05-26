@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { FileInfo } from '../types/file';
+import type { FileInfo } from '../../types/file';
 
 interface FileTreeNodeProps {
   file: FileInfo;
@@ -79,7 +79,6 @@ function getFileIcon(filename: string): string {
     'rs': '🦀',
     'py': '🐍',
     'go': '🐹',
-    'rs': '🦀',
     'md': '📝',
     'json': '📋',
     'yaml': '📋',

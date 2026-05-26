@@ -4,7 +4,7 @@ import { fetchFileTree } from '../../services/fileService';
 import { FileTreeNode } from './FileTreeNode';
 import { FileTreeContextMenu } from './FileTreeContextMenu';
 
-interface FileTreeProps {
+export interface FileTreeProps {
   onFileOpen: (file: FileInfo) => void;
 }
 
