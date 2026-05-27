@@ -8,6 +8,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@types/diff2html": "^0.0.5",
+    "diff2html": "^3.4.56",
+    "isomorphic-dompurify": "^3.14.0",
     "monaco-editor": "^0.55.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

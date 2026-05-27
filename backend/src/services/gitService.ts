@@ -20,6 +20,34 @@ interface GitBranch {
 
 const WORKSPACE_PATH = Deno.env.get('WORKSPACE_PATH') || '/workspace';
 
+// 安全检查：防止路径遍历攻击
+function sanitizePath(path: string): string {
+  // 移除路径遍历字符
+  let sanitized = path
+    .replace(/\.\./g, '')  // 移除路径遍历
+    .replace(/\/\.\//g, '/')  // 移除 /./
+    .replace(/^\/+/, '')  // 移除开头的 /
+    .replace(/\/+$/, '');  // 移除结尾的 /
+  
+  // 移除所有危险字符（扩展检查）
+  const dangerousChars = /[<>:"|?*\x00-\x1F;`$()!\\]/g;
+  sanitized = sanitized.replace(dangerousChars, '');
+  
+  // 移除空格（可能导致命令问题）
+  sanitized = sanitized.trim().replace(/\s+/g, '');
+  
+  return sanitized;
+}
+
+// 验证路径是否在工作空间内
+function validatePath(path: string): boolean {
+  const sanitized = sanitizePath(path);
+  if (!sanitized || sanitized.startsWith('/') || sanitized.includes('\\')) {
+    return false;
+  }
+  return true;
+}
+
 export async function getGitStatus(): Promise<{ status: string; data?: GitStatus; message?: string }> {
   try {
     const repoPath = WORKSPACE_PATH;
@@ -44,21 +72,27 @@ export async function getGitStatus(): Promise<{ status: string; data?: GitStatus
       }
     };
   } catch (error) {
+    console.error('Git status error:', error);
     return { status: 'error', message: error instanceof Error ? error.message : String(error) };
   }
 }
 
 export async function getGitDiff(path: string): Promise<{ status: string; data?: { diff: string }; message?: string }> {
   try {
+    // 安全检查：验证路径
+    if (!validatePath(path)) {
+      return { status: 'error', message: 'Invalid path' };
+    }
+    
     const repoPath = WORKSPACE_PATH;
-    const fullPath = `${repoPath}${path}`;
+    const sanitizedPath = sanitizePath(path);
 
     const isGitRepo = await isGitRepository(repoPath);
     if (!isGitRepo) {
       return { status: 'error', message: 'Not a git repository' };
     }
 
-    const diffOutput = await runGitCommand(['diff', '--no-color', '--', path], repoPath);
+    const diffOutput = await runGitCommand(['diff', '--no-color', '--', sanitizedPath], repoPath);
     const diff = diffOutput.stdout || '';
 
     return {
@@ -66,6 +100,7 @@ export async function getGitDiff(path: string): Promise<{ status: string; data?:
       data: { diff }
     };
   } catch (error) {
+    console.error('Git diff error:', error);
     return { status: 'error', message: error instanceof Error ? error.message : String(error) };
   }
 }
@@ -92,11 +127,14 @@ export async function getBranches(): Promise<{ status: string; data?: { branches
         
         const cleanName = isRemote ? branchName.replace('remotes/origin/', '') : branchName;
         
-        branches.push({
-          name: cleanName,
-          isCurrent,
-          isRemote
-        });
+        // 验证分支名称
+        if (cleanName && !cleanName.includes('..')) {
+          branches.push({
+            name: cleanName,
+            isCurrent,
+            isRemote
+          });
+        }
       }
     });
 
@@ -105,29 +143,56 @@ export async function getBranches(): Promise<{ status: string; data?: { branches
       data: { branches, current: currentBranch }
     };
   } catch (error) {
+    console.error('Git branches error:', error);
     return { status: 'error', message: error instanceof Error ? error.message : String(error) };
   }
 }
 
 export async function stageFiles(paths: string[]): Promise<{ status: string; message?: string }> {
   try {
+    // 安全检查：验证所有路径
+    const invalidPaths = paths.filter(p => !validatePath(p));
+    if (invalidPaths.length > 0) {
+      return { status: 'error', message: 'Invalid paths' };
+    }
+    
     const repoPath = WORKSPACE_PATH;
+    const sanitizedPaths = paths.map(p => sanitizePath(p));
 
     const isGitRepo = await isGitRepository(repoPath);
     if (!isGitRepo) {
       return { status: 'error', message: 'Not a git repository' };
     }
 
-    await runGitCommand(['add', ...paths], repoPath);
+    await runGitCommand(['add', ...sanitizedPaths], repoPath);
 
     return { status: 'success' };
   } catch (error) {
+    console.error('Git stage error:', error);
     return { status: 'error', message: error instanceof Error ? error.message : String(error) };
   }
 }
 
+// 提交消息最大长度（Git 建议不超过 1000 字符）
+const MAX_COMMIT_MESSAGE_LENGTH = 1000;
+
 export async function commitChanges(message: string): Promise<{ status: string; message?: string }> {
   try {
+    // 验证提交信息
+    if (!message || message.trim().length === 0) {
+      return { status: 'error', message: 'Commit message is required' };
+    }
+    
+    // 验证提交信息长度
+    if (message.length > MAX_COMMIT_MESSAGE_LENGTH) {
+      return { status: 'error', message: `Commit message is too long (max ${MAX_COMMIT_MESSAGE_LENGTH} characters)` };
+    }
+    
+    // 防止恶意提交信息
+    if (message.includes(';') || message.includes('|') || message.includes('`')) {
+      return { status: 'error', message: 'Invalid commit message' };
+    }
+
     const repoPath = WORKSPACE_PATH;
 
     const isGitRepo = await isGitRepository(repoPath);
@@ -135,7 +200,7 @@ export async function commitChanges(message: string): Promise<{ status: string; 
       return { status: 'error', message: 'Not a git repository' };
     }
 
-    const result = await runGitCommand(['commit', '-m', message], repoPath);
+    const result = await runGitCommand(['commit', '-m', message.trim()], repoPath);
     
     if (result.stderr && result.stderr.includes('nothing to commit')) {
       return { status: 'error', message: 'Nothing to commit' };
@@ -143,12 +208,23 @@ export async function commitChanges(message: string): Promise<{ status: string; 
 
     return { status: 'success' };
   } catch (error) {
+    console.error('Git commit error:', error);
     return { status: 'error', message: error instanceof Error ? error.message : String(error) };
   }
 }
 
 export async function checkoutBranch(branch: string): Promise<{ status: string; message?: string }> {
   try {
+    // 验证分支名称
+    if (!branch || !branch.trim()) {
+      return { status: 'error', message: 'Branch name is required' };
+    }
+    
+    // 防止分支名称中的路径遍历
+    if (branch.includes('..') || branch.includes('/') || branch.includes('\\')) {
+      return { status: 'error', message: 'Invalid branch name' };
+    }
+
     const repoPath = WORKSPACE_PATH;
 
     const isGitRepo = await isGitRepository(repoPath);
@@ -156,10 +232,11 @@ export async function checkoutBranch(branch: string): Promise<{ status: string; 
       return { status: 'error', message: 'Not a git repository' };
     }
 
-    await runGitCommand(['checkout', branch], repoPath);
+    await runGitCommand(['checkout', branch.trim()], repoPath);
 
     return { status: 'success' };
   } catch (error) {
+    console.error('Git checkout error:', error);
     return { status: 'error', message: error instanceof Error ? error.message : String(error) };
   }
 }
@@ -235,6 +312,17 @@ async function getUntrackedFiles(path: string): Promise<string[]> {
 }
 
 async function runGitCommand(args: string[], cwd: string): Promise<{ stdout: string; stderr: string }> {
+  // 验证命令参数 - 扩展检查
+  for (const arg of args) {
+    if (typeof arg !== 'string') {
+      throw new Error('Invalid command argument');
+    }
+    // 防止命令注入 - 扩展检查
+    if (/[;&|`$()!<>\s]/.test(arg) || arg.includes('&&') || arg.includes('||')) {
+      throw new Error('Invalid command argument');
+    }
+  }
+
   const process = await Deno.run({
     cmd: ['git', ...args],
     cwd,

@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FileTree } from './components/FileTree';
-import { CodeEditor } from './components/Editor/CodeEditor';
+import { CodeEditor, type DiffLine } from './components/Editor/CodeEditor';
 import { Terminal } from './components/Terminal/Terminal';
 import GitPanel from './components/Git/GitPanel';
 import { GitProvider, useGit } from './context/GitContext';
 import type { FileInfo } from './types/file';
 import { readFile, writeFile, formatCode } from './services/fileService';
+import { fetchGitDiff } from './services/gitService';
 
 interface Tab {
   id: string;
@@ -25,6 +26,7 @@ function AppContent() {
   const [showTerminal, setShowTerminal] = useState(false);
   const [showGitPanel, setShowGitPanel] = useState(false);
   const [terminalHeight, setTerminalHeight] = useState(300);
+  const [diffLines, setDiffLines] = useState<Record<string, DiffLine[]>>({});
   
   const { status, currentBranch, refreshStatus } = useGit();
 
@@ -32,6 +34,65 @@ function AppContent() {
     setErrorMessage(message);
     setTimeout(() => setErrorMessage(null), 5000);
   };
+
+  const parseDiffLines = useCallback((diff: string): DiffLine[] => {
+    const lines: DiffLine[] = [];
+    const diffLines = diff.split('\n');
+    let currentLineNumber = 0;
+    
+    for (const line of diffLines) {
+      // Skip header lines
+      if (line.startsWith('---') || line.startsWith('+++') || line.startsWith('@@')) {
+        // Parse the @@ header to get the starting line number
+        const match = line.match(/@@ -\d+,\d+ \+(\d+),/);
+        if (match) {
+          currentLineNumber = parseInt(match[1], 10) - 1;
+        }
+        continue;
+      }
+      
+      // Skip index line
+      if (line.startsWith('index ')) {
+        continue;
+      }
+      
+      // Process diff lines
+      if (line.startsWith('+')) {
+        currentLineNumber++;
+        lines.push({ lineNumber: currentLineNumber, type: 'added' });
+      } else if (line.startsWith('-')) {
+        // Deleted lines don't affect current line number in the new file
+        lines.push({ lineNumber: currentLineNumber + 1, type: 'deleted' });
+      } else if (line.length > 0 && !line.startsWith('\\')) {
+        currentLineNumber++;
+        // Check if this line is modified (appears after a -/+ pair)
+        const prevLine = diffLines[diffLines.indexOf(line) - 1];
+        if (prevLine && (prevLine.startsWith('-') || prevLine.startsWith('+'))) {
+          const prevPrevLine = diffLines[diffLines.indexOf(line) - 2];
+          if (prevPrevLine && prevPrevLine.startsWith('-')) {
+            lines.push({ lineNumber: currentLineNumber, type: 'modified' });
+          }
+        }
+      }
+    }
+    
+    return lines;
+  }, []);
+
+  const loadDiffForFile = useCallback(async (filePath: string) => {
+    try {
+      const result = await fetchGitDiff(filePath);
+      if (result.status === 'success' && result.data) {
+        const parsedLines = parseDiffLines(result.data.diff);
+        setDiffLines(prev => ({
+          ...prev,
+          [filePath]: parsedLines
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to load diff:', error);
+    }
+  }, [parseDiffLines]);
 
   const detectLanguage = useCallback((filePath: string): string => {
     const extension = filePath.split('.').pop()?.toLowerCase() || '';
@@ -64,24 +125,40 @@ function AppContent() {
     
     if (existingTab) {
       setActiveTabId(existingTab.id);
+      // Load diff for the file if not already loaded
+      if (!diffLines[file.path]) {
+        loadDiffForFile(file.path);
+      }
       return;
     }
 
     setLoadingFiles(prev => new Set([...prev, file.path]));
 
     try {
-      const result = await readFile(file.path);
+      const [fileResult, diffResult] = await Promise.all([
+        readFile(file.path),
+        fetchGitDiff(file.path).catch(() => ({ status: 'error' }))
+      ]);
       
-      if (result.status === 'success' && result.data) {
+      if (fileResult.status === 'success' && fileResult.data) {
         const newTab: Tab = {
           id: `tab-${Date.now()}`,
           file,
-          content: result.data.content,
+          content: fileResult.data.content,
           isModified: false,
           language: detectLanguage(file.path)
         };
         setTabs([...tabs, newTab]);
         setActiveTabId(newTab.id);
+        
+        // Parse and store diff lines if available
+        if (diffResult.status === 'success' && diffResult.data) {
+          const parsedLines = parseDiffLines(diffResult.data.diff);
+          setDiffLines(prev => ({
+            ...prev,
+            [file.path]: parsedLines
+          }));
+        }
       }
     } catch (error) {
       console.error('Failed to open file:', error);
@@ -284,6 +361,7 @@ function AppContent() {
                     value={activeTab.content}
                     language={activeTab.language}
                     onChange={(value) => handleContentChange(activeTab.id, value)}
+                    diffLines={diffLines[activeTab.file.path] || []}
                   />
                 )}
               </div>

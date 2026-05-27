@@ -7,6 +7,9 @@ const HEARTBEAT_INTERVAL = 30000; // 30 seconds
 const HEARTBEAT_TIMEOUT = 45000; // 45 seconds (1.5x interval)
 const CLEANUP_INTERVAL = 60000; // 60 seconds
 
+// Git watcher debounce configuration
+const GIT_DEBOUNCE_DELAY = 500; // 500ms debounce for Git changes
+
 // Use Deno's WebSocket type which is returned by Deno.upgradeWebSocket
 // deno-lint-ignore no-explicit-any
 type WebSocket = any;
@@ -17,14 +20,36 @@ let watcher: Deno.FsWatcher | null = null;
 // Terminal sessions mapped by session ID
 const terminalClients = new Map<string, WebSocket>();
 
-// Track client last activity time for heartbeat
+// Track client subscriptions
 interface ClientState {
   ws: WebSocket;
   lastActivity: number;
   isAlive: boolean;
   heartbeatTimer?: number;
+  subscribedToGit: boolean;
 }
 const clientStates = new Map<WebSocket, ClientState>();
+
+// Git state debounce timer
+let gitDebounceTimer: number | undefined;
+
+// Track subscribed Git clients
+const gitSubscribers = new Set<WebSocket>();
+
+// Track broadcast statistics for monitoring
+interface BroadcastStats {
+  totalBroadcasts: number;
+  successfulSends: number;
+  failedSends: number;
+  lastBroadcastTime: number;
+}
+
+const broadcastStats: BroadcastStats = {
+  totalBroadcasts: 0,
+  successfulSends: 0,
+  failedSends: 0,
+  lastBroadcastTime: 0
+};
 
 // Cleanup stale connections periodically
 let cleanupTimer: number | undefined;
@@ -64,6 +89,7 @@ export function handleWebSocket(ws: WebSocket): void {
     ws,
     lastActivity: Date.now(),
     isAlive: true,
+    subscribedToGit: false,
   };
   clientStates.set(ws, clientState);
   
@@ -90,6 +116,22 @@ export function handleWebSocket(ws: WebSocket): void {
           break;
         case 'unsubscribe':
           await handleUnsubscribe(ws, message);
+          break;
+        case 'subscribeToGit':
+          clientState.subscribedToGit = true;
+          gitSubscribers.add(ws);
+          await ws.send(JSON.stringify({
+            type: 'gitSubscribed',
+            message: 'Subscribed to Git status updates'
+          }));
+          break;
+        case 'unsubscribeFromGit':
+          clientState.subscribedToGit = false;
+          gitSubscribers.delete(ws);
+          await ws.send(JSON.stringify({
+            type: 'gitUnsubscribed',
+            message: 'Unsubscribed from Git status updates'
+          }));
           break;
         case 'terminalRegister':
           // Register WebSocket connection for terminal output
@@ -164,6 +206,7 @@ function cleanupClient(ws: WebSocket): void {
   }
   clientStates.delete(ws);
   clients.delete(ws);
+  gitSubscribers.delete(ws);
   
   // Clean up terminal client mappings when WebSocket closes
   for (const [sessionId, client] of terminalClients) {
@@ -172,6 +215,91 @@ function cleanupClient(ws: WebSocket): void {
       console.log(`Unregistered terminal client: ${sessionId}`);
     }
   }
+}
+
+/**
+ * Broadcast Git status update to subscribed clients
+ */
+export async function broadcastGitStatus(status: unknown): Promise<void> {
+  let message: string;
+  
+  // Validate and serialize message
+  try {
+    message = JSON.stringify({
+      type: 'gitStatus',
+      status,
+      timestamp: new Date().toISOString()
+    });
+  } catch (serializationError) {
+    console.error('[WebSocket] Failed to serialize Git status:', serializationError);
+    return;
+  }
+
+  const startTime = Date.now();
+  broadcastStats.totalBroadcasts++;
+  let successCount = 0;
+  let failCount = 0;
+  const failedClients: WebSocket[] = [];
+
+  for (const client of gitSubscribers) {
+    try {
+      // Check if connection is still open before sending
+      if (client.readyState !== WebSocket.OPEN) {
+        failedClients.push(client);
+        continue;
+      }
+      
+      await client.send(message);
+      successCount++;
+    } catch (sendError) {
+      failCount++;
+      failedClients.push(client);
+      
+      // Log detailed error information
+      const errorType = sendError instanceof Error ? sendError.name : 'UnknownError';
+      const errorMessage = sendError instanceof Error ? sendError.message : String(sendError);
+      
+      console.error(`[WebSocket] Failed to send Git status to client: ${errorType} - ${errorMessage}`);
+    }
+  }
+
+  // Clean up failed clients after iteration to avoid modifying set during iteration
+  for (const client of failedClients) {
+    gitSubscribers.delete(client);
+    cleanupClient(client);
+    console.log('[WebSocket] Removed disconnected client from Git subscribers');
+  }
+
+  // Update statistics
+  broadcastStats.successfulSends += successCount;
+  broadcastStats.failedSends += failCount;
+  broadcastStats.lastBroadcastTime = Date.now();
+
+  // Log broadcast summary
+  const duration = Date.now() - startTime;
+  console.log(`[WebSocket] Git status broadcast completed: ${successCount} sent, ${failCount} failed, ${duration}ms`);
+}
+
+/**
+ * Trigger Git status update with debounce
+ */
+export function triggerGitStatusUpdate(): void {
+  // Clear existing timer if any
+  if (gitDebounceTimer) {
+    clearTimeout(gitDebounceTimer);
+  }
+  
+  // Set new debounced timer
+  gitDebounceTimer = setTimeout(async () => {
+    try {
+      // Dynamically import gitService to avoid circular imports
+      const { getGitStatus } = await import('../services/gitService.ts');
+      const result = await getGitStatus();
+      await broadcastGitStatus(result);
+    } catch (error) {
+      console.error('Error broadcasting Git status:', error);
+    }
+  }, GIT_DEBOUNCE_DELAY) as unknown as number;
 }
 
 /**
@@ -232,20 +360,58 @@ export async function broadcastFileChange(eventType: string, path: string): Prom
     messageType = 'fileDeleted';
   }
   
-  const message = JSON.stringify({
-    type: messageType,
-    eventType,
-    path,
-    timestamp: new Date().toISOString()
-  });
+  let message: string;
+  
+  // Validate and serialize message
+  try {
+    message = JSON.stringify({
+      type: messageType,
+      eventType,
+      path,
+      timestamp: new Date().toISOString()
+    });
+  } catch (serializationError) {
+    console.error('[WebSocket] Failed to serialize file change message:', serializationError);
+    return;
+  }
+
+  const startTime = Date.now();
+  let successCount = 0;
+  let failCount = 0;
+  const failedClients: WebSocket[] = [];
 
   for (const client of clients) {
     try {
+      // Check if connection is still open before sending
+      if (client.readyState !== WebSocket.OPEN) {
+        failedClients.push(client);
+        continue;
+      }
+      
       await client.send(message);
-    } catch {
-      clients.delete(client);
+      successCount++;
+    } catch (sendError) {
+      failCount++;
+      failedClients.push(client);
+      
+      // Log detailed error information
+      const errorType = sendError instanceof Error ? sendError.name : 'UnknownError';
+      const errorMessage = sendError instanceof Error ? sendError.message : String(sendError);
+      
+      console.error(`[WebSocket] Failed to send file change to client: ${errorType} - ${errorMessage}`);
     }
   }
+
+  // Clean up failed clients after iteration to avoid modifying set during iteration
+  for (const client of failedClients) {
+    clients.delete(client);
+    cleanupClient(client);
+    console.log('[WebSocket] Removed disconnected client from broadcast list');
+  }
+
+  // Log broadcast summary
+  const duration = Date.now() - startTime;
+  console.log(`[WebSocket] File change broadcast completed: ${successCount} sent, ${failCount} failed, ${duration}ms, event: ${eventType}, path: ${path}`);
 }
 
 /**

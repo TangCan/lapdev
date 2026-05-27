@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import { fetchGitStatus, fetchBranches, stageFiles, commitChanges, checkoutBranch, fetchGitDiff } from '../services/gitService';
 import type { GitStatus, GitBranch, GitChange } from '../services/gitService';
 
@@ -19,6 +19,10 @@ interface GitContextType {
 
 const GitContext = createContext<GitContextType | null>(null);
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const WS_URL = API_URL.replace('http://', 'ws://').replace('https://', 'wss://');
+const MAX_RECONNECT_ATTEMPTS = 10;
+
 export function GitProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<GitStatus | null>(null);
   const [branches, setBranches] = useState<GitBranch[]>([]);
@@ -27,6 +31,9 @@ export function GitProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [selectedFileDiff, setSelectedFileDiff] = useState<string | null>(null);
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectDelayRef = useRef(1000);
+  const reconnectAttemptsRef = useRef(0);
 
   const loadGitData = useCallback(async () => {
     setIsLoading(true);
@@ -57,9 +64,77 @@ export function GitProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const connectWebSocket = useCallback(() => {
+    try {
+      // Close existing connection if any
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+
+      const ws = new WebSocket(`${WS_URL}/ws`);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        console.log('WebSocket connected');
+        reconnectDelayRef.current = 1000;
+        reconnectAttemptsRef.current = 0;
+        // Subscribe to Git updates
+        ws.send(JSON.stringify({ type: 'subscribeToGit' }));
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          switch (message.type) {
+            case 'gitStatus':
+              if (message.status && message.status.data) {
+                setStatus(message.status.data);
+                setError(null);
+              } else if (message.status?.message) {
+                setError(message.status.message);
+                setStatus(null);
+              }
+              break;
+            case 'ping':
+              // Respond to heartbeat
+              ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
+              break;
+            default:
+              break;
+          }
+        } catch (err) {
+          console.error('Error parsing WebSocket message:', err);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+
+      ws.onclose = () => {
+        console.log('WebSocket disconnected, reconnecting in', reconnectDelayRef.current, 'ms');
+        // Reconnect with exponential backoff
+        setTimeout(connectWebSocket, reconnectDelayRef.current);
+        reconnectDelayRef.current = Math.min(reconnectDelayRef.current * 2, 30000);
+      };
+    } catch (err) {
+      console.error('Failed to connect WebSocket:', err);
+    }
+  }, []);
+
   useEffect(() => {
+    // Initial load
     loadGitData();
-  }, [loadGitData]);
+    
+    // Connect WebSocket for real-time updates
+    connectWebSocket();
+
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [loadGitData, connectWebSocket]);
 
   const refreshStatus = useCallback(() => {
     loadGitData();
@@ -84,21 +159,18 @@ export function GitProvider({ children }: { children: ReactNode }) {
   const stageFile = useCallback(async (path: string) => {
     try {
       const result = await stageFiles([path]);
-      if (result.status === 'success') {
-        await loadGitData();
-      } else {
+      if (result.status !== 'success') {
         setError(result.message);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to stage file');
     }
-  }, [loadGitData]);
+  }, []);
 
   const commit = useCallback(async (message: string) => {
     try {
       const result = await commitChanges(message);
       if (result.status === 'success') {
-        await loadGitData();
         setSelectedFileDiff(null);
         setSelectedFilePath(null);
       } else {
@@ -107,20 +179,27 @@ export function GitProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to commit');
     }
-  }, [loadGitData]);
+  }, []);
 
   const checkout = useCallback(async (branch: string) => {
     try {
       const result = await checkoutBranch(branch);
       if (result.status === 'success') {
-        await loadGitData();
+        setSelectedFileDiff(null);
+        setSelectedFilePath(null);
+        // Refresh branches after checkout
+        const branchesResult = await fetchBranches();
+        if (branchesResult.status === 'success' && branchesResult.data) {
+          setBranches(branchesResult.data.branches);
+          setCurrentBranch(branchesResult.data.current);
+        }
       } else {
         setError(result.message);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to checkout');
     }
-  }, [loadGitData]);
+  }, []);
 
   return (
     <GitContext.Provider

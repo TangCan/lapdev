@@ -80,12 +80,12 @@
 | 前端 | TypeScript | 5+ |
 | 前端 | Vite | 5+ |
 | 后端 | Deno | 1.40+ |
-| Git库 | simple-git | 3.x |
+| Git库 | Deno 内置 Git 命令 | - |
 | 差异视图 | diff2html | 3.x |
 
 ### 架构合规性
 - **前端层**: React组件实现文件树Git状态、编辑器gutter、Git面板
-- **后端层**: Deno API调用simple-git执行Git操作
+- **后端层**: Deno API调用内置Git命令执行Git操作
 - **通信方式**: REST API (Git操作) + WebSocket (实时状态更新)
 - **状态管理**: React Context
 

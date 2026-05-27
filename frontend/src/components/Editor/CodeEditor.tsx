@@ -1,6 +1,11 @@
 import { useEffect, useRef, useCallback } from 'react';
 import * as Monaco from 'monaco-editor';
 
+export interface DiffLine {
+  lineNumber: number;
+  type: 'added' | 'modified' | 'deleted';
+}
+
 interface CodeEditorProps {
   value: string;
   language: string;
@@ -8,6 +13,7 @@ interface CodeEditorProps {
   readOnly?: boolean;
   minimap?: boolean;
   fontSize?: number;
+  diffLines?: DiffLine[];
 }
 
 export function CodeEditor({
@@ -16,17 +22,70 @@ export function CodeEditor({
   onChange,
   readOnly = false,
   minimap = true,
-  fontSize = 14
+  fontSize = 14,
+  diffLines = []
 }: CodeEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
+  const decorationRef = useRef<string[]>([]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.ctrlKey && e.shiftKey && e.key === 'F') {
       e.preventDefault();
-      // Formatting will be handled by the parent component
     }
   }, []);
+
+  const updateDiffDecorations = useCallback(() => {
+    if (!editorRef.current) return;
+
+    // Clear existing decorations
+    if (decorationRef.current.length > 0) {
+      editorRef.current.deltaDecorations(decorationRef.current, []);
+      decorationRef.current = [];
+    }
+
+    // Create decorations for diff lines
+    const decorations: Monaco.editor.IModelDeltaDecoration[] = [];
+
+    diffLines.forEach((diffLine) => {
+      // Skip deleted lines for now (they don't exist in current file)
+      if (diffLine.type === 'deleted') return;
+
+      decorations.push({
+        range: new Monaco.Range(diffLine.lineNumber, 1, diffLine.lineNumber, 1),
+        options: {
+          isWholeLine: true,
+          className: `diff-${diffLine.type}`,
+          glyphMarginClassName: `diff-glyph-${diffLine.type}`,
+          minimap: {
+            position: 1,
+            color: getDiffColor(diffLine.type)
+          },
+          overviewRuler: {
+            position: Monaco.editor.OverviewRulerLane.Right,
+            color: getDiffColor(diffLine.type)
+          }
+        }
+      });
+    });
+
+    if (decorations.length > 0) {
+      decorationRef.current = editorRef.current.deltaDecorations([], decorations);
+    }
+  }, [diffLines]);
+
+  const getDiffColor = (type: string): string => {
+    switch (type) {
+      case 'added':
+        return '#3fb950'; // Green
+      case 'modified':
+        return '#3794ff'; // Blue
+      case 'deleted':
+        return '#f85149'; // Red
+      default:
+        return '#8b949e'; // Gray
+    }
+  };
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -58,6 +117,7 @@ export function CodeEditor({
       fontLigatures: true,
       overviewRulerBorder: false,
       overviewRulerLanes: 2,
+      glyphMargin: true,
     });
 
     // Handle changes
@@ -91,6 +151,11 @@ export function CodeEditor({
       }
     }
   }, [language]);
+
+  // Update diff decorations when diffLines changes
+  useEffect(() => {
+    updateDiffDecorations();
+  }, [updateDiffDecorations]);
 
   return (
     <div 
