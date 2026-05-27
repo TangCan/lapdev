@@ -8,7 +8,7 @@ import {
   handleFormat,
   handleGetLanguages
 } from './handlers/fileHandler.ts';
-import { handleWebSocket, startFileWatcher } from './websocket/fileWatcher.ts';
+import { handleWebSocket, startFileWatcher, startCleanupTimer } from './websocket/fileWatcher.ts';
 import {
   handleCreateTerminal,
   handleTerminalCommand,
@@ -163,6 +163,9 @@ async function handleRequest(req: Request): Promise<Response> {
 
 // Start file watcher
 startFileWatcher();
+
+// Start heartbeat cleanup timer
+startCleanupTimer();
 
 console.log(`Server running on http://localhost:${PORT}`);
 

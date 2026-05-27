@@ -416,6 +416,19 @@ body {
   color: #c9d1d9;
 }
 
+.connection-status {
+  margin-left: 8px;
+  font-size: 10px;
+}
+
+.connection-status.connected {
+  color: #3fb950;
+}
+
+.connection-status.disconnected {
+  color: #f85149;
+}
+
 .terminal-controls {
   display: flex;
   gap: 4px;

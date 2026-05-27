@@ -11,9 +11,14 @@ export function Terminal({ onClose, onResize }: TerminalProps) {
   const [output, setOutput] = useState('');
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isConnected, setIsConnected] = useState(false);
   const outputRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const heartbeatTimerRef = useRef<number | null>(null);
+  const lastPongRef = useRef<number>(Date.now());
+  const reconnectTimerRef = useRef<number | null>(null);
 
   const scrollToBottom = useCallback(() => {
     if (outputRef.current) {
@@ -36,38 +41,7 @@ export function Terminal({ onClose, onResize }: TerminalProps) {
           setIsLoading(false);
           
           // Initialize WebSocket connection for real-time output
-          const ws = new WebSocket(wsUrl);
-          wsRef.current = ws;
-
-          ws.onopen = () => {
-            console.log('WebSocket connected for terminal');
-            ws.send(JSON.stringify({
-              type: 'terminalRegister',
-              sessionId: result.sessionId,
-            }));
-          };
-
-          ws.onmessage = (event) => {
-            try {
-              const message = JSON.parse(event.data);
-              if (message.type === 'terminalOutput' && message.output) {
-                setOutput(prev => prev + message.output);
-              }
-            } catch (error) {
-              console.error('Error parsing WebSocket message:', error);
-            }
-          };
-
-          ws.onerror = (error) => {
-            console.error('WebSocket error:', error);
-          };
-
-          ws.onclose = () => {
-            console.log('WebSocket disconnected');
-            wsRef.current = null;
-          };
-
-          setTimeout(() => inputRef.current?.focus(), 100);
+          connectWebSocket(result.sessionId);
         }
       } catch (error) {
         console.error('Failed to create terminal:', error);
@@ -76,9 +50,100 @@ export function Terminal({ onClose, onResize }: TerminalProps) {
       }
     };
 
+    const connectWebSocket = (sid: string) => {
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        console.log('WebSocket connected for terminal');
+        setIsConnected(true);
+        reconnectAttemptsRef.current = 0;
+        
+        // Clear any existing heartbeat timer
+        if (heartbeatTimerRef.current) {
+          clearInterval(heartbeatTimerRef.current);
+        }
+        
+        // Start heartbeat - send ping every 30 seconds
+        heartbeatTimerRef.current = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
+            
+            // Check if we received a pong recently (within 45 seconds)
+            const timeSinceLastPong = Date.now() - lastPongRef.current;
+            if (timeSinceLastPong > 45000) {
+              console.log('Heartbeat timeout, reconnecting...');
+              ws.close();
+            }
+          }
+        }, 30000) as unknown as number;
+
+        ws.send(JSON.stringify({
+          type: 'terminalRegister',
+          sessionId: sid,
+        }));
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          
+          if (message.type === 'pong') {
+            // Update last pong timestamp
+            lastPongRef.current = Date.now();
+          } else if (message.type === 'terminalOutput' && message.output) {
+            setOutput(prev => prev + message.output);
+          }
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setIsConnected(false);
+      };
+
+      ws.onclose = () => {
+        console.log('WebSocket disconnected');
+        setIsConnected(false);
+        wsRef.current = null;
+        
+        // Clear heartbeat timer
+        if (heartbeatTimerRef.current) {
+          clearInterval(heartbeatTimerRef.current);
+          heartbeatTimerRef.current = null;
+        }
+        
+        // Attempt to reconnect with exponential backoff
+        if (reconnectAttemptsRef.current < 5) {
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+          console.log(`Attempting to reconnect in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1})`);
+          
+          reconnectTimerRef.current = setTimeout(() => {
+            reconnectAttemptsRef.current++;
+            if (sessionId) {
+              connectWebSocket(sessionId);
+            }
+          }, delay) as unknown as number;
+        } else {
+          console.log('Max reconnection attempts reached');
+          setOutput(prev => prev + '\nConnection lost. Please refresh the page to reconnect.');
+        }
+      };
+    };
+
     initTerminal();
 
     return () => {
+      // Clear heartbeat and reconnect timers
+      if (heartbeatTimerRef.current) {
+        clearInterval(heartbeatTimerRef.current);
+      }
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+      }
+      
       if (wsRef.current) {
         wsRef.current.send(JSON.stringify({
           type: 'terminalUnregister',
@@ -90,7 +155,7 @@ export function Terminal({ onClose, onResize }: TerminalProps) {
         closeTerminal(sessionId);
       }
     };
-  }, [sessionId, wsUrl]);
+  }, [wsUrl]);
 
   useEffect(() => {
     scrollToBottom();
@@ -124,6 +189,9 @@ export function Terminal({ onClose, onResize }: TerminalProps) {
         <div className="terminal-tabs">
           <div className="terminal-tab active" data-testid="terminal-tab">
             <span>Terminal</span>
+            <span className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
+              {isConnected ? '●' : '○'}
+            </span>
           </div>
         </div>
         <div className="terminal-controls">
