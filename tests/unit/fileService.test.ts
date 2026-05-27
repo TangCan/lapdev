@@ -1,4 +1,5 @@
-import { describe, it, assertEquals, assertThrows } from "https://deno.land/std@0.200.0/testing/asserts.ts";
+import { describe, it } from "https://deno.land/std@0.200.0/testing/bdd.ts";
+import { assertEquals, assertThrows } from "https://deno.land/std@0.200.0/testing/asserts.ts";
 
 // 模拟文件服务的工具函数
 function escapeRegex(str: string): string {
@@ -30,8 +31,20 @@ function validatePath(path: string, workspaceRoot: string = "/workspace"): boole
   const normalizedPath = path.replace(/\/+/g, '/');
   const absolutePath = normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
   
-  const workspacePath = workspaceRoot.endsWith('/') ? workspaceRoot : `${workspaceRoot}/`;
-  return absolutePath.startsWith(workspacePath) || absolutePath === workspaceRoot;
+  // 解析 .. 和 . 来防止路径遍历
+  const parts: string[] = [];
+  for (const part of absolutePath.split('/')) {
+    if (part === '..') {
+      parts.pop(); // 移除上一个路径部分
+    } else if (part !== '.' && part !== '') {
+      parts.push(part);
+    }
+  }
+  
+  const resolvedPath = '/' + parts.join('/');
+  const workspacePath = workspaceRoot.endsWith('/') ? workspaceRoot.slice(0, -1) : workspaceRoot;
+  
+  return resolvedPath.startsWith(workspacePath) || resolvedPath === workspacePath;
 }
 
 describe("File Service Unit Tests", () => {
@@ -77,21 +90,28 @@ describe("File Service Unit Tests", () => {
 
     it("should prevent regex injection", () => {
       const maliciousPatterns = ["[a-z]*"];
+      // 由于转义了特殊字符，[a-z]* 现在会被当作字面量匹配，不是正则
       assertEquals(isIgnored("test", maliciousPatterns), false);
       assertEquals(isIgnored("abc123", maliciousPatterns), false);
     });
 
     it("should handle invalid patterns gracefully", () => {
-      const invalidPatterns = ["[invalid", "*"];
+      const invalidPatterns = ["[invalid"];
+      // "invalid" 模式不匹配 "test"
       assertEquals(isIgnored("test", invalidPatterns), false);
+      
+      // 测试 "*" 模式 - 这个应该匹配任何内容
+      const starPatterns = ["*"];
+      assertEquals(isIgnored("test", starPatterns), true);
     });
   });
 
   describe("Regex Escape", () => {
     it("should escape special regex characters", () => {
-      assertEquals(escapeRegex("*.txt"), "\\*.txt");
+      // 修正：escapeRegex 对每个特殊字符单独转义，所以 * 变成 \*，. 变成 \.
+      assertEquals(escapeRegex("*.txt"), "\\*\\.txt");
       assertEquals(escapeRegex("file[name].txt"), "file\\[name\\]\\.txt");
-      assertEquals(escapeRegex("path/to/*/file"), "path\\/to\\/\\*\\/file");
+      assertEquals(escapeRegex("path/to/*/file"), "path/to/\\*/file");
     });
 
     it("should handle empty string", () => {

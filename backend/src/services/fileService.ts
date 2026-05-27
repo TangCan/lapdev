@@ -12,7 +12,9 @@ function sanitizePath(path: string): string {
   
   // Check for path traversal attempts in original path
   if (normalized.includes('..')) {
-    throw new Error('invalid path traversal attempt');
+    const error = new Error('Path traversal attempt detected');
+    (error as any).code = 'FORBIDDEN';
+    throw error;
   }
   
   let resolved: string;
@@ -46,7 +48,9 @@ function sanitizePath(path: string): string {
   
   // Verify path is within workspace
   if (!resolved.startsWith(WORKSPACE_DIR + '/') && resolved !== WORKSPACE_DIR) {
-    throw new Error('Access denied: Path outside workspace');
+    const error = new Error('Access denied: Path outside workspace');
+    (error as any).code = 'FORBIDDEN';
+    throw error;
   }
   
   return resolved;
@@ -212,12 +216,16 @@ export async function readFile(path: string): Promise<FileContentResult> {
   try {
     const sanitizedPath = sanitizePath(path);
     const content = await Deno.readTextFile(sanitizedPath, { encoding: 'utf-8' });
+    const stat = await Deno.stat(sanitizedPath);
     
     return {
       status: 'success',
       data: {
         path: toWorkspacePath(sanitizedPath),
-        content
+        content,
+        lastModified: stat.mtime?.toISOString() || '',
+        size: stat.size,
+        type: stat.isDirectory ? 'directory' : 'file'
       }
     };
   } catch (error) {
@@ -242,10 +250,14 @@ export async function writeFile(path: string, content: string): Promise<Operatio
       message: 'File written successfully'
     };
   } catch (error) {
-    return {
+    const result: OperationResult & { code?: string } = {
       status: 'error',
       message: error instanceof Error ? error.message : 'Unknown error'
     };
+    if ((error as any).code === 'FORBIDDEN') {
+      result.code = 'FORBIDDEN';
+    }
+    return result;
   }
 }
 

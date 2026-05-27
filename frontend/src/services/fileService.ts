@@ -13,11 +13,11 @@ export async function readFile(path: string): Promise<FileContentResult> {
 }
 
 export async function writeFile(path: string, content: string): Promise<OperationResult> {
-  const response = await fetch(`${BASE_URL}/api/v1/files/write?path=${encodeURIComponent(path)}`, {
+  const response = await fetch(`${BASE_URL}/api/v1/files/write`, {
     method: 'POST',
-    body: content,
+    body: JSON.stringify({ path, content }),
     headers: {
-      'Content-Type': 'text/plain'
+      'Content-Type': 'application/json'
     }
   });
   return await response.json();

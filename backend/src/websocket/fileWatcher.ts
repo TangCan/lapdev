@@ -9,6 +9,36 @@ type WebSocket = any;
 const clients = new Set<WebSocket>();
 let watcher: Deno.FsWatcher | null = null;
 
+// Terminal sessions mapped by session ID
+const terminalClients = new Map<string, WebSocket>();
+
+export function registerTerminalClient(sessionId: string, ws: WebSocket): void {
+  terminalClients.set(sessionId, ws);
+}
+
+export function unregisterTerminalClient(sessionId: string): void {
+  terminalClients.delete(sessionId);
+}
+
+export async function sendTerminalOutput(sessionId: string, output: string): Promise<void> {
+  const ws = terminalClients.get(sessionId);
+  if (ws) {
+    try {
+      await ws.send(JSON.stringify({
+        type: 'terminalOutput',
+        sessionId,
+        output,
+      }));
+    } catch {
+      terminalClients.delete(sessionId);
+    }
+  }
+}
+
+export function getTerminalClient(sessionId: string): WebSocket | undefined {
+  return terminalClients.get(sessionId);
+}
+
 export function handleWebSocket(ws: WebSocket): void {
   clients.add(ws);
 
@@ -26,6 +56,22 @@ export function handleWebSocket(ws: WebSocket): void {
           break;
         case 'unsubscribe':
           await handleUnsubscribe(ws, message);
+          break;
+        case 'terminalRegister':
+          // Register WebSocket connection for terminal output
+          if (message.sessionId) {
+            registerTerminalClient(message.sessionId, ws);
+            await ws.send(JSON.stringify({
+              type: 'terminalRegistered',
+              sessionId: message.sessionId,
+            }));
+          }
+          break;
+        case 'terminalUnregister':
+          // Unregister WebSocket connection
+          if (message.sessionId) {
+            unregisterTerminalClient(message.sessionId);
+          }
           break;
         default:
           await ws.send(JSON.stringify({

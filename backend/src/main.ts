@@ -9,6 +9,12 @@ import {
   handleGetLanguages
 } from './handlers/fileHandler.ts';
 import { handleWebSocket, startFileWatcher } from './websocket/fileWatcher.ts';
+import {
+  handleCreateTerminal,
+  handleTerminalCommand,
+  handleTerminalResize,
+  handleCloseTerminal
+} from './handlers/terminalHandler.ts';
 
 const PORT = parseInt(Deno.env.get('PORT') || '3000');
 const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') || 'http://localhost:3000').split(',');
@@ -116,6 +122,34 @@ async function handleRequest(req: Request): Promise<Response> {
     case '/api/v1/languages':
       if (req.method === 'GET') {
         response = await handleGetLanguages(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/terminal/create':
+      if (req.method === 'POST') {
+        response = await handleCreateTerminal(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/terminal/command':
+      if (req.method === 'POST') {
+        response = await handleTerminalCommand(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/terminal/resize':
+      if (req.method === 'POST') {
+        response = await handleTerminalResize(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/terminal/close':
+      if (req.method === 'POST') {
+        response = await handleCloseTerminal(req);
       } else {
         response = new Response('Method Not Allowed', { status: 405 });
       }

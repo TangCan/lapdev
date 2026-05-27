@@ -54,33 +54,41 @@ export async function handleReadFile(req: Request): Promise<Response> {
 
 export async function handleWriteFile(req: Request): Promise<Response> {
   try {
-    const url = new URL(req.url);
-    const path = url.searchParams.get('path');
+    const body = await req.json();
     
-    if (!path) {
+    if (!body.path || !body.content) {
       return new Response(JSON.stringify({
         status: 'error',
-        message: 'Path parameter is required'
+        message: 'Path and content are required'
       }), {
         headers: { 'Content-Type': 'application/json' },
         status: 400
       });
     }
 
-    const content = await req.text();
-    const result = await writeFile(path, content);
+    let content = body.content;
+    if (body.isBase64) {
+      content = new TextDecoder().decode(Uint8Array.from(atob(content), c => c.charCodeAt(0)));
+    }
+    
+    const result = await writeFile(body.path, content);
+    
+    const isForbidden = (result as any).code === 'FORBIDDEN';
     
     return new Response(JSON.stringify(result), {
       headers: { 'Content-Type': 'application/json' },
-      status: result.status === 'success' ? 200 : 400
+      status: result.status === 'success' ? 200 : (isForbidden ? 403 : 400)
     });
   } catch (error) {
+    const message = getErrorMessage(error);
+    const isForbidden = (error as any).code === 'FORBIDDEN';
+    
     return new Response(JSON.stringify({
       status: 'error',
-      message: getErrorMessage(error)
+      message
     }), {
       headers: { 'Content-Type': 'application/json' },
-      status: 500
+      status: isForbidden ? 403 : 500
     });
   }
 }
@@ -196,7 +204,7 @@ export async function handleFormat(req: Request): Promise<Response> {
         status: 400
       });
     }
-
+    
     const formatted = await formatCode(body.content, body.language);
     
     return new Response(JSON.stringify({
@@ -207,12 +215,15 @@ export async function handleFormat(req: Request): Promise<Response> {
       status: 200
     });
   } catch (error) {
+    const message = getErrorMessage(error);
+    const isUnsupportedLanguage = message.includes('Unsupported language');
+    
     return new Response(JSON.stringify({
       status: 'error',
-      message: getErrorMessage(error)
+      message
     }), {
       headers: { 'Content-Type': 'application/json' },
-      status: 500
+      status: isUnsupportedLanguage ? 400 : 500
     });
   }
 }
@@ -230,8 +241,14 @@ export async function handleGetLanguages(req: Request): Promise<Response> {
 }
 
 async function formatCode(content: string, language: string): Promise<string> {
-  // Simple formatting based on language
-  switch (language.toLowerCase()) {
+  const supportedLanguages = getSupportedLanguages();
+  const normalizedLanguage = language.toLowerCase();
+  
+  if (!supportedLanguages.includes(normalizedLanguage)) {
+    throw new Error(`Unsupported language: ${language}`);
+  }
+  
+  switch (normalizedLanguage) {
     case 'javascript':
     case 'typescript':
       return formatJavaScript(content);
@@ -247,20 +264,53 @@ async function formatCode(content: string, language: string): Promise<string> {
 }
 
 function formatJavaScript(code: string): string {
-  // Simple JS formatting - add semicolons and proper indentation
-  return code
-    .split('\n')
-    .map((line, index) => {
-      const trimmed = line.trim();
-      if (trimmed.endsWith('{') || trimmed.endsWith('(')) {
-        return line;
+  let result = code;
+  
+  result = result.replace(/\{\s*([^}]*?)\s*\}/g, '{\n$1\n}');
+  
+  result = result.replace(/\{\s*\n\s*/g, '{\n');
+  result = result.replace(/\s*\n\s*\}/g, '\n}');
+  
+  const lines = result.split('\n');
+  const formatted: string[] = [];
+  let indentLevel = 0;
+  const indentStr = '  ';
+  
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i].trim();
+    
+    if (line === '') {
+      formatted.push('');
+      continue;
+    }
+    
+    if (line.endsWith('}')) {
+      indentLevel = Math.max(0, indentLevel - 1);
+    }
+    
+    const indentedLine = indentStr.repeat(indentLevel) + line;
+    
+    if (line.endsWith('{')) {
+      formatted.push(indentedLine);
+      indentLevel++;
+    } else if (line.endsWith('}')) {
+      formatted.push(indentedLine);
+    } else {
+      if (!line.endsWith(';') && !line.endsWith(',') && !line.endsWith('{') && !line.endsWith('}')) {
+        formatted.push(indentedLine + ';');
+      } else {
+        formatted.push(indentedLine);
       }
-      if (trimmed && !trimmed.endsWith(';') && !trimmed.startsWith('}')) {
-        return line.replace(/\s*$/, '') + ';';
-      }
-      return line;
-    })
-    .join('\n');
+    }
+  }
+  
+  result = formatted.join('\n');
+  result = result.replace(/:\s*([a-zA-Z]+)/g, ': $1');
+  result = result.replace(/([a-zA-Z]+)\s*:/g, '$1:');
+  result = result.replace(/([a-zA-Z]+)\s*=\s*/g, '$1 = ');
+  result = result.replace(/=\s*([a-zA-Z0-9]+)/g, '= $1');
+  
+  return result;
 }
 
 function formatPython(code: string): string {

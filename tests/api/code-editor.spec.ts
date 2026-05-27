@@ -5,7 +5,7 @@ const testPrefix = '/workspace';
 
 test.describe('[API] Code Editor API', () => {
   test.describe('GET /api/v1/files/read', () => {
-    test.skip('[P0] should return file content', async ({ request }) => {
+    test('[P0] should return file content', async ({ request }) => {
       const response = await request.get(`${baseURL}/api/v1/files/read`, {
         params: { path: `${testPrefix}/test-file.txt` }
       });
@@ -19,7 +19,7 @@ test.describe('[API] Code Editor API', () => {
       expect(data.data).toHaveProperty('path');
     });
 
-    test.skip('[P0] should handle non-existent file', async ({ request }) => {
+    test('[P0] should handle non-existent file', async ({ request }) => {
       const response = await request.get(`${baseURL}/api/v1/files/read`, {
         params: { path: `${testPrefix}/non-existent.txt` }
       });
@@ -29,7 +29,7 @@ test.describe('[API] Code Editor API', () => {
       expect(data).toHaveProperty('status', 'error');
     });
 
-    test.skip('[P1] should return file metadata', async ({ request }) => {
+    test('[P1] should return file metadata', async ({ request }) => {
       const response = await request.get(`${baseURL}/api/v1/files/read`, {
         params: { path: `${testPrefix}/test-file.txt` }
       });
@@ -42,7 +42,7 @@ test.describe('[API] Code Editor API', () => {
       expect(data.data).toHaveProperty('type');
     });
 
-    test.skip('[P2] should handle large file', async ({ request }) => {
+    test('[P2] should handle large file', async ({ request }) => {
       const response = await request.get(`${baseURL}/api/v1/files/read`, {
         params: { path: `${testPrefix}/large-file.txt` }
       });
@@ -54,7 +54,7 @@ test.describe('[API] Code Editor API', () => {
   });
 
   test.describe('POST /api/v1/files/write', () => {
-    test.skip('[P0] should create new file', async ({ request }) => {
+    test('[P0] should create new file', async ({ request }) => {
       const response = await request.post(`${baseURL}/api/v1/files/write`, {
         data: {
           path: `${testPrefix}/new-file.txt`,
@@ -67,7 +67,7 @@ test.describe('[API] Code Editor API', () => {
       expect(data).toHaveProperty('status', 'success');
     });
 
-    test.skip('[P0] should update existing file', async ({ request }) => {
+    test('[P0] should update existing file', async ({ request }) => {
       const response = await request.post(`${baseURL}/api/v1/files/write`, {
         data: {
           path: `${testPrefix}/test-file.txt`,
@@ -80,7 +80,7 @@ test.describe('[API] Code Editor API', () => {
       expect(data).toHaveProperty('status', 'success');
     });
 
-    test.skip('[P1] should handle binary files', async ({ request }) => {
+    test('[P1] should handle binary files', async ({ request }) => {
       const response = await request.post(`${baseURL}/api/v1/files/write`, {
         data: {
           path: `${testPrefix}/binary.bin`,
@@ -92,7 +92,7 @@ test.describe('[API] Code Editor API', () => {
       expect(response.ok()).toBeTruthy();
     });
 
-    test.skip('[P2] should validate path traversal', async ({ request }) => {
+    test('[P2] should validate path traversal', async ({ request }) => {
       const response = await request.post(`${baseURL}/api/v1/files/write`, {
         data: {
           path: '../etc/passwd',
@@ -107,7 +107,7 @@ test.describe('[API] Code Editor API', () => {
   });
 
   test.describe('POST /api/v1/files/format', () => {
-    test.skip('[P0] should format JavaScript code', async ({ request }) => {
+    test('[P0] should format JavaScript code', async ({ request }) => {
       const response = await request.post(`${baseURL}/api/v1/files/format`, {
         data: {
           content: 'function foo() { return 1 }',
@@ -120,7 +120,7 @@ test.describe('[API] Code Editor API', () => {
       expect(data.data.formatted).toBe('function foo() {\n  return 1;\n}');
     });
 
-    test.skip('[P0] should format TypeScript code', async ({ request }) => {
+    test('[P0] should format TypeScript code', async ({ request }) => {
       const response = await request.post(`${baseURL}/api/v1/files/format`, {
         data: {
           content: 'const x:number=1',
@@ -133,7 +133,7 @@ test.describe('[API] Code Editor API', () => {
       expect(data.data.formatted).toContain('const x: number = 1');
     });
 
-    test.skip('[P1] should format Python code', async ({ request }) => {
+    test('[P1] should format Python code', async ({ request }) => {
       const response = await request.post(`${baseURL}/api/v1/files/format`, {
         data: {
           content: 'def foo(): return 1',
@@ -144,7 +144,7 @@ test.describe('[API] Code Editor API', () => {
       expect(response.ok()).toBeTruthy();
     });
 
-    test.skip('[P1] should format Rust code', async ({ request }) => {
+    test('[P1] should format Rust code', async ({ request }) => {
       const response = await request.post(`${baseURL}/api/v1/files/format`, {
         data: {
           content: 'fn main(){ println!("Hello"); }',
@@ -155,7 +155,7 @@ test.describe('[API] Code Editor API', () => {
       expect(response.ok()).toBeTruthy();
     });
 
-    test.skip('[P2] should handle unsupported language', async ({ request }) => {
+    test('[P2] should handle unsupported language', async ({ request }) => {
       const response = await request.post(`${baseURL}/api/v1/files/format`, {
         data: {
           content: 'some code',
@@ -168,7 +168,7 @@ test.describe('[API] Code Editor API', () => {
   });
 
   test.describe('GET /api/v1/languages', () => {
-    test.skip('[P0] should return supported languages', async ({ request }) => {
+    test('[P0] should return supported languages', async ({ request }) => {
       const response = await request.get(`${baseURL}/api/v1/languages`);
 
       expect(response.ok()).toBeTruthy();

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FileTree } from './components/FileTree';
 import { CodeEditor } from './components/Editor/CodeEditor';
+import { Terminal } from './components/Terminal/Terminal';
 import type { FileInfo } from './types/file';
 import { readFile, writeFile, formatCode } from './services/fileService';
 
@@ -19,6 +20,8 @@ function App() {
   const [isSaving, setIsSaving] = useState(false);
   const [isFormatting, setIsFormatting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showTerminal, setShowTerminal] = useState(false);
+  const [terminalHeight, setTerminalHeight] = useState(300);
 
   const showError = (message: string) => {
     setErrorMessage(message);
@@ -191,6 +194,13 @@ function App() {
           >
             {isFormatting ? '⏳ 格式化中...' : '🎨 格式化'}
           </button>
+          <button 
+            className={`action-button ${showTerminal ? 'active' : ''}`}
+            onClick={() => setShowTerminal(!showTerminal)}
+            data-testid="terminal-button"
+          >
+            🖥️ 终端
+          </button>
         </div>
       </header>
       
@@ -253,6 +263,19 @@ function App() {
               </div>
             )}
           </div>
+          
+          {showTerminal && (
+            <div 
+              className="terminal-container" 
+              style={{ height: `${terminalHeight}px` }}
+              data-testid="terminal-container"
+            >
+              <Terminal 
+                onClose={() => setShowTerminal(false)} 
+                onResize={setTerminalHeight}
+              />
+            </div>
+          )}
         </main>
       </div>
     </div>
