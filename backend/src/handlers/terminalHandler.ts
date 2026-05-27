@@ -158,9 +158,12 @@ export async function handleTerminalResize(req: Request): Promise<Response> {
     }
 
     try {
-      console.log(`Resizing terminal ${sessionId} to ${cols}x${rows}`);
-    } catch {
-      // SIGWINCH not supported on this platform
+      // Send SIGWINCH signal to notify terminal of window size change
+      // Deno.kill requires --allow-run permission
+      Deno.kill(session.process.pid, "SIGWINCH");
+      console.log(`Resized terminal ${sessionId} to ${cols}x${rows}`);
+    } catch (error) {
+      console.log(`SIGWINCH not supported on this platform: ${error instanceof Error ? error.message : error}`);
     }
 
     return new Response(JSON.stringify({

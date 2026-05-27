@@ -92,6 +92,14 @@ export function handleWebSocket(ws: WebSocket): void {
   ws.onclose = () => {
     console.log('WebSocket connection closed');
     clients.delete(ws);
+    // Clean up terminal client mappings when WebSocket closes
+    for (const [sessionId, client] of terminalClients) {
+      if (client === ws) {
+        terminalClients.delete(sessionId);
+        console.log(`Unregistered terminal client: ${sessionId}`);
+        break;
+      }
+    }
   };
 }
 
