@@ -262,3 +262,43 @@ lapdev/
 
 **后续依赖:**
 - Story 2.2 (LSP代码智能): LSP需要Git感知
+
+---
+
+## 🔍 Code Review Findings
+
+### Decision Needed (4)
+
+- [ ] [Review][Decision] **技术栈偏离** - Spec 要求使用 `simple-git`，但实现使用 Deno 内置 Git 命令（`Deno.run`）。是否需要更新 spec？
+- [ ] [Review][Decision] **WebSocket 实时更新缺失** - Spec 要求 WebSocket 实时更新 Git 状态，但实现使用轮询（或无轮询）。是否需要实现？
+- [ ] [Review][Decision] **编辑器 gutter 未实现** - AC-2 要求编辑器边栏显示差异指示，但 Task 2.1.5 标记为未完成。是否需要现在实现？
+- [ ] [Review][Decision] **diff2html 库未使用** - Spec 要求使用 `diff2html` 库，但实现使用自定义解析。是否需要更新 spec？
+
+### Patch (11)
+
+- [ ] [Review][Patch] **文件路径安全检查缺失** - 路径遍历漏洞 [`gitHandler.ts:handleGitDiff`]
+- [ ] [Review][Patch] **分支名称特殊字符未转义** - 命令注入风险 [`gitService.ts:checkoutBranch`]
+- [ ] [Review][Patch] **Git 命令执行缺少错误边界处理** - 未区分失败类型 [`gitService.ts:runGitCommand`]
+- [ ] [Review][Patch] **分支切换后 UI 状态未完全同步** - 文件树/编辑器未重载 [`GitContext.tsx:checkout`]
+- [ ] [Review][Patch] **非 Git 仓库场景处理不完整** - 未处理 worktree [`gitService.ts:isGitRepository`]
+- [ ] [Review][Patch] **Diff 视图解析过于简单** - 无法处理复杂 diff [`DiffView.tsx:parseDiff`]
+- [ ] [Review][Patch] **提交表单缺少验证** - 无格式/长度检查 [`CommitForm.tsx`]
+- [ ] [Review][Patch] **空提交消息处理** - 接受空字符串 [`gitService.ts:commitChanges`]
+- [ ] [Review][Patch] **Diff 视图内存泄漏风险** - 大型 diff 未清理 [`DiffView.tsx`]
+- [ ] [Review][Patch] **分支列表去重逻辑缺失** - 本地/远程同名重复 [`gitService.ts:getBranches`]
+- [ ] [Review][Patch] **API 响应格式不完全一致** - 错误处理差异 [`gitHandler.ts`]
+
+### Defer (7)
+
+- [x] [Review][Defer] **并发 Git 操作竞态条件** - 多个组件同时调用 API [`GitContext.tsx`] — deferred, pre-existing
+- [x] [Review][Defer] **大型仓库性能问题** - 无分页或增量加载 [`gitService.ts:getGitStatus`] — deferred, pre-existing
+- [x] [Review][Defer] **前端 Git 状态轮询缺失** - 无定期刷新机制 [`GitContext.tsx`] — deferred, pre-existing
+- [x] [Review][Defer] **状态栏分支信息可能过时** - 无自动更新 [`App.tsx`] — deferred, pre-existing
+- [x] [Review][Defer] **Git 状态缓存策略缺失** - 频繁调用性能问题 [`GitContext.tsx`] — deferred, pre-existing
+- [x] [Review][Defer] **领先/落后远程分支显示缺失** - AC-6 部分未实现 [`gitService.ts:getBranches`] — deferred, pre-existing
+- [x] [Review][Defer] **未处理 Git 配置文件** - .gitignore/.gitattributes [`gitService.ts`] — deferred, pre-existing
+- [x] [Review][Defer] **二进制文件 diff 显示** - 无特殊处理提示 [`gitService.ts:getGitDiff`] — deferred, pre-existing
+
+### Dismiss (1)
+
+- [x] [Review][Dismiss] **Git 状态图标硬编码** - Unicode 字符跨平台不一致 [`FileTreeNode.tsx`] — dismissed as noise
