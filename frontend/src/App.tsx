@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { FileTree } from './components/FileTree';
 import { CodeEditor } from './components/Editor/CodeEditor';
 import { Terminal } from './components/Terminal/Terminal';
+import GitPanel from './components/Git/GitPanel';
+import { GitProvider, useGit } from './context/GitContext';
 import type { FileInfo } from './types/file';
 import { readFile, writeFile, formatCode } from './services/fileService';
 
@@ -13,7 +15,7 @@ interface Tab {
   language: string;
 }
 
-function App() {
+function AppContent() {
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [loadingFiles, setLoadingFiles] = useState<Set<string>>(new Set());
@@ -21,7 +23,10 @@ function App() {
   const [isFormatting, setIsFormatting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showTerminal, setShowTerminal] = useState(false);
+  const [showGitPanel, setShowGitPanel] = useState(false);
   const [terminalHeight, setTerminalHeight] = useState(300);
+  
+  const { status, currentBranch, refreshStatus } = useGit();
 
   const showError = (message: string) => {
     setErrorMessage(message);
@@ -120,6 +125,7 @@ function App() {
             ? { ...tab, isModified: false }
             : tab
         ));
+        refreshStatus();
       } else {
         showError(result.message || '保存失败');
       }
@@ -128,7 +134,7 @@ function App() {
     } finally {
       setIsSaving(false);
     }
-  }, [tabs, activeTabId, showError]);
+  }, [tabs, activeTabId, showError, refreshStatus]);
 
   const handleFormat = useCallback(async () => {
     const activeTab = tabs.find(tab => tab.id === activeTabId);
@@ -172,6 +178,10 @@ function App() {
   }, [activeTabId, handleSave, handleFormat]);
 
   const activeTab = tabs.find(tab => tab.id === activeTabId);
+  
+  const changesCount = status 
+    ? status.changes.length + status.untracked.length 
+    : 0;
 
   return (
     <div className="app">
@@ -195,6 +205,13 @@ function App() {
             {isFormatting ? '⏳ 格式化中...' : '🎨 格式化'}
           </button>
           <button 
+            className={`action-button ${showGitPanel ? 'active' : ''}`}
+            onClick={() => setShowGitPanel(!showGitPanel)}
+            data-testid="git-panel-button"
+          >
+            🗂️ Git {changesCount > 0 && `(${changesCount})`}
+          </button>
+          <button 
             className={`action-button ${showTerminal ? 'active' : ''}`}
             onClick={() => setShowTerminal(!showTerminal)}
             data-testid="terminal-button"
@@ -203,6 +220,24 @@ function App() {
           </button>
         </div>
       </header>
+      
+      <footer className="status-bar" data-testid="status-bar">
+        <div className="status-left">
+          {currentBranch && (
+            <span className="branch-info" data-testid="branch-info">
+              🌿 {currentBranch}
+            </span>
+          )}
+          {changesCount > 0 && (
+            <span className="changes-count" data-testid="changes-count">
+              {changesCount} changes
+            </span>
+          )}
+        </div>
+        <div className="status-right">
+          <span>Lapdev v1.0</span>
+        </div>
+      </footer>
       
       {errorMessage && (
           <div className="error-message" data-testid="error-message">
@@ -277,8 +312,22 @@ function App() {
             </div>
           )}
         </main>
+        
+        {showGitPanel && (
+          <aside className="git-sidebar">
+            <GitPanel />
+          </aside>
+        )}
       </div>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <GitProvider>
+      <AppContent />
+    </GitProvider>
   );
 }
 

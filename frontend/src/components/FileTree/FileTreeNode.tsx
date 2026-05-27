@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { FileInfo } from '../../types/file';
+import { useGit } from '../../context/GitContext';
 
 interface FileTreeNodeProps {
   file: FileInfo;
@@ -10,6 +11,18 @@ interface FileTreeNodeProps {
 
 export function FileTreeNode({ file, depth, onFileClick, onContextMenu }: FileTreeNodeProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { status } = useGit();
+
+  const gitStatus = useMemo(() => {
+    if (!status) return null;
+    
+    const fileChange = status.changes.find(c => c.path === file.path);
+    if (fileChange) return fileChange.status;
+    
+    if (status.untracked.includes(file.path)) return 'untracked';
+    
+    return null;
+  }, [status, file.path]);
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -34,6 +47,25 @@ export function FileTreeNode({ file, depth, onFileClick, onContextMenu }: FileTr
     ? '📁' 
     : getFileIcon(file.name);
 
+  const getGitStatusIcon = (status: string) => {
+    switch (status) {
+      case 'modified':
+        return { icon: '●', className: 'git-status modified' };
+      case 'added':
+        return { icon: '●', className: 'git-status added' };
+      case 'deleted':
+        return { icon: '✕', className: 'git-status deleted' };
+      case 'renamed':
+        return { icon: '→', className: 'git-status renamed' };
+      case 'untracked':
+        return { icon: '?', className: 'git-status untracked' };
+      default:
+        return null;
+    }
+  };
+
+  const gitIconInfo = gitStatus ? getGitStatusIcon(gitStatus) : null;
+
   return (
     <div className="file-tree-node">
       <div
@@ -42,6 +74,7 @@ export function FileTreeNode({ file, depth, onFileClick, onContextMenu }: FileTr
         onClick={handleClick}
         onContextMenu={handleContextMenu}
         data-testid="file-item"
+        data-git-status={gitStatus || undefined}
       >
         <span className="expand-icon" data-testid="folder-expand">
           {file.type === 'directory' && (
@@ -50,6 +83,9 @@ export function FileTreeNode({ file, depth, onFileClick, onContextMenu }: FileTr
         </span>
         <span className="icon">{icon}</span>
         <span className="name">{file.name}</span>
+        {gitIconInfo && (
+          <span className={gitIconInfo.className}>{gitIconInfo.icon}</span>
+        )}
       </div>
       {file.type === 'directory' && isExpanded && file.children && (
         <div className="children">

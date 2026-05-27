@@ -15,6 +15,14 @@ import {
   handleTerminalResize,
   handleCloseTerminal
 } from './handlers/terminalHandler.ts';
+import {
+  handleGitStatus,
+  handleGitDiff,
+  handleGitBranches,
+  handleGitStage,
+  handleGitCommit,
+  handleGitCheckout
+} from './handlers/gitHandler.ts';
 
 const PORT = parseInt(Deno.env.get('PORT') || '3000');
 const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') || 'http://localhost:3000').split(',');
@@ -150,6 +158,48 @@ async function handleRequest(req: Request): Promise<Response> {
     case '/api/v1/terminal/close':
       if (req.method === 'POST') {
         response = await handleCloseTerminal(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/git/status':
+      if (req.method === 'GET') {
+        response = await handleGitStatus(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/git/diff':
+      if (req.method === 'GET') {
+        response = await handleGitDiff(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/git/branches':
+      if (req.method === 'GET') {
+        response = await handleGitBranches(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/git/stage':
+      if (req.method === 'POST') {
+        response = await handleGitStage(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/git/commit':
+      if (req.method === 'POST') {
+        response = await handleGitCommit(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/git/checkout':
+      if (req.method === 'POST') {
+        response = await handleGitCheckout(req);
       } else {
         response = new Response('Method Not Allowed', { status: 405 });
       }

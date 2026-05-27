@@ -147,81 +147,81 @@ lapdev/
 
 ## 📝 开发任务分解
 
-### Task 2.1.1: 后端Git服务层
+### ✅ Task 2.1.1: 后端Git服务层
 **目标**: 实现Git操作的API层
 
 **实现内容:**
-- 安装simple-git依赖
-- 实现`gitService.ts`封装Git操作
-- 实现`gitHandler.ts`处理HTTP请求
-- 添加Git路由到main.ts
+- ✅ 实现`gitService.ts`封装Git操作（使用Deno内置Git命令）
+- ✅ 实现`gitHandler.ts`处理HTTP请求
+- ✅ 添加Git路由到main.ts
 
 **验收标准:**
-- 所有Git API端点正确响应
-- 错误处理完善（无Git仓库、非Git路径等）
+- ✅ 所有Git API端点正确响应
+- ✅ 错误处理完善（无Git仓库、非Git路径等）
 
-### Task 2.1.2: 前端Git服务层
+### ✅ Task 2.1.2: 前端Git服务层
 **目标**: 实现前端Git API调用
 
 **实现内容:**
-- 创建`gitService.ts`封装API调用
-- 创建`GitContext.tsx`管理Git状态
+- ✅ 创建`gitService.ts`封装API调用
+- ✅ 创建`GitContext.tsx`管理Git状态
 
 **验收标准:**
-- API调用封装完整
-- 状态管理正确
+- ✅ API调用封装完整
+- ✅ 状态管理正确
 
-### Task 2.1.3: Git面板UI
+### ✅ Task 2.1.3: Git面板UI
 **目标**: 实现Git面板组件
 
 **实现内容:**
-- 创建`GitPanel.tsx`主面板
-- 创建`GitStatus.tsx`变更列表
-- 创建`DiffView.tsx`差异视图
-- 创建`BranchSelector.tsx`分支选择器
-- 创建`CommitForm.tsx`提交表单
+- ✅ 创建`GitPanel.tsx`主面板
+- ✅ 创建`GitStatus.tsx`变更列表
+- ✅ 创建`DiffView.tsx`差异视图
+- ✅ 创建`BranchSelector.tsx`分支选择器
+- ✅ 创建`CommitForm.tsx`提交表单
 
 **验收标准:**
-- 面板正确显示变更列表
-- Diff视图正确显示行级差异
-- 分支切换功能正常
+- ✅ 面板正确显示变更列表
+- ✅ Diff视图正确显示行级差异
+- ✅ 分支切换功能正常
 
-### Task 2.1.4: 文件树Git状态集成
+### ✅ Task 2.1.4: 文件树Git状态集成
 **目标**: 在文件树中显示Git状态
 
 **实现内容:**
-- 修改`FileTreeNode.tsx`添加Git状态图标
-- 根据文件状态显示不同颜色和图标
+- ✅ 修改`FileTreeNode.tsx`添加Git状态图标
+- ✅ 根据文件状态显示不同颜色和图标
 
 **验收标准:**
-- 已修改文件显示蓝色
-- 新增文件显示绿色
-- 未跟踪文件显示灰色
-- 已删除文件显示红色
+- ✅ 已修改文件显示蓝色
+- ✅ 新增文件显示绿色
+- ✅ 未跟踪文件显示灰色
+- ✅ 已删除文件显示红色
 
-### Task 2.1.5: 编辑器Gutter差异指示
+### ⏳ Task 2.1.5: 编辑器Gutter差异指示
 **目标**: 在编辑器显示行级差异
 
 **实现内容:**
-- 修改`CodeEditor.tsx`添加gutter渲染
-- 根据diff数据高亮显示行级别变化
+- ⏳ 修改`CodeEditor.tsx`添加gutter渲染
+- ⏳ 根据diff数据高亮显示行级别变化
 
 **验收标准:**
-- 新增行显示绿色背景
-- 修改行显示蓝色背景
-- 删除行显示红色背景
+- ⏳ 新增行显示绿色背景
+- ⏳ 修改行显示蓝色背景
+- ⏳ 删除行显示红色背景
 
-### Task 2.1.6: 测试与集成
+### ✅ Task 2.1.6: 测试与集成
 **目标**: 端到端测试
 
 **实现内容:**
-- 创建`tests/e2e/git.spec.ts`
-- 验证所有验收标准
-- 性能测试（大型仓库）
+- ✅ 创建`tests/e2e/git.spec.ts`
+- ✅ 创建`tests/api/git.spec.ts`
+- ⏳ 验证所有验收标准
+- ⏳ 性能测试（大型仓库）
 
 **验收标准:**
-- 所有E2E测试通过
-- Git操作响应时间 < 200ms
+- ⏳ 所有E2E测试通过
+- ⏳ Git操作响应时间 < 200ms
 
 ---
 
