@@ -23,6 +23,20 @@ import {
   handleGitCommit,
   handleGitCheckout
 } from './handlers/gitHandler.ts';
+import {
+  handleLspCompletion,
+  handleLspSignature,
+  handleLspDefinition,
+  handleLspReferences,
+  handleLspTypeDefinition,
+  handleLspRename,
+  handleLspFormat,
+  handleLspCodeActions,
+  handleLspDiagnostics,
+  handleLspStart,
+  handleLspStop,
+  handleLspStatus
+} from './handlers/lspHandler.ts';
 
 const PORT = parseInt(Deno.env.get('PORT') || '3000');
 const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') || 'http://localhost:3000').split(',');
@@ -200,6 +214,90 @@ async function handleRequest(req: Request): Promise<Response> {
     case '/api/v1/git/checkout':
       if (req.method === 'POST') {
         response = await handleGitCheckout(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/lsp/completion':
+      if (req.method === 'POST') {
+        response = await handleLspCompletion(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/lsp/signature':
+      if (req.method === 'POST') {
+        response = await handleLspSignature(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/lsp/definition':
+      if (req.method === 'POST') {
+        response = await handleLspDefinition(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/lsp/references':
+      if (req.method === 'POST') {
+        response = await handleLspReferences(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/lsp/typeDefinition':
+      if (req.method === 'POST') {
+        response = await handleLspTypeDefinition(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/lsp/rename':
+      if (req.method === 'POST') {
+        response = await handleLspRename(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/lsp/format':
+      if (req.method === 'POST') {
+        response = await handleLspFormat(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/lsp/codeActions':
+      if (req.method === 'POST') {
+        response = await handleLspCodeActions(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/lsp/diagnostics':
+      if (req.method === 'POST') {
+        response = await handleLspDiagnostics(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/lsp/start':
+      if (req.method === 'POST') {
+        response = await handleLspStart(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/lsp/stop':
+      if (req.method === 'POST') {
+        response = await handleLspStop(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/lsp/status':
+      if (req.method === 'GET') {
+        response = await handleLspStatus(req);
       } else {
         response = new Response('Method Not Allowed', { status: 405 });
       }

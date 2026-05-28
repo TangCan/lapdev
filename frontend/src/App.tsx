@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FileTree } from './components/FileTree';
 import { CodeEditor, type DiffLine } from './components/Editor/CodeEditor';
+import { LspCodeEditor } from './components/Editor/LspCodeEditor';
 import { Terminal } from './components/Terminal/Terminal';
 import GitPanel from './components/Git/GitPanel';
+import ProblemsPanel from './components/Problems/ProblemsPanel';
 import { GitProvider, useGit } from './context/GitContext';
+import { LSPProvider } from './context/LSPContext';
 import type { FileInfo } from './types/file';
 import { readFile, writeFile, formatCode } from './services/fileService';
 import { fetchGitDiff } from './services/gitService';
@@ -25,6 +28,7 @@ function AppContent() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showTerminal, setShowTerminal] = useState(false);
   const [showGitPanel, setShowGitPanel] = useState(false);
+  const [showProblemsPanel, setShowProblemsPanel] = useState(false);
   const [terminalHeight, setTerminalHeight] = useState(300);
   const [diffLines, setDiffLines] = useState<Record<string, DiffLine[]>>({});
   
@@ -152,7 +156,7 @@ function AppContent() {
         setActiveTabId(newTab.id);
         
         // Parse and store diff lines if available
-        if (diffResult.status === 'success' && diffResult.data) {
+        if (diffResult.status === 'success' && 'data' in diffResult && diffResult.data) {
           const parsedLines = parseDiffLines(diffResult.data.diff);
           setDiffLines(prev => ({
             ...prev,
@@ -289,6 +293,13 @@ function AppContent() {
             🗂️ Git {changesCount > 0 && `(${changesCount})`}
           </button>
           <button 
+            className={`action-button ${showProblemsPanel ? 'active' : ''}`}
+            onClick={() => setShowProblemsPanel(!showProblemsPanel)}
+            data-testid="problems-panel-button"
+          >
+            ⚠️ 问题
+          </button>
+          <button 
             className={`action-button ${showTerminal ? 'active' : ''}`}
             onClick={() => setShowTerminal(!showTerminal)}
             data-testid="terminal-button"
@@ -357,11 +368,12 @@ function AppContent() {
                 {loadingFiles.has(activeTab.file.path) ? (
                   <div className="loading-editor">Loading...</div>
                 ) : (
-                  <CodeEditor
+                  <LspCodeEditor
                     value={activeTab.content}
                     language={activeTab.language}
                     onChange={(value) => handleContentChange(activeTab.id, value)}
                     diffLines={diffLines[activeTab.file.path] || []}
+                    uri={`file://${activeTab.file.path}`}
                   />
                 )}
               </div>
@@ -396,6 +408,16 @@ function AppContent() {
             <GitPanel />
           </aside>
         )}
+        
+        {showProblemsPanel && (
+          <aside className="problems-sidebar">
+            <ProblemsPanel 
+              onSelectProblem={(line, column) => {
+                console.log('Jump to problem:', line, column);
+              }}
+            />
+          </aside>
+        )}
       </div>
     </div>
   );
@@ -404,7 +426,9 @@ function AppContent() {
 function App() {
   return (
     <GitProvider>
-      <AppContent />
+      <LSPProvider>
+        <AppContent />
+      </LSPProvider>
     </GitProvider>
   );
 }
