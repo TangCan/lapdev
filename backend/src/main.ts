@@ -37,6 +37,16 @@ import {
   handleLspStop,
   handleLspStatus
 } from './handlers/lspHandler.ts';
+import {
+  handleAiConfigGet,
+  handleAiConfigPost,
+  handleAiConfigPut,
+  handleAiConfigDelete,
+  handleAiActiveModel,
+  handleAiTest,
+  handleAiChat,
+  handleAiModels
+} from './handlers/aiHandler.ts';
 
 const PORT = parseInt(Deno.env.get('PORT') || '3000');
 const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') || 'http://localhost:3000').split(',');
@@ -298,6 +308,47 @@ async function handleRequest(req: Request): Promise<Response> {
     case '/api/v1/lsp/status':
       if (req.method === 'GET') {
         response = await handleLspStatus(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/ai/config':
+      if (req.method === 'GET') {
+        response = await handleAiConfigGet(req);
+      } else if (req.method === 'POST') {
+        response = await handleAiConfigPost(req);
+      } else if (req.method === 'PUT') {
+        response = await handleAiConfigPut(req);
+      } else if (req.method === 'DELETE') {
+        response = await handleAiConfigDelete(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/ai/active':
+      if (req.method === 'POST') {
+        response = await handleAiActiveModel(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/ai/test':
+      if (req.method === 'POST') {
+        response = await handleAiTest(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/ai/chat':
+      if (req.method === 'POST') {
+        response = await handleAiChat(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/ai/models':
+      if (req.method === 'GET') {
+        response = await handleAiModels(req);
       } else {
         response = new Response('Method Not Allowed', { status: 405 });
       }

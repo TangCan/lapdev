@@ -1,0 +1,373 @@
+import { aiService, AIModelConfig } from '../services/aiService.ts';
+
+const VALID_PROVIDERS = ['openai', 'deepseek', 'custom'] as const;
+type Provider = typeof VALID_PROVIDERS[number];
+
+function isValidProvider(provider: string): provider is Provider {
+  return VALID_PROVIDERS.includes(provider as Provider);
+}
+
+// 存储模型配置（仅内存存储）
+const modelConfigs: Map<string, AIModelConfig> = new Map();
+let currentModelId: string | null = null;
+
+export async function handleAiConfigGet(req: Request): Promise<Response> {
+  try {
+    const models = Array.from(modelConfigs.values());
+    const currentModel = currentModelId ? modelConfigs.get(currentModelId) || null : null;
+
+    return new Response(
+      JSON.stringify({
+        status: 'success',
+        data: {
+          models,
+          currentModel,
+        },
+      }),
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({
+        status: 'error',
+        message: error instanceof Error ? error.message : '获取配置失败',
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+export async function handleAiConfigPost(req: Request): Promise<Response> {
+  try {
+    const body = await req.json();
+    const { name, provider, apiKey, baseUrl, model } = body;
+
+    if (!name || !provider || !apiKey || !baseUrl || !model) {
+      return new Response(
+        JSON.stringify({
+          status: 'error',
+          message: '缺少必填字段: name, provider, apiKey, baseUrl, model',
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!isValidProvider(provider)) {
+      return new Response(
+        JSON.stringify({
+          status: 'error',
+          message: `无效的提供商: ${provider}。支持的提供商: ${VALID_PROVIDERS.join(', ')}`,
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const newConfig: AIModelConfig = {
+      id: crypto.randomUUID(),
+      name,
+      provider: provider as Provider,
+      apiKey,
+      baseUrl,
+      model,
+      isActive: modelConfigs.size === 0,
+    };
+
+    modelConfigs.set(newConfig.id, newConfig);
+
+    if (newConfig.isActive) {
+      currentModelId = newConfig.id;
+    }
+
+    return new Response(
+      JSON.stringify({
+        status: 'success',
+        data: newConfig,
+      }),
+      { status: 201, headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({
+        status: 'error',
+        message: error instanceof Error ? error.message : '保存配置失败',
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+export async function handleAiConfigPut(req: Request): Promise<Response> {
+  try {
+    const body = await req.json();
+    const { id, name, provider, apiKey, baseUrl, model } = body;
+
+    if (!id) {
+      return new Response(
+        JSON.stringify({
+          status: 'error',
+          message: '缺少必填字段: id',
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (provider && !isValidProvider(provider)) {
+      return new Response(
+        JSON.stringify({
+          status: 'error',
+          message: `无效的提供商: ${provider}。支持的提供商: ${VALID_PROVIDERS.join(', ')}`,
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const existingConfig = modelConfigs.get(id);
+    if (!existingConfig) {
+      return new Response(
+        JSON.stringify({
+          status: 'error',
+          message: '模型配置不存在',
+        }),
+        { status: 404, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const updatedConfig: AIModelConfig = {
+      ...existingConfig,
+      name: name ?? existingConfig.name,
+      provider: (provider as Provider) ?? existingConfig.provider,
+      apiKey: apiKey ?? existingConfig.apiKey,
+      baseUrl: baseUrl ?? existingConfig.baseUrl,
+      model: model ?? existingConfig.model,
+    };
+
+    modelConfigs.set(id, updatedConfig);
+
+    return new Response(
+      JSON.stringify({
+        status: 'success',
+        data: updatedConfig,
+      }),
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({
+        status: 'error',
+        message: error instanceof Error ? error.message : '更新配置失败',
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+export async function handleAiConfigDelete(req: Request): Promise<Response> {
+  try {
+    const url = new URL(req.url);
+    const id = url.searchParams.get('id');
+
+    if (!id) {
+      return new Response(
+        JSON.stringify({
+          status: 'error',
+          message: '缺少必填参数: id',
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const existingConfig = modelConfigs.get(id);
+    if (!existingConfig) {
+      return new Response(
+        JSON.stringify({
+          status: 'error',
+          message: '模型配置不存在',
+        }),
+        { status: 404, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    modelConfigs.delete(id);
+
+    if (currentModelId === id) {
+      const remainingModels = Array.from(modelConfigs.values());
+      if (remainingModels.length > 0) {
+        const firstModel = modelConfigs.values().next().value;
+        if (firstModel) {
+          currentModelId = firstModel.id;
+          firstModel.isActive = true;
+          modelConfigs.set(firstModel.id, firstModel);
+        }
+      } else {
+        currentModelId = null;
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        status: 'success',
+        message: '删除成功',
+      }),
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({
+        status: 'error',
+        message: error instanceof Error ? error.message : '删除配置失败',
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+export async function handleAiActiveModel(req: Request): Promise<Response> {
+  try {
+    const body = await req.json();
+    const { id } = body;
+
+    if (!id) {
+      return new Response(
+        JSON.stringify({
+          status: 'error',
+          message: '缺少必填字段: id',
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const config = modelConfigs.get(id);
+    if (!config) {
+      return new Response(
+        JSON.stringify({
+          status: 'error',
+          message: '模型配置不存在',
+        }),
+        { status: 404, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    modelConfigs.forEach((cfg, key) => {
+      cfg.isActive = key === id;
+      modelConfigs.set(key, cfg);
+    });
+
+    currentModelId = id;
+
+    return new Response(
+      JSON.stringify({
+        status: 'success',
+        data: config,
+      }),
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({
+        status: 'error',
+        message: error instanceof Error ? error.message : '设置活跃模型失败',
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+export async function handleAiTest(req: Request): Promise<Response> {
+  try {
+    const body = await req.json();
+    const { apiKey, baseUrl, model } = body;
+
+    if (!apiKey || !baseUrl || !model) {
+      return new Response(
+        JSON.stringify({
+          status: 'error',
+          message: '缺少必填字段: apiKey, baseUrl, model',
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const result = await aiService.testConnection({ apiKey, baseUrl, model });
+
+    return new Response(
+      JSON.stringify(result),
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({
+        status: 'error',
+        message: error instanceof Error ? error.message : '测试连接失败',
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+export async function handleAiChat(req: Request): Promise<Response> {
+  try {
+    const body = await req.json();
+    const { modelId, messages } = body;
+
+    if (!modelId || !messages) {
+      return new Response(
+        JSON.stringify({
+          status: 'error',
+          message: '缺少必填字段: modelId, messages',
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const modelConfig = modelConfigs.get(modelId);
+    if (!modelConfig) {
+      return new Response(
+        JSON.stringify({
+          status: 'error',
+          message: '模型配置不存在',
+        }),
+        { status: 404, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const result = await aiService.sendChatRequest(modelConfig, messages);
+
+    return new Response(
+      JSON.stringify({
+        status: 'success',
+        data: result,
+      }),
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({
+        status: 'error',
+        message: error instanceof Error ? error.message : '聊天请求失败',
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+export async function handleAiModels(req: Request): Promise<Response> {
+  try {
+    const models = aiService.getSupportedModels();
+
+    return new Response(
+      JSON.stringify({
+        status: 'success',
+        data: models,
+      }),
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({
+        status: 'error',
+        message: error instanceof Error ? error.message : '获取模型列表失败',
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+}
