@@ -9,7 +9,10 @@
     "test:e2e:report": "playwright show-report",
     "test:unit": "deno test --allow-all tests/unit/",
     "test:rust": "cargo test --all",
-    "test": "npm run test:e2e && npm run test:unit"
+    "test:frontend": "cd frontend && npm test",
+    "test:backend": "cd backend && deno test --allow-all",
+    "test": "npm run test:frontend && npm run test:backend && npm run test:unit && npm run test:e2e",
+    "test:quick": "npm run test:frontend && npm run test:backend"
   },
   "devDependencies": {
     "@playwright/test": "^1.44.0",
