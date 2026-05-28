@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review
 
 generated: 2026-05-25
-last_updated: 2026-05-28T11:00:00Z
+last_updated: 2026-05-28T12:00:00Z
 project: Lapdev
 project_key: NOKEY
 tracking_system: file-system
@@ -52,7 +52,7 @@ development_status:
   # Epic 2: 高级IDE功能 (2 stories)
   epic-2: in-progress
   2-1-git-visualization: done
-  2-2-lsp-intelligence: review
+  2-2-lsp-intelligence: done
   epic-2-retrospective: optional
 
   # Epic 3: AI功能 (4 stories)
@@ -86,9 +86,9 @@ summary:
   total_stories: 17
   epics_in_progress: 1
   stories_ready_for_dev: 0
-  stories_in_progress: 1
+  stories_in_progress: 0
   stories_in_review: 0
-  stories_completed: 4
+  stories_completed: 5
 
 story_mapping:
   epic-1:
