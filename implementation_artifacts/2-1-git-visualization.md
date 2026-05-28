@@ -2,7 +2,7 @@
 
 **Story ID**: 2.1  
 **Story Key**: 2-1-git-visualization  
-**Status**: ready-for-dev  
+**Status**: done  
 **Epic**: Epic 2 - 高级IDE功能  
 **FRs Covered**: FR-009, FR-010  
 **Priority**: P0  
@@ -198,17 +198,25 @@ lapdev/
 - ✅ 未跟踪文件显示灰色
 - ✅ 已删除文件显示红色
 
-### ⏳ Task 2.1.5: 编辑器Gutter差异指示
+### ✅ Task 2.1.5: 编辑器Gutter差异指示
 **目标**: 在编辑器显示行级差异
 
 **实现内容:**
-- ⏳ 修改`CodeEditor.tsx`添加gutter渲染
-- ⏳ 根据diff数据高亮显示行级别变化
+- ✅ 修改`CodeEditor.tsx`添加gutter渲染
+- ✅ 根据diff数据高亮显示行级别变化
 
 **验收标准:**
-- ⏳ 新增行显示绿色背景
-- ⏳ 修改行显示蓝色背景
-- ⏳ 删除行显示红色背景
+- ✅ 新增行显示绿色背景
+- ✅ 修改行显示蓝色背景
+- ✅ 删除行显示红色背景
+
+**实现详情:**
+- 使用Monaco Editor的decoration API实现行级差异高亮
+- 新增行显示绿色背景和gutter标记
+- 修改行显示蓝色背景和gutter标记
+- 删除行在overview ruler中显示红色标记
+- 同步更新App.tsx中的diff解析逻辑
+- 添加对应的CSS样式定义
 
 ### ✅ Task 2.1.6: 测试与集成
 **目标**: 端到端测试

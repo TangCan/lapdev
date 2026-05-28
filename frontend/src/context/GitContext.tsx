@@ -112,7 +112,13 @@ export function GitProvider({ children }: { children: ReactNode }) {
       };
 
       ws.onclose = () => {
-        console.log('WebSocket disconnected, reconnecting in', reconnectDelayRef.current, 'ms');
+        reconnectAttemptsRef.current += 1;
+        if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+          console.error('WebSocket max reconnection attempts reached, stopping');
+          setError('WebSocket connection failed after multiple attempts');
+          return;
+        }
+        console.log('WebSocket disconnected, reconnecting in', reconnectDelayRef.current, 'ms', '(attempt', reconnectAttemptsRef.current, '/', MAX_RECONNECT_ATTEMPTS, ')');
         // Reconnect with exponential backoff
         setTimeout(connectWebSocket, reconnectDelayRef.current);
         reconnectDelayRef.current = Math.min(reconnectDelayRef.current * 2, 30000);

@@ -906,6 +906,31 @@ body {
   margin-bottom: 8px;
 }
 
+/* Editor Diff Decorations */
+.diff-added {
+  background-color: rgba(63, 185, 80, 0.15) !important;
+}
+
+.diff-modified {
+  background-color: rgba(55, 148, 255, 0.15) !important;
+}
+
+.diff-deleted {
+  background-color: rgba(248, 81, 73, 0.15) !important;
+}
+
+.diff-glyph-added {
+  color: #3fb950 !important;
+}
+
+.diff-glyph-modified {
+  color: #3794ff !important;
+}
+
+.diff-glyph-deleted {
+  color: #f85149 !important;
+}
+
 /* Diff View */
 .diff-view {
   border-top: 1px solid #3c3c3c;
