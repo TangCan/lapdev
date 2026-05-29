@@ -1,4 +1,4 @@
-import { aiService, AIModelConfig } from '../services/aiService.ts';
+import { aiService, AIModelConfig, maskApiKey } from '../services/aiService.ts';
 
 const VALID_PROVIDERS = ['openai', 'deepseek', 'custom'] as const;
 type Provider = typeof VALID_PROVIDERS[number];
@@ -13,15 +13,22 @@ let currentModelId: string | null = null;
 
 export async function handleAiConfigGet(req: Request): Promise<Response> {
   try {
-    const models = Array.from(modelConfigs.values());
+    const models = Array.from(modelConfigs.values()).map(config => ({
+      ...config,
+      apiKey: maskApiKey(config.apiKey),
+    }));
     const currentModel = currentModelId ? modelConfigs.get(currentModelId) || null : null;
+    const maskedCurrentModel = currentModel ? {
+      ...currentModel,
+      apiKey: maskApiKey(currentModel.apiKey),
+    } : null;
 
     return new Response(
       JSON.stringify({
         status: 'success',
         data: {
           models,
-          currentModel,
+          currentModel: maskedCurrentModel,
         },
       }),
       { headers: { 'Content-Type': 'application/json' } }
@@ -81,7 +88,10 @@ export async function handleAiConfigPost(req: Request): Promise<Response> {
     return new Response(
       JSON.stringify({
         status: 'success',
-        data: newConfig,
+        data: {
+          ...newConfig,
+          apiKey: maskApiKey(newConfig.apiKey),
+        },
       }),
       { status: 201, headers: { 'Content-Type': 'application/json' } }
     );
@@ -146,7 +156,10 @@ export async function handleAiConfigPut(req: Request): Promise<Response> {
     return new Response(
       JSON.stringify({
         status: 'success',
-        data: updatedConfig,
+        data: {
+          ...updatedConfig,
+          apiKey: maskApiKey(updatedConfig.apiKey),
+        },
       }),
       { headers: { 'Content-Type': 'application/json' } }
     );
@@ -352,7 +365,14 @@ export async function handleAiChat(req: Request): Promise<Response> {
 
 export async function handleAiModels(req: Request): Promise<Response> {
   try {
-    const models = aiService.getSupportedModels();
+    const url = new URL(req.url);
+    const provider = url.searchParams.get('provider');
+    
+    let models = aiService.getSupportedModels();
+    
+    if (provider) {
+      models = models.filter(m => m.provider === provider);
+    }
 
     return new Response(
       JSON.stringify({

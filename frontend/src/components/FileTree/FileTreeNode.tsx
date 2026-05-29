@@ -75,6 +75,7 @@ export function FileTreeNode({ file, depth, onFileClick, onContextMenu }: FileTr
         onContextMenu={handleContextMenu}
         data-testid="file-item"
         data-git-status={gitStatus || undefined}
+        role="treeitem"
       >
         <span className="expand-icon" data-testid="folder-expand">
           {file.type === 'directory' && (

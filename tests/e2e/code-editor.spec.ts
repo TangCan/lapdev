@@ -1,9 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-const baseURL = process.env.BASE_URL || 'http://localhost:3000';
-
 test.describe('[E2E] Code Editor', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, context }) => {
+    const baseURL = context.baseURL || 'http://localhost:5173';
     await page.goto(baseURL);
     // Wait for the file tree to load
     await page.waitForSelector('[data-testid="file-tree"]', { timeout: 10000 });
@@ -107,8 +106,9 @@ test.describe('[E2E] Code Editor', () => {
       const editor = page.getByTestId('code-editor');
       await expect(editor).toBeVisible();
       
-      // Monaco Editor displays line numbers in .line-numbers element
-      const lineNumbers = editor.locator('.line-numbers');
+      // Monaco Editor displays line numbers in various ways
+      // Try multiple selectors since Monaco's DOM structure can vary
+      const lineNumbers = editor.locator('.monaco-editor .margin');
       const isVisible = await lineNumbers.isVisible().catch(() => false);
       expect(isVisible).toBe(true);
     } else {

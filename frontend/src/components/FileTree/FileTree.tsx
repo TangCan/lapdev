@@ -22,7 +22,7 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
     setError(null);
     
     try {
-      const result: FileTreeResult = await fetchFileTree('/');
+      const result: FileTreeResult = await fetchFileTree('/workspace');
       
       if (result.status === 'success' && result.data) {
         setFileTree(result.data);
@@ -76,7 +76,7 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
 
   if (loading) {
     return (
-      <div className="file-tree" data-testid="file-tree">
+      <div className="file-tree" data-testid="file-tree" role="tree">
         <div className="loading">Loading...</div>
       </div>
     );
@@ -84,14 +84,14 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
 
   if (error) {
     return (
-      <div className="file-tree" data-testid="file-tree">
+      <div className="file-tree" data-testid="file-tree" role="tree">
         <div className="error">{error}</div>
       </div>
     );
   }
 
   return (
-    <div className="file-tree" data-testid="file-tree">
+    <div className="file-tree" data-testid="file-tree" role="tree">
       <div className="file-tree-header">
         <h3>文件树</h3>
         <button onClick={loadFileTree} className="refresh-button">

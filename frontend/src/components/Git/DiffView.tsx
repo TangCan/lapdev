@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { html } from 'diff2html/lib-esm/diff2html.js';
 import DOMPurify from 'isomorphic-dompurify';
-import 'diff2html/dist/diff2html.min.css';
+import 'diff2html/bundles/css/diff2html.min.css';
 import { useGit } from '../../context/GitContext';
 
 // DOMPurify 配置：只允许 diff2html 生成的 HTML 标签

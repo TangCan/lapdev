@@ -10,7 +10,7 @@ const GitPanel: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="git-panel">
+      <div className="git-panel" data-testid="git-panel">
         <div className="git-panel-header">
           <h2>Git</h2>
           <BranchSelector />
@@ -24,7 +24,7 @@ const GitPanel: React.FC = () => {
 
   if (error) {
     return (
-      <div className="git-panel">
+      <div className="git-panel" data-testid="git-panel">
         <div className="git-panel-header">
           <h2>Git</h2>
           <BranchSelector />
@@ -64,7 +64,7 @@ const GitPanel: React.FC = () => {
         </div>
 
         {status.changes.length === 0 && status.untracked.length === 0 ? (
-          <div className="no-changes">
+          <div className="no-changes" data-testid="no-changes">
             <p>No changes to commit</p>
             <p>Your working directory is clean</p>
           </div>

@@ -248,6 +248,6 @@ export const LspCodeEditor = forwardRef<LspCodeEditorHandle, LspCodeEditorProps>
       style={{ height: '100%', width: '100%' }}
     />
   );
-};
+});
 
 export default LspCodeEditor;

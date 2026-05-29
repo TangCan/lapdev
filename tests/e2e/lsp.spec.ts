@@ -1,10 +1,9 @@
 import { test, expect } from '@playwright/test';
 
-const baseURL = process.env.BASE_URL || 'http://localhost:3000';
-
 test.describe('[E2E] LSP Code Intelligence', () => {
   test.describe('AC-1: 代码补全功能', () => {
-    test('[P0] should show completion suggestions on typing', async ({ page }) => {
+    test('[P0] should show completion suggestions on typing', async ({ page, context }) => {
+      const baseURL = context.baseURL || 'http://localhost:5173';
       await page.goto(baseURL);
       
       // Open a test file
@@ -22,7 +21,8 @@ test.describe('[E2E] LSP Code Intelligence', () => {
       expect(suggestions.length).toBeGreaterThan(0);
     });
 
-    test('[P0] should show signature help on function call', async ({ page }) => {
+    test('[P0] should show signature help on function call', async ({ page, context }) => {
+      const baseURL = context.baseURL || 'http://localhost:5173';
       await page.goto(baseURL);
       
       await page.click('[data-testid="file-tree"] li:text("test.ts")');
@@ -36,7 +36,8 @@ test.describe('[E2E] LSP Code Intelligence', () => {
       expect(signature).toContain('log');
     });
 
-    test('[P1] should show auto-import suggestions', async ({ page }) => {
+    test('[P1] should show auto-import suggestions', async ({ page, context }) => {
+      const baseURL = context.baseURL || 'http://localhost:5173';
       await page.goto(baseURL);
       
       await page.click('[data-testid="file-tree"] li:text("test.ts")');
@@ -51,7 +52,8 @@ test.describe('[E2E] LSP Code Intelligence', () => {
   });
 
   test.describe('AC-2: 代码导航功能', () => {
-    test('[P0] should navigate to definition on click', async ({ page }) => {
+    test('[P0] should navigate to definition on click', async ({ page, context }) => {
+      const baseURL = context.baseURL || 'http://localhost:5173';
       await page.goto(baseURL);
       
       await page.click('[data-testid="file-tree"] li:text("test.ts")');
@@ -75,7 +77,8 @@ test.describe('[E2E] LSP Code Intelligence', () => {
       expect(lineNumber).toBe(1);
     });
 
-    test('[P0] should show references count', async ({ page }) => {
+    test('[P0] should show references count', async ({ page, context }) => {
+      const baseURL = context.baseURL || 'http://localhost:5173';
       await page.goto(baseURL);
       
       await page.click('[data-testid="file-tree"] li:text("test.ts")');
@@ -97,7 +100,8 @@ test.describe('[E2E] LSP Code Intelligence', () => {
   });
 
   test.describe('AC-3: 代码重构功能', () => {
-    test('[P0] should rename symbol across file', async ({ page }) => {
+    test('[P0] should rename symbol across file', async ({ page, context }) => {
+      const baseURL = context.baseURL || 'http://localhost:5173';
       await page.goto(baseURL);
       
       await page.click('[data-testid="file-tree"] li:text("test.ts")');
@@ -124,7 +128,8 @@ test.describe('[E2E] LSP Code Intelligence', () => {
       expect(content).not.toContain('oldName');
     });
 
-    test('[P0] should format code on shortcut', async ({ page }) => {
+    test('[P0] should format code on shortcut', async ({ page, context }) => {
+      const baseURL = context.baseURL || 'http://localhost:5173';
       await page.goto(baseURL);
       
       await page.click('[data-testid="file-tree"] li:text("test.ts")');
@@ -145,7 +150,8 @@ test.describe('[E2E] LSP Code Intelligence', () => {
       expect(content).toContain('\n');
     });
 
-    test('[P1] should show quick fix suggestions', async ({ page }) => {
+    test('[P1] should show quick fix suggestions', async ({ page, context }) => {
+      const baseURL = context.baseURL || 'http://localhost:5173';
       await page.goto(baseURL);
       
       await page.click('[data-testid="file-tree"] li:text("test.ts")');
@@ -168,7 +174,8 @@ test.describe('[E2E] LSP Code Intelligence', () => {
   });
 
   test.describe('AC-4: 实时诊断功能', () => {
-    test('[P0] should show error squiggles for type errors', async ({ page }) => {
+    test('[P0] should show error squiggles for type errors', async ({ page, context }) => {
+      const baseURL = context.baseURL || 'http://localhost:5173';
       await page.goto(baseURL);
       
       await page.click('[data-testid="file-tree"] li:text("test.ts")');
@@ -183,7 +190,8 @@ test.describe('[E2E] LSP Code Intelligence', () => {
       expect(errorCount.length).toBeGreaterThan(0);
     });
 
-    test('[P0] should show problems panel', async ({ page }) => {
+    test('[P0] should show problems panel', async ({ page, context }) => {
+      const baseURL = context.baseURL || 'http://localhost:5173';
       await page.goto(baseURL);
       
       await page.click('[data-testid="file-tree"] li:text("test.ts")');
@@ -200,7 +208,8 @@ test.describe('[E2E] LSP Code Intelligence', () => {
       expect(problemCount).toMatch(/\d+/);
     });
 
-    test('[P1] should jump to problem location', async ({ page }) => {
+    test('[P1] should jump to problem location', async ({ page, context }) => {
+      const baseURL = context.baseURL || 'http://localhost:5173';
       await page.goto(baseURL);
       
       await page.click('[data-testid="file-tree"] li:text("test.ts")');

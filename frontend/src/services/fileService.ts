@@ -1,8 +1,8 @@
 import type { FileTreeResult, FileContentResult, OperationResult, CreateFileRequest, RenameRequest, DeleteRequest } from '../types/file';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const BASE_URL = ''; // 使用相对路径，通过 Vite 代理转发
 
-export async function fetchFileTree(path: string = '/', depth: number = 3): Promise<FileTreeResult> {
+export async function fetchFileTree(path: string = '/workspace', depth: number = 3): Promise<FileTreeResult> {
   const response = await fetch(`${BASE_URL}/api/v1/files/tree?path=${encodeURIComponent(path)}&depth=${depth}`);
   return await response.json();
 }

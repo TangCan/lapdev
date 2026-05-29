@@ -102,6 +102,15 @@ async function handleRequest(req: Request): Promise<Response> {
   // API routes
   let response: Response;
   switch (url.pathname) {
+    case '/health':
+      if (req.method === 'GET') {
+        response = new Response(JSON.stringify({ status: 'ok', timestamp: Date.now() }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
     case '/api/v1/files/tree':
       if (req.method === 'GET') {
         response = await handleFileTree(req);

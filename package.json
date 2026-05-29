@@ -3,20 +3,26 @@
   "version": "1.0.0",
   "description": "Open-source Web IDE with AI integration",
   "scripts": {
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:headed": "playwright test --headed",
+    "test:e2e": "playwright test tests/e2e/",
+    "test:e2e:ui": "playwright test tests/e2e/ --ui",
+    "test:e2e:headed": "playwright test tests/e2e/ --headed",
     "test:e2e:report": "playwright show-report",
-    "test:unit": "deno test --allow-all tests/unit/",
+    "test:unit": "NO_PROXY=localhost,127.0.0.1 no_proxy=localhost,127.0.0.1 deno test --allow-all tests/unit/",
+    "test:api": "NO_PROXY=localhost,127.0.0.1 no_proxy=localhost,127.0.0.1 deno test --allow-all tests/api/ai.test.ts",
+    "test:api:playwright": "playwright test tests/api/",
     "test:rust": "cargo test --all",
     "test:frontend": "cd frontend && npm test",
-    "test:backend": "cd backend && deno test --allow-all",
-    "test": "npm run test:frontend && npm run test:backend && npm run test:unit && npm run test:e2e",
-    "test:quick": "npm run test:frontend && npm run test:backend"
+    "test:backend": "NO_PROXY=localhost,127.0.0.1 no_proxy=localhost,127.0.0.1 cd backend && deno test --allow-all",
+    "test": "npm run test:frontend && npm run test:backend && npm run test:unit && npm run test:api && npm run test:e2e",
+    "test:quick": "npm run test:frontend && npm run test:backend",
+    "test:regression": "./scripts/run-regression.sh"
   },
   "devDependencies": {
     "@playwright/test": "^1.44.0",
     "@types/node": "^20.11.0",
     "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "playwright": "^1.60.0"
   }
 }
