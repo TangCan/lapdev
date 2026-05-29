@@ -12,6 +12,7 @@ NC='\033[0m' # No Color
 # 设置代理环境变量 - 绕过 localhost
 export no_proxy="localhost,127.0.0.1"
 export NO_PROXY="localhost,127.0.0.1"
+unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY
 
 # 后端服务配置
 BACKEND_DIR="backend"
@@ -19,13 +20,13 @@ BACKEND_ENTRY="src/main.ts"
 BACKEND_PORT="3000"
 BACKEND_URL="http://localhost:${BACKEND_PORT}"
 
-# 工作区目录配置
-WORKSPACE_DIR="${PWD}/workspace"
+# 工作区目录配置 - 使用后端期望的 WORKSPACE_PATH 环境变量
+WORKSPACE_PATH="${PWD}/workspace"
 
 # 前端服务配置
 FRONTEND_DIR="frontend"
-FRONTEND_PORT="5173"
-FRONTEND_URL="http://localhost:${FRONTEND_PORT}"
+FRONTEND_BASE_PORT="5173"
+FRONTEND_URL=""  # 动态获取
 
 # 测试结果
 TEST_RESULTS=()
@@ -41,7 +42,9 @@ echo ""
 start_backend() {
   echo -e "${YELLOW}1. 启动后端服务...${NC}"
   cd "${BACKEND_DIR}"
-  WORKSPACE_DIR="${WORKSPACE_DIR}" deno run --allow-all "${BACKEND_ENTRY}" > /tmp/backend.log 2>&1 &
+  
+  # 设置正确的环境变量：WORKSPACE_PATH 和 ALLOWED_ORIGINS
+  WORKSPACE_PATH="${WORKSPACE_PATH}" ALLOWED_ORIGINS="http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:5175" deno run --allow-all "${BACKEND_ENTRY}" > /tmp/backend.log 2>&1 &
   BACKEND_PID=$!
   cd ..
 
@@ -52,7 +55,8 @@ start_backend() {
   local max_attempts=30
 
   while [ $attempts -lt $max_attempts ]; do
-    if curl --noproxy localhost -s "${BACKEND_URL}/health" > /dev/null 2>&1; then
+    # 使用 git/status 端点代替不存在的 health 端点
+    if curl --noproxy localhost -s "${BACKEND_URL}/api/v1/git/status" > /dev/null 2>&1; then
       echo -e "   ${GREEN}后端服务已启动 (PID: ${BACKEND_PID})${NC}"
       return 0
     fi
@@ -61,6 +65,7 @@ start_backend() {
   done
 
   echo -e "   ${RED}后端服务启动超时${NC}"
+  cat /tmp/backend.log
   kill -TERM "${BACKEND_PID}" 2>/dev/null || true
   exit 1
 }
@@ -69,12 +74,12 @@ start_backend() {
 start_frontend() {
   echo -e "${YELLOW}2. 启动前端服务...${NC}"
   
-  # 安装依赖
+  # 安装依赖（可选，已存在则跳过）
   cd "${FRONTEND_DIR}"
-  npm install > /tmp/frontend_install.log 2>&1
+  # npm install > /tmp/frontend_install.log 2>&1
   
   # 直接启动开发服务器（跳过构建，避免TypeScript错误）
-  npm run dev > /tmp/frontend.log 2>&1 &
+  npm run dev -- --host 0.0.0.0 --port ${FRONTEND_BASE_PORT} > /tmp/frontend.log 2>&1 &
   FRONTEND_PID=$!
   cd ..
 
@@ -82,18 +87,24 @@ start_frontend() {
 
   echo "   等待服务启动..."
   local attempts=0
-  local max_attempts=30
+  local max_attempts=40
 
   while [ $attempts -lt $max_attempts ]; do
-    if curl --noproxy localhost -s "${FRONTEND_URL}" > /dev/null 2>&1; then
-      echo -e "   ${GREEN}前端服务已启动 (PID: ${FRONTEND_PID})${NC}"
-      return 0
-    fi
+    # 检查多个可能的端口
+    for port in 5173 5174 5175 5176; do
+      CURRENT_URL="http://localhost:${port}"
+      if curl --noproxy localhost -s "${CURRENT_URL}" > /dev/null 2>&1; then
+        FRONTEND_URL="${CURRENT_URL}"
+        echo -e "   ${GREEN}前端服务已启动 (PID: ${FRONTEND_PID}, 端口: ${port})${NC}"
+        return 0
+      fi
+    done
     sleep 1
     attempts=$((attempts + 1))
   done
 
   echo -e "   ${RED}前端服务启动超时${NC}"
+  cat /tmp/frontend.log
   kill -TERM "${FRONTEND_PID}" 2>/dev/null || true
   exit 1
 }
@@ -195,19 +206,19 @@ export API_BASE_URL="${BACKEND_URL}"
 # 运行测试套件
 
 # 3. 前端单元测试
-run_test "3. 前端单元测试" "npm run test:frontend"
+run_test "3. 前端单元测试" "npm run test:frontend 2>&1"
 
 # 4. 后端单元测试
-run_test "4. 后端单元测试" "npm run test:backend"
+run_test "4. 后端单元测试" "npm run test:backend 2>&1"
 
 # 5. 公共单元测试
-run_test "5. 公共单元测试" "npm run test:unit"
+run_test "5. 公共单元测试" "npm run test:unit 2>&1"
 
 # 6. API集成测试（需要后端服务）
-run_test "6. API集成测试" "npm run test:api"
+run_test "6. API集成测试" "npm run test:api 2>&1"
 
 # 7. E2E测试（需要前端和后端服务）
-run_test "7. E2E测试" "npm run test:e2e"
+run_test "7. E2E测试" "npm run test:e2e 2>&1"
 
 # 显示测试总结
 echo -e "\n${YELLOW}============================================"
