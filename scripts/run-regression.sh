@@ -52,7 +52,7 @@ wait_for_service() {
 
   while [ $attempts -lt $max_attempts ]; do
     # 取消代理设置，否则curl会通过代理访问localhost
-    if (unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY; curl -s --max-time 2 "${url}" > /dev/null 2>&1); then
+    if curl --noproxy '*' -s --max-time 2 "${url}" > /dev/null 2>&1; then
       return 0
     fi
     sleep 1
