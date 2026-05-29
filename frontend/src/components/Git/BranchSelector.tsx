@@ -30,7 +30,7 @@ const BranchSelector: React.FC = () => {
             <button
               key={branch.name}
               className={`branch-item ${branch.isCurrent ? 'current' : ''} ${branch.isRemote ? 'remote' : ''}`}
-              data-testid={branch.isCurrent ? 'current-branch' : undefined}
+              data-testid={branch.isCurrent ? 'current-branch' : `branch-item-${branch.name}`}
               onClick={() => handleBranchSelect(branch.name)}
             >
               {branch.isCurrent && <span className="current-indicator">✓</span>}

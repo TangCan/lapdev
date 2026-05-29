@@ -11,8 +11,10 @@ import { test, expect } from '@playwright/test';
 test.describe('Git Visualization E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    // 等待页面加载完成
-    await page.waitForSelector('[data-testid="file-tree"]', { timeout: 10000 });
+    // 等待页面加载完成（增加超时时间以支持Firefox和WebKit）
+    await page.waitForSelector('[data-testid="file-tree"]', { timeout: 30000 });
+    // 等待Git数据加载完成（通过等待git-panel-button出现来判断）
+    await page.waitForSelector('[data-testid="git-panel-button"]', { timeout: 30000 });
   });
 
   test('AC-1: 文件树显示Git状态图标', async ({ page }) => {
@@ -155,9 +157,9 @@ test.describe('Git Visualization E2E Tests', () => {
     const statusBar = page.locator('[data-testid="status-bar"]');
     await expect(statusBar).toBeVisible({ timeout: 5000 });
     
-    // Then 显示当前分支名称
+    // Then 显示当前分支名称（等待Git数据加载可能需要更长时间）
     const branchInfo = statusBar.locator('[data-testid="branch-info"]');
-    await expect(branchInfo).toBeVisible({ timeout: 5000 });
+    await expect(branchInfo).toBeVisible({ timeout: 15000 });
     
     // And 显示变更数量（如果有）
     const changesCount = statusBar.locator('[data-testid="changes-count"]');

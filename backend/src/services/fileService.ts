@@ -1,6 +1,6 @@
 import { FileInfo, FileTreeResult, FileContentResult, OperationResult } from '../types/file.ts';
 
-const WORKSPACE_DIR = Deno.env.get('WORKSPACE_DIR') || '/workspace';
+const WORKSPACE_DIR = Deno.env.get('WORKSPACE_PATH') || '/workspace';
 const MAX_DEPTH = 20;
 
 /**
