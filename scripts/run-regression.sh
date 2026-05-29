@@ -38,49 +38,72 @@ echo "          完整回归测试套件"
 echo "============================================${NC}"
 echo ""
 
+# 函数：检查端口是否可用
+check_port() {
+  local port=$1
+  ss -tln | grep -q ":${port} "
+}
+
+# 函数：等待服务健康检查
+wait_for_service() {
+  local url=$1
+  local max_attempts=$2
+  local attempts=0
+
+  while [ $attempts -lt $max_attempts ]; do
+    # 取消代理设置，否则curl会通过代理访问localhost
+    if (unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY; curl -s --max-time 2 "${url}" > /dev/null 2>&1); then
+      return 0
+    fi
+    sleep 1
+    attempts=$((attempts + 1))
+  done
+  return 1
+}
+
 # 函数：启动后端服务
 start_backend() {
   echo -e "${YELLOW}1. 启动后端服务...${NC}"
+  
+  # 确保端口未被占用
+  if check_port ${BACKEND_PORT}; then
+    echo -e "   ${RED}端口 ${BACKEND_PORT} 已被占用${NC}"
+    return 1
+  fi
+
   cd "${BACKEND_DIR}"
   
   # 设置正确的环境变量：WORKSPACE_PATH 和 ALLOWED_ORIGINS
-  WORKSPACE_PATH="${WORKSPACE_PATH}" ALLOWED_ORIGINS="http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:5175" deno run --allow-all "${BACKEND_ENTRY}" > /tmp/backend.log 2>&1 &
+  export WORKSPACE_PATH="${WORKSPACE_PATH}"
+  export ALLOWED_ORIGINS="http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:5175"
+  
+  # 使用 nohup 启动服务，确保在后台持续运行
+  nohup deno run --allow-all "${BACKEND_ENTRY}" > /tmp/backend.log 2>&1 &
   BACKEND_PID=$!
   cd ..
 
   echo "${BACKEND_PID}" > /tmp/lapdev_backend.pid
 
   echo "   等待服务启动..."
-  local attempts=0
-  local max_attempts=30
-
-  while [ $attempts -lt $max_attempts ]; do
-    # 使用 git/status 端点代替不存在的 health 端点
-    # 必须取消代理设置，否则curl会通过代理访问localhost
-    if (unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY; curl -s "${BACKEND_URL}/api/v1/git/status" > /dev/null 2>&1); then
-      echo -e "   ${GREEN}后端服务已启动 (PID: ${BACKEND_PID})${NC}"
-      return 0
-    fi
-    sleep 1
-    attempts=$((attempts + 1))
-  done
+  if wait_for_service "${BACKEND_URL}/api/v1/git/status" 30; then
+    echo -e "   ${GREEN}后端服务已启动 (PID: ${BACKEND_PID})${NC}"
+    return 0
+  fi
 
   echo -e "   ${RED}后端服务启动超时${NC}"
   cat /tmp/backend.log
   kill -TERM "${BACKEND_PID}" 2>/dev/null || true
-  exit 1
+  return 1
 }
 
 # 函数：启动前端服务
 start_frontend() {
   echo -e "${YELLOW}2. 启动前端服务...${NC}"
   
-  # 安装依赖（可选，已存在则跳过）
   cd "${FRONTEND_DIR}"
-  # npm install > /tmp/frontend_install.log 2>&1
   
-  # 直接启动开发服务器（跳过构建，避免TypeScript错误）
-  npm run dev -- --host 0.0.0.0 --port ${FRONTEND_BASE_PORT} > /tmp/frontend.log 2>&1 &
+  # 使用 nohup 启动服务
+  nohup npm run dev -- --host 0.0.0.0 --port ${FRONTEND_BASE_PORT} > /tmp/frontend.log 2>&1 &
   FRONTEND_PID=$!
   cd ..
 
@@ -93,12 +116,13 @@ start_frontend() {
   while [ $attempts -lt $max_attempts ]; do
     # 检查多个可能的端口
     for port in 5173 5174 5175 5176; do
-      CURRENT_URL="http://localhost:${port}"
-      # 必须取消代理设置，否则curl会通过代理访问localhost
-      if (unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY; curl -s "${CURRENT_URL}" > /dev/null 2>&1); then
-        FRONTEND_URL="${CURRENT_URL}"
-        echo -e "   ${GREEN}前端服务已启动 (PID: ${FRONTEND_PID}, 端口: ${port})${NC}"
-        return 0
+      if check_port ${port}; then
+        # 端口已监听，验证服务是否响应
+        if wait_for_service "http://localhost:${port}" 2; then
+          FRONTEND_URL="http://localhost:${port}"
+          echo -e "   ${GREEN}前端服务已启动 (PID: ${FRONTEND_PID}, 端口: ${port})${NC}"
+          return 0
+        fi
       fi
     done
     sleep 1
@@ -108,7 +132,7 @@ start_frontend() {
   echo -e "   ${RED}前端服务启动超时${NC}"
   cat /tmp/frontend.log
   kill -TERM "${FRONTEND_PID}" 2>/dev/null || true
-  exit 1
+  return 1
 }
 
 # 函数：停止后端服务
@@ -137,7 +161,8 @@ stop_frontend() {
   fi
 
   # 清理任何残留的 vite 进程
-  pkill -f "vite" 2>/dev/null || true
+  pkill -9 -f "vite" 2>/dev/null || true
+  pkill -9 -f "node.*vite" 2>/dev/null || true
   echo -e "   ${GREEN}前端服务已停止${NC}"
 }
 
@@ -151,18 +176,11 @@ cleanup_all() {
   # 停止前端
   stop_frontend
 
-  # 强制清理所有可能残留的 vite/node 进程（使用 -9 强制杀死）
-  pkill -9 -f "vite" 2>/dev/null || true
-  pkill -9 -f "node.*vite" 2>/dev/null || true
-
   # 清理 Playwright 相关进程
   pkill -f "playwright" 2>/dev/null || true
   pkill -f "chromium" 2>/dev/null || true
   pkill -f "firefox" 2>/dev/null || true
   pkill -f "webkit" 2>/dev/null || true
-
-  # 清理任何残留的测试服务
-  pkill -f "playwright" 2>/dev/null || true
 
   # 等待进程完全终止
   sleep 2
@@ -194,17 +212,22 @@ cleanup() {
 }
 
 # 设置清理陷阱 - 使用 EXIT 而不是 ERR
-# 这样脚本正常退出或被 Ctrl+C 中断都会执行清理
 trap cleanup EXIT INT TERM
 
 # 确保没有残留进程
 cleanup_all
 
 # 启动后端服务
-start_backend
+if ! start_backend; then
+  echo -e "${RED}后端服务启动失败，退出${NC}"
+  exit 1
+fi
 
 # 启动前端服务（用于E2E测试）
-start_frontend
+if ! start_frontend; then
+  echo -e "${RED}前端服务启动失败，退出${NC}"
+  exit 1
+fi
 
 # 设置 Playwright 使用前端地址
 export BASE_URL="${FRONTEND_URL}"
