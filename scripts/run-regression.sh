@@ -151,6 +151,10 @@ cleanup_all() {
   # 停止前端
   stop_frontend
 
+  # 强制清理所有可能残留的 vite/node 进程（使用 -9 强制杀死）
+  pkill -9 -f "vite" 2>/dev/null || true
+  pkill -9 -f "node.*vite" 2>/dev/null || true
+
   # 清理 Playwright 相关进程
   pkill -f "playwright" 2>/dev/null || true
   pkill -f "chromium" 2>/dev/null || true
@@ -159,6 +163,9 @@ cleanup_all() {
 
   # 清理任何残留的测试服务
   pkill -f "playwright" 2>/dev/null || true
+
+  # 等待进程完全终止
+  sleep 2
 
   echo -e "   ${GREEN}清理完成${NC}"
 }
