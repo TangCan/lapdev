@@ -56,7 +56,8 @@ start_backend() {
 
   while [ $attempts -lt $max_attempts ]; do
     # 使用 git/status 端点代替不存在的 health 端点
-    if curl --noproxy localhost -s "${BACKEND_URL}/api/v1/git/status" > /dev/null 2>&1; then
+    # 必须取消代理设置，否则curl会通过代理访问localhost
+    if (unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY; curl -s "${BACKEND_URL}/api/v1/git/status" > /dev/null 2>&1); then
       echo -e "   ${GREEN}后端服务已启动 (PID: ${BACKEND_PID})${NC}"
       return 0
     fi
@@ -93,7 +94,8 @@ start_frontend() {
     # 检查多个可能的端口
     for port in 5173 5174 5175 5176; do
       CURRENT_URL="http://localhost:${port}"
-      if curl --noproxy localhost -s "${CURRENT_URL}" > /dev/null 2>&1; then
+      # 必须取消代理设置，否则curl会通过代理访问localhost
+      if (unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY; curl -s "${CURRENT_URL}" > /dev/null 2>&1); then
         FRONTEND_URL="${CURRENT_URL}"
         echo -e "   ${GREEN}前端服务已启动 (PID: ${FRONTEND_PID}, 端口: ${port})${NC}"
         return 0
