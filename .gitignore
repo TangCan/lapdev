@@ -36,3 +36,7 @@ test-results/
 
 # Workspace (test files)
 workspace/
+
+# Test automation temporary files
+test-*.js
+tests/automation-summary.md
