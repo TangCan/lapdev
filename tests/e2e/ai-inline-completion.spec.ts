@@ -9,6 +9,9 @@ test.describe('[P0] AI内联代码补全', () => {
   };
 
   test.beforeEach(async ({ page }) => {
+    // 清除localStorage
+    await page.evaluate(() => localStorage.clear());
+    
     // 拦截补全API请求
     await page.route('**/api/v1/ai/completion', async (route) => {
       await route.fulfill({
@@ -161,8 +164,89 @@ test.describe('[P0] AI内联代码补全', () => {
     await page.keyboard.type('const foo = ', { delay: 100 });
     await page.waitForTimeout(1000);
 
-    // Then 不发送补全请求（使用请求计数验证）
-    const requests = await page.route('**/api/v1/ai/completion', async (route) => {
+    // Then 验证幽灵文本不出现
+    const ghostText = page.locator('[data-testid="inline-completion-ghost"]');
+    const isVisible = await ghostText.isVisible().catch(() => false);
+    expect(isVisible).toBe(false);
+  });
+
+  // ============ 扩展测试用例 ============
+
+  test('[P1] 空输入不触发补全', async ({ page }) => {
+    // Given 用户打开编辑器
+    const editor = page.locator('[data-testid="code-editor"]');
+    await editor.waitFor({ state: 'visible', timeout: 10000 });
+
+    // When 用户只输入空格
+    await page.keyboard.type('   ', { delay: 100 });
+    await page.waitForTimeout(1000);
+
+    // Then 验证幽灵文本不出现
+    const ghostText = page.locator('[data-testid="inline-completion-ghost"]');
+    const isVisible = await ghostText.isVisible().catch(() => false);
+    expect(isVisible).toBe(false);
+  });
+
+  test('[P1] 功能开关localStorage持久化', async ({ page }) => {
+    // Given 用户打开设置页面
+    const settingsButton = page.locator('[data-testid="settings-button"]');
+    await settingsButton.waitFor({ state: 'visible', timeout: 10000 });
+    await settingsButton.click();
+
+    // When 关闭内联补全开关
+    const toggle = page.locator('[data-testid="inline-completion-toggle"]');
+    await toggle.waitFor({ state: 'visible', timeout: 5000 });
+    await toggle.click();
+
+    // Then 验证localStorage已更新
+    const storedValue = await page.evaluate(() => localStorage.getItem('inline-completion-enabled'));
+    expect(storedValue).toBe('false');
+
+    // 刷新页面
+    await page.reload();
+
+    // 验证开关状态保持关闭
+    await settingsButton.waitFor({ state: 'visible', timeout: 10000 });
+    await settingsButton.click();
+    
+    const isChecked = await toggle.isChecked();
+    expect(isChecked).toBe(false);
+  });
+
+  test('[P1] 网络错误处理', async ({ page }) => {
+    // Given 模拟网络错误
+    await page.route('**/api/v1/ai/completion', async (route) => {
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'error', message: 'Server error' })
+      });
+    });
+
+    const editor = page.locator('[data-testid="code-editor"]');
+    await editor.waitFor({ state: 'visible', timeout: 10000 });
+
+    // When 用户输入代码
+    await page.keyboard.type('const foo = ', { delay: 100 });
+    await page.waitForTimeout(1000);
+
+    // Then 验证没有幽灵文本显示（错误被处理）
+    const ghostText = page.locator('[data-testid="inline-completion-ghost"]');
+    const isVisible = await ghostText.isVisible().catch(() => false);
+    expect(isVisible).toBe(false);
+
+    // 验证页面没有崩溃
+    expect(page).not.toHaveTitle(/Error/);
+  });
+
+  test('[P2] 快速输入防抖效果', async ({ page }) => {
+    // Given 用户在编辑器中
+    const editor = page.locator('[data-testid="code-editor"]');
+    await editor.waitFor({ state: 'visible', timeout: 10000 });
+
+    let requestCount = 0;
+    await page.route('**/api/v1/ai/completion', async (route) => {
+      requestCount++;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -170,10 +254,91 @@ test.describe('[P0] AI内联代码补全', () => {
       });
     });
 
-    // 等待一段时间确认没有请求发送
-    await page.waitForTimeout(2000);
+    // When 用户快速输入多个字符
+    await page.keyboard.type('const foo = bar', { delay: 50 }); // 50ms间隔，快于500ms防抖
+    await page.waitForTimeout(800); // 等待防抖延迟
 
-    // 验证幽灵文本不出现
+    // Then 验证只发送了一次请求（防抖生效）
+    expect(requestCount).toBe(1);
+  });
+
+  test('[P2] 不支持的语言不触发补全', async ({ page }) => {
+    // Given 用户在编辑器中打开非支持语言文件
+    const editor = page.locator('[data-testid="code-editor"]');
+    await editor.waitFor({ state: 'visible', timeout: 10000 });
+
+    // 切换到不支持的语言（假设HTML不支持）
+    await page.evaluate(() => {
+      // 模拟切换语言
+      window.dispatchEvent(new CustomEvent('language-change', { detail: 'html' }));
+    });
+
+    // When 用户输入代码
+    await page.keyboard.type('<div>', { delay: 100 });
+    await page.waitForTimeout(1000);
+
+    // Then 验证幽灵文本不出现
+    const ghostText = page.locator('[data-testid="inline-completion-ghost"]');
+    const isVisible = await ghostText.isVisible().catch(() => false);
+    expect(isVisible).toBe(false);
+  });
+
+  test('[P2] 连续Tab键多次接受', async ({ page }) => {
+    // Given 用户在编辑器中
+    const editor = page.locator('[data-testid="code-editor"]');
+    await editor.waitFor({ state: 'visible', timeout: 10000 });
+
+    // 设置连续补全响应
+    let completionCount = 0;
+    await page.route('**/api/v1/ai/completion', async (route) => {
+      completionCount++;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          completion: completionCount === 1 ? 'bar' : 'baz',
+          stopReason: 'length',
+          model: 'gpt-4o'
+        })
+      });
+    });
+
+    // When 用户输入并连续按Tab
+    await page.keyboard.type('const foo = ', { delay: 100 });
+    await page.waitForTimeout(1000);
+    
+    await page.keyboard.press('Tab');
+    await page.waitForTimeout(1000);
+    
+    await page.keyboard.press('Tab');
+    await page.waitForTimeout(1000);
+
+    // Then 验证两次补全都被接受
+    const editorContent = await page.evaluate(() => {
+      const textarea = document.querySelector('.monaco-editor textarea');
+      return textarea?.value || '';
+    });
+    expect(editorContent).toContain('const foo = barbaz');
+  });
+
+  test('[P2] 补全响应为空时不显示幽灵文本', async ({ page }) => {
+    // Given 模拟空响应
+    await page.route('**/api/v1/ai/completion', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ completion: '', stopReason: 'length', model: 'gpt-4o' })
+      });
+    });
+
+    // When 用户输入代码
+    const editor = page.locator('[data-testid="code-editor"]');
+    await editor.waitFor({ state: 'visible', timeout: 10000 });
+
+    await page.keyboard.type('const foo = ', { delay: 100 });
+    await page.waitForTimeout(1000);
+
+    // Then 验证幽灵文本不出现
     const ghostText = page.locator('[data-testid="inline-completion-ghost"]');
     const isVisible = await ghostText.isVisible().catch(() => false);
     expect(isVisible).toBe(false);
