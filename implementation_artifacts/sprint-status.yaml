@@ -59,7 +59,7 @@ development_status:
   epic-3: in-progress
   3-1-ai-model-config: done
   3-2-ai-chat-panel: done
-  3-3-ai-inline-completion: ready-for-dev
+  3-3-ai-inline-completion: done
   3-4-agent-mode: backlog
   epic-3-retrospective: optional
 
@@ -88,7 +88,7 @@ summary:
   stories_ready_for_dev: 0
   stories_in_progress: 0
   stories_in_review: 0
-  stories_completed: 6
+  stories_completed: 7
 
 story_mapping:
   epic-1:

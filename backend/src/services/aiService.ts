@@ -43,6 +43,21 @@ export interface StreamEvent {
   error?: string;
 }
 
+export interface InlineCompletionRequest {
+  prompt: string;
+  prefix: string;
+  suffix: string;
+  fileContent: string;
+  language: string;
+  maxTokens?: number;
+}
+
+export interface InlineCompletionResponse {
+  completion: string;
+  stopReason?: string;
+  model?: string;
+}
+
 // AI服务常量
 const AI_CONSTANTS = {
   CONNECTION_TIMEOUT_MS: 10000,
@@ -219,6 +234,74 @@ class AiService {
     } catch (error) {
       throw new Error(
         error instanceof Error ? error.message : '聊天请求失败'
+      );
+    }
+  }
+
+  async getInlineCompletion(
+    modelConfig: AIModelConfig,
+    request: InlineCompletionRequest
+  ): Promise<InlineCompletionResponse> {
+    const maxTokens = request.maxTokens || 50;
+
+    // Mock response for testing
+    if (modelConfig.baseUrl.includes('mock')) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return {
+        completion: 'bar',
+        stopReason: 'length',
+        model: modelConfig.model,
+      };
+    }
+
+    try {
+      const completionPrompt = `Complete the following code in ${request.language}:
+${request.fileContent}
+
+Continue from: ${request.prefix}`;
+
+      const response = await fetch(`${modelConfig.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${modelConfig.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: modelConfig.model,
+          messages: [
+            { role: 'system', content: 'You are a helpful code completion assistant.' },
+            { role: 'user', content: completionPrompt },
+          ],
+          max_tokens: maxTokens,
+          temperature: 0.3,
+        }),
+        signal: AbortSignal.timeout(AI_CONSTANTS.CHAT_TIMEOUT_MS),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        throw new Error(
+          errorBody?.error?.message || `HTTP ${response.status}: ${response.statusText}`
+        );
+      }
+
+      const result = await response.json();
+
+      if (result.choices && result.choices.length > 0) {
+        return {
+          completion: result.choices[0].message?.content || '',
+          stopReason: result.choices[0].finish_reason,
+          model: result.model,
+        };
+      }
+
+      throw new Error('API响应格式不正确');
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new Error('请求超时');
+      }
+      throw new Error(
+        error instanceof Error ? error.message : '补全请求失败'
       );
     }
   }

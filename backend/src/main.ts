@@ -46,7 +46,8 @@ import {
   handleAiTest,
   handleAiChat,
   handleAiModels,
-  handleAiChatStream
+  handleAiChatStream,
+  handleAiCompletion
 } from './handlers/aiHandler.ts';
 
 const PORT = parseInt(Deno.env.get('PORT') || '3000');
@@ -366,6 +367,13 @@ async function handleRequest(req: Request): Promise<Response> {
     case '/api/v1/ai/chat/stream':
       if (req.method === 'POST') {
         response = await handleAiChatStream(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/ai/completion':
+      if (req.method === 'POST') {
+        response = await handleAiCompletion(req);
       } else {
         response = new Response('Method Not Allowed', { status: 405 });
       }

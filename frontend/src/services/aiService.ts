@@ -32,6 +32,21 @@ export interface ChatResponse {
   finishReason?: string;
 }
 
+export interface InlineCompletionRequest {
+  prompt: string;
+  prefix: string;
+  suffix: string;
+  fileContent: string;
+  language: string;
+  maxTokens?: number;
+}
+
+export interface InlineCompletionResponse {
+  completion: string;
+  stopReason?: string;
+  model?: string;
+}
+
 const API_BASE_URL = '/api/v1/ai';
 
 // 工具函数：API Key脱敏
@@ -193,6 +208,40 @@ class AiService {
       }
     } catch (error) {
       throw new Error(error instanceof Error ? error.message : '请求失败');
+    }
+  }
+
+  // 获取内联代码补全
+  async getInlineCompletion(request: InlineCompletionRequest): Promise<InlineCompletionResponse> {
+    const currentModel = this.getCurrentModel();
+    if (!currentModel) {
+      throw new Error('请先配置AI模型');
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/completion`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          modelId: currentModel.id,
+          ...request,
+          maxTokens: request.maxTokens || 50,
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (result.status === 'success') {
+        return {
+          completion: result.data.completion,
+          stopReason: result.data.stopReason,
+          model: result.data.model,
+        };
+      } else {
+        throw new Error(result.error?.message || '补全请求失败');
+      }
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : '补全请求失败');
     }
   }
 

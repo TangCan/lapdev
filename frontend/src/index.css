@@ -1009,3 +1009,10 @@ body {
 .status-right {
   color: #8b949e;
 }
+
+/* Inline Completion Ghost Text */
+.inline-completion-ghost {
+  color: #888888 !important;
+  font-style: italic !important;
+  opacity: 0.7;
+}

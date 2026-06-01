@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAI } from '../../context/AIContext';
+import { useInlineCompletion } from '../../context/InlineCompletionContext';
 import { maskApiKey } from '../../services/aiService';
 
 interface AIModelForm {
@@ -50,6 +51,8 @@ export const AIConfigPanel: React.FC = () => {
     testConnection,
     clearTestResult,
   } = useAI();
+
+  const { inlineCompletionEnabled, setInlineCompletionEnabled } = useInlineCompletion();
 
   const [form, setForm] = useState<AIModelForm>({
     name: '',
@@ -184,6 +187,28 @@ export const AIConfigPanel: React.FC = () => {
             当前: {currentModel.name}
           </span>
         )}
+      </div>
+
+      {/* 内联补全开关 */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-medium text-gray-700">内联代码补全</h3>
+            <p className="text-sm text-gray-500 mt-1">
+              启用后，在编辑器中输入代码时将自动显示AI补全建议
+            </p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              data-testid="inline-completion-toggle"
+              checked={inlineCompletionEnabled}
+              onChange={(e) => setInlineCompletionEnabled(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+          </label>
+        </div>
       </div>
 
       {/* 配置表单 */}

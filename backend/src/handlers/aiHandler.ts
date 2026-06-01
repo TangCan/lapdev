@@ -420,10 +420,10 @@ export async function handleAiChatStream(req: Request): Promise<Response> {
       );
     }
 
-    let modelConfig = modelConfigs.get(modelId);
+    let modelConfig: AIModelConfig | undefined = modelConfigs.get(modelId);
     
     if (!modelConfig && modelId === 'current') {
-      modelConfig = currentModelId ? modelConfigs.get(currentModelId) || null : null;
+      modelConfig = currentModelId ? modelConfigs.get(currentModelId) : undefined;
     }
 
     if (!modelConfig) {
@@ -469,6 +469,120 @@ export async function handleAiChatStream(req: Request): Promise<Response> {
       JSON.stringify({
         status: 'error',
         message: error instanceof Error ? error.message : '流式聊天请求失败',
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+export async function handleAiCompletion(req: Request): Promise<Response> {
+  try {
+    const body = await req.json();
+    const { modelId, prompt, prefix, suffix, fileContent, language, maxTokens } = body;
+
+    // 验证必填字段
+    if (!modelId) {
+      return new Response(
+        JSON.stringify({
+          status: 'error',
+          message: '缺少必填字段: modelId',
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // 验证字符串字段不为过长（防止滥用）
+    const MAX_CONTENT_LENGTH = 100000; // 100KB
+    const fieldsToValidate: { name: string; value: string | undefined; maxLength?: number }[] = [
+      { name: 'prompt', value: prompt, maxLength: 1000 },
+      { name: 'prefix', value: prefix, maxLength: MAX_CONTENT_LENGTH },
+      { name: 'suffix', value: suffix, maxLength: MAX_CONTENT_LENGTH },
+      { name: 'fileContent', value: fileContent, maxLength: MAX_CONTENT_LENGTH },
+      { name: 'language', value: language, maxLength: 50 },
+    ];
+
+    for (const field of fieldsToValidate) {
+      if (field.value !== undefined && field.value !== null) {
+        if (typeof field.value !== 'string') {
+          return new Response(
+            JSON.stringify({
+              status: 'error',
+              message: `字段 ${field.name} 必须是字符串类型`,
+            }),
+            { status: 400, headers: { 'Content-Type': 'application/json' } }
+          );
+        }
+        if (field.maxLength && field.value.length > field.maxLength) {
+          return new Response(
+            JSON.stringify({
+              status: 'error',
+              message: `字段 ${field.name} 长度超过限制 (最大 ${field.maxLength} 字符)`,
+            }),
+            { status: 400, headers: { 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+    }
+
+    // 验证 maxTokens 范围
+    if (maxTokens !== undefined && maxTokens !== null) {
+      if (typeof maxTokens !== 'number' || !Number.isInteger(maxTokens)) {
+        return new Response(
+          JSON.stringify({
+            status: 'error',
+            message: 'maxTokens 必须是整数',
+          }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+      if (maxTokens < 1 || maxTokens > 1000) {
+        return new Response(
+          JSON.stringify({
+            status: 'error',
+            message: 'maxTokens 必须在 1 到 1000 之间',
+          }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    let modelConfig: AIModelConfig | undefined = modelConfigs.get(modelId);
+    
+    if (!modelConfig && modelId === 'current') {
+      modelConfig = currentModelId ? modelConfigs.get(currentModelId) : undefined;
+    }
+
+    if (!modelConfig) {
+      return new Response(
+        JSON.stringify({
+          status: 'error',
+          message: '模型配置不存在',
+        }),
+        { status: 404, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const result = await aiService.getInlineCompletion(modelConfig, {
+      prompt: prompt || '',
+      prefix: prefix || '',
+      suffix: suffix || '',
+      fileContent: fileContent || '',
+      language: language || 'typescript',
+      maxTokens: maxTokens || 50,
+    });
+
+    return new Response(
+      JSON.stringify({
+        status: 'success',
+        data: result,
+      }),
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({
+        status: 'error',
+        message: error instanceof Error ? error.message : '内联补全请求失败',
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );

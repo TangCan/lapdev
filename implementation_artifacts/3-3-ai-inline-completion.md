@@ -7,7 +7,7 @@
 | **Story ID** | 3-3-ai-inline-completion |
 | **所属Epic** | Epic 3: AI功能（BYOK模式） |
 | **标题** | AI内联代码补全 |
-| **状态** | ready-for-dev |
+| **状态** | done |
 | **优先级** | 高 |
 | **估计工时** | 8小时 |
 | **关联FR** | FR-021 |

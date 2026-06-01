@@ -3,6 +3,7 @@ import { GitProvider } from './context/GitContext';
 import { LSPProvider } from './context/LSPContext';
 import { ChatProvider } from './context/ChatContext';
 import { AIProvider } from './context/AIContext';
+import { InlineCompletionProvider } from './context/InlineCompletionContext';
 import { SettingsPage } from './pages/SettingsPage';
 import IDE from './components/IDE/IDE';
 
@@ -12,10 +13,12 @@ function App() {
       <LSPProvider>
         <ChatProvider>
           <AIProvider>
-            <Routes>
-              <Route path="/" element={<IDE />} />
-              <Route path="/settings" element={<SettingsPage />} />
-            </Routes>
+            <InlineCompletionProvider>
+              <Routes>
+                <Route path="/" element={<IDE />} />
+                <Route path="/settings" element={<SettingsPage />} />
+              </Routes>
+            </InlineCompletionProvider>
           </AIProvider>
         </ChatProvider>
       </LSPProvider>
