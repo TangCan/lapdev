@@ -4,7 +4,7 @@ import { CodeEditor, type DiffLine } from '../Editor/CodeEditor';
 import { LspCodeEditor } from '../Editor/LspCodeEditor';
 import { Terminal } from '../Terminal/Terminal';
 import GitPanel from '../Git/GitPanel';
-import ProblemsPanel from '../ProblemsPanel';
+import ProblemsPanel from '../Problems/ProblemsPanel';
 import AIChatPanel from '../AI/AIChatPanel';
 import { useGit } from '../../context/GitContext';
 import { useChat } from '../../context/ChatContext';

@@ -11,7 +11,7 @@ interface MessageBubbleProps {
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isStreaming }) => {
   return (
-    <div className={`message-bubble ${message.role}`}>
+    <div className={`message-bubble ${message.role}`} data-testid="ai-message" data-role={message.role}>
       <div className="message-content">
         <div className="message-text">
           {message.content}
@@ -40,7 +40,8 @@ const AIChatPanel: React.FC = () => {
     sendMessage,
     abortStream,
     newSession,
-    clearSession
+    clearSession,
+    togglePanel
   } = useChat();
 
   const { isConnected, currentModel } = useAI();
@@ -48,15 +49,13 @@ const AIChatPanel: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const [isExpanded, setIsExpanded] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const MAX_INPUT_LENGTH = 10000;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value;
-    if (value.length <= MAX_INPUT_LENGTH) {
-      setInputValue(value);
-    }
+    setInputValue(e.target.value);
   };
 
   // 滚动到最新消息
@@ -68,6 +67,12 @@ const AIChatPanel: React.FC = () => {
     if (!inputValue.trim() || isStreaming) return;
 
     setError(null);
+
+    if (inputValue.length > MAX_INPUT_LENGTH) {
+      setError(`输入超过最大长度限制 (${MAX_INPUT_LENGTH} 字符)`);
+      setTimeout(() => setError(null), 5000);
+      return;
+    }
 
     try {
       const contexts = await parseContextReferences(inputValue);
@@ -95,21 +100,42 @@ const AIChatPanel: React.FC = () => {
     setInputValue(prev => prev + '@selection');
   };
 
+  const handleClearConfirm = () => {
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmClear = () => {
+    clearSession();
+    setShowConfirmDialog(false);
+  };
+
+  const handleCancelClear = () => {
+    setShowConfirmDialog(false);
+  };
+
   if (!isPanelOpen) {
     return null;
   }
 
   return (
-    <div className={`ai-chat-panel ${isExpanded ? 'expanded' : 'collapsed'}`}>
+    <div className={`ai-chat-panel ${isExpanded ? 'expanded' : 'collapsed'}`} data-testid="ai-chat-panel">
       {/* Header */}
-      <div className="chat-header">
+      <div className="chat-header" data-testid="ai-chat-header">
         <div className="header-left">
           <span className="logo">🤖</span>
           <span className="title">AI Chat</span>
         </div>
         <div className="header-right">
-          <button 
-            className="header-btn" 
+          <button
+            className="header-btn"
+            onClick={togglePanel}
+            title="Close"
+            data-testid="ai-close-panel"
+          >
+            ✕
+          </button>
+          <button
+            className="header-btn"
             onClick={() => setIsExpanded(!isExpanded)}
             title={isExpanded ? 'Collapse' : 'Expand'}
           >
@@ -122,7 +148,7 @@ const AIChatPanel: React.FC = () => {
       <div className={`chat-content ${isExpanded ? '' : 'hidden'}`}>
         {/* Configuration Notice */}
         {!isConnected && !currentModel && (
-          <div className="config-notice">
+          <div className="config-notice" data-testid="ai-guidance">
             <div className="notice-icon">🔧</div>
             <div className="notice-content">
               <p className="notice-title">请先配置AI</p>
@@ -132,9 +158,9 @@ const AIChatPanel: React.FC = () => {
         )}
 
         {/* Messages */}
-        {isConnected && currentSession && (
-          <div className="message-list">
-            {currentSession.messages.length === 0 ? (
+        {isConnected && (
+          <div className="message-list" data-testid="ai-message-list">
+            {!currentSession || currentSession.messages.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-icon">💬</div>
                 <p className="empty-title">开始对话</p>
@@ -155,7 +181,7 @@ const AIChatPanel: React.FC = () => {
 
         {/* Error Message */}
         {error && (
-          <div className="error-message">
+          <div className="error-message" data-testid="ai-error-message">
             <span className="error-icon">⚠️</span>
             <span className="error-text">{error}</span>
           </div>
@@ -163,7 +189,7 @@ const AIChatPanel: React.FC = () => {
 
         {/* Loading Indicator */}
         {isStreaming && (
-          <div className="streaming-indicator">
+          <div className="streaming-indicator" data-testid="ai-loading">
             <div className="loading-dots">
               <span>·</span>
               <span>·</span>
@@ -179,10 +205,10 @@ const AIChatPanel: React.FC = () => {
         {/* Actions Bar */}
         {isConnected && (
           <div className="actions-bar">
-            <button className="action-btn" onClick={newSession} title="New Session">
+            <button className="action-btn" onClick={newSession} title="New Session" data-testid="ai-new-conversation">
               ➕ 新会话
             </button>
-            <button className="action-btn" onClick={clearSession} title="Clear Session">
+            <button className="action-btn" onClick={handleClearConfirm} title="Clear Session" data-testid="ai-clear-conversation">
               🗑️ 清空
             </button>
           </div>
@@ -207,16 +233,36 @@ const AIChatPanel: React.FC = () => {
               placeholder="输入消息... (支持 @file:path 和 @selection)"
               disabled={isStreaming}
               rows={3}
+              data-testid="ai-chat-input"
             />
             <div className="input-footer">
-              <span className="char-count">{inputValue.length}/{MAX_INPUT_LENGTH}</span>
+              <span className="char-count" data-testid="ai-char-count">{inputValue.length}/{MAX_INPUT_LENGTH}</span>
               <button
                 className={`send-btn ${isStreaming ? 'disabled' : ''}`}
                 onClick={handleSend}
                 disabled={isStreaming || !inputValue.trim()}
+                data-testid="ai-send-button"
               >
                 {isStreaming ? '发送中...' : '发送'}
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Confirm Dialog */}
+        {showConfirmDialog && (
+          <div className="confirm-dialog">
+            <div className="dialog-content">
+              <h3>确认清空会话</h3>
+              <p>确定要清空当前会话的所有消息吗？此操作无法撤销。</p>
+              <div className="dialog-buttons">
+                <button className="dialog-btn cancel" onClick={handleCancelClear}>
+                  取消
+                </button>
+                <button className="dialog-btn confirm" onClick={handleConfirmClear} data-testid="confirm-button">
+                  确认
+                </button>
+              </div>
             </div>
           </div>
         )}

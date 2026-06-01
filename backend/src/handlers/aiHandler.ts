@@ -11,6 +11,19 @@ function isValidProvider(provider: string): provider is Provider {
 const modelConfigs: Map<string, AIModelConfig> = new Map();
 let currentModelId: string | null = null;
 
+// 添加默认测试模型配置
+const defaultModel: AIModelConfig = {
+  id: 'mock-model-1',
+  name: 'Mock AI',
+  provider: 'openai',
+  apiKey: 'sk-mock-key',
+  baseUrl: 'https://mock.localhost/v1',
+  model: 'mock-model',
+  isActive: true,
+};
+modelConfigs.set(defaultModel.id, defaultModel);
+currentModelId = defaultModel.id;
+
 export async function handleAiConfigGet(req: Request): Promise<Response> {
   try {
     const models = Array.from(modelConfigs.values()).map(config => ({

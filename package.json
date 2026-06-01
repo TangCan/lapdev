@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Open-source Web IDE with AI integration",
   "scripts": {
-    "test:e2e": "playwright test tests/e2e/",
+    "test:e2e": "NO_PROXY=localhost,127.0.0.1 no_proxy=localhost,127.0.0.1 playwright test tests/e2e/",
     "test:e2e:ui": "playwright test tests/e2e/ --ui",
     "test:e2e:headed": "playwright test tests/e2e/ --headed",
     "test:e2e:report": "playwright show-report",

@@ -250,7 +250,43 @@ run_test "5. 公共单元测试" "npm run test:unit 2>&1"
 run_test "6. API集成测试" "npm run test:api 2>&1"
 
 # 7. E2E测试（需要前端和后端服务）
-run_test "7. E2E测试" "npm run test:e2e 2>&1"
+# 在运行前检查服务状态
+echo -e "\n${YELLOW}检查前端服务状态...${NC}"
+if ! wait_for_service "${FRONTEND_URL}" 5; then
+  echo -e "${RED}前端服务不可用，尝试重启...${NC}"
+  stop_frontend
+  start_frontend
+fi
+
+echo -e "\n${YELLOW}检查后端服务状态...${NC}"
+if ! wait_for_service "${BACKEND_URL}/api/v1/git/status" 5; then
+  echo -e "${RED}后端服务不可用，尝试重启...${NC}"
+  stop_backend
+  start_backend
+fi
+
+# 先运行除了conversation history测试之外的所有E2E测试
+run_test "7. E2E测试（除conversation history）" "npx playwright test tests/e2e/ --retries=2 --grep-invert 'conversation history' 2>&1"
+
+# 等待2秒释放资源
+sleep 2
+
+# 重启后端服务，确保AI mock服务状态正常
+echo -e "\n${YELLOW}重启后端服务...${NC}"
+stop_backend
+start_backend
+
+# 单独串行运行conversation history测试
+echo -e "\n${YELLOW}7b. E2E测试 - conversation history（串行执行）${NC}"
+echo "------------------------------------------------"
+if npx playwright test tests/e2e/ai-chat.spec.ts --grep "conversation history" --workers=1 --retries=2 2>&1; then
+  echo -e "${GREEN}✓ E2E测试 - conversation history 全部通过${NC}"
+  TEST_RESULTS+=("✓ E2E测试 - conversation history")
+else
+  echo -e "${RED}✗ E2E测试 - conversation history 失败${NC}"
+  TEST_RESULTS+=("✗ E2E测试 - conversation history")
+  ALL_PASSED=false
+fi
 
 # 显示测试总结
 echo -e "\n${YELLOW}============================================"

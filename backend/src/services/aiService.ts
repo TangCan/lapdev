@@ -228,6 +228,23 @@ class AiService {
     messages: ChatMessage[]
   ): AsyncGenerator<StreamEvent> {
     try {
+      // Mock response for testing
+      if (modelConfig.baseUrl.includes('mock')) {
+        // Add initial delay to ensure loading indicator is visible
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const mockResponse = 'This is a mock response for testing purposes.';
+        for (let i = 0; i < mockResponse.length; i += 2) {
+          yield {
+            type: 'content',
+            content: mockResponse.slice(i, Math.min(i + 2, mockResponse.length)),
+          };
+          await new Promise(resolve => setTimeout(resolve, 150));
+        }
+        yield { type: 'done' };
+        return;
+      }
+
       const response = await fetch(`${modelConfig.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: {

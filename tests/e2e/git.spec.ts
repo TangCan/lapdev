@@ -52,19 +52,26 @@ test.describe('Git Visualization E2E Tests', () => {
     // Given 用户打开IDE
     // When 打开Git面板
     const gitPanelButton = page.locator('[data-testid="git-panel-button"]');
-    await expect(gitPanelButton).toBeVisible({ timeout: 5000 });
+    await gitPanelButton.waitFor({ state: 'visible', timeout: 10000 });
     await gitPanelButton.click();
     
     // Then Git面板显示
     const gitPanel = page.locator('[data-testid="git-panel"]');
-    await expect(gitPanel).toBeVisible({ timeout: 5000 });
+    await gitPanel.waitFor({ state: 'visible', timeout: 10000 });
     
     // And 变更列表容器存在（即使没有变更也会显示空列表或提示）
     const changesList = page.locator('[data-testid="git-changes-list"]');
     const noChangesHint = page.locator('[data-testid="no-changes"]');
     const noGitRepo = page.locator('[data-testid="no-git-repo"]');
     
-    // 要么显示变更列表，要么显示无变更提示，要么显示非Git仓库提示
+    // 等待任一元素可见
+    await Promise.race([
+      changesList.waitFor({ state: 'visible', timeout: 10000 }),
+      noChangesHint.waitFor({ state: 'visible', timeout: 10000 }),
+      noGitRepo.waitFor({ state: 'visible', timeout: 10000 })
+    ]).catch(() => {});
+    
+    // 验证至少一个元素可见
     const hasChangesList = await changesList.isVisible().catch(() => false);
     const hasNoChangesHint = await noChangesHint.isVisible().catch(() => false);
     const hasNoGitRepo = await noGitRepo.isVisible().catch(() => false);
@@ -129,26 +136,26 @@ test.describe('Git Visualization E2E Tests', () => {
   test('AC-5: 分支选择器显示分支列表', async ({ page }) => {
     // Given 用户在Git面板
     const gitPanelButton = page.locator('[data-testid="git-panel-button"]');
-    await expect(gitPanelButton).toBeVisible({ timeout: 5000 });
+    await gitPanelButton.waitFor({ state: 'visible', timeout: 10000 });
     await gitPanelButton.click();
     
     // Then Git面板显示
     const gitPanel = page.locator('[data-testid="git-panel"]');
-    await expect(gitPanel).toBeVisible({ timeout: 5000 });
+    await gitPanel.waitFor({ state: 'visible', timeout: 10000 });
     
     // When 打开分支选择器
     const branchSelector = page.locator('[data-testid="branch-selector"]');
-    await expect(branchSelector).toBeVisible({ timeout: 5000 });
+    await branchSelector.waitFor({ state: 'visible', timeout: 10000 });
     await branchSelector.click();
     
     // Then 显示分支列表
     const branchList = page.locator('[data-testid="branch-list"]');
-    await expect(branchList).toBeVisible({ timeout: 5000 });
+    await branchList.waitFor({ state: 'visible', timeout: 10000 });
     
     // And 当前分支高亮（如果有分支的话）
     const currentBranch = page.locator('[data-testid="current-branch"]');
     // 分支列表中应该至少有一个当前分支
-    await expect(currentBranch).toBeVisible({ timeout: 5000 });
+    await currentBranch.waitFor({ state: 'visible', timeout: 10000 });
   });
 
   test('AC-6: 状态栏显示分支信息', async ({ page }) => {

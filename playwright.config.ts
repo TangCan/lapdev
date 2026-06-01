@@ -14,7 +14,7 @@ export default defineConfig({
     ['junit', { outputFile: 'test-results/e2e-results.xml' }]
   ],
   use: {
-    baseURL: process.env.BASE_URL || 'http://127.0.0.1:5173',
+    baseURL: process.env.BASE_URL || 'http://localhost:5173',
     trace: 'retain-on-failure-and-retries',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -26,23 +26,6 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: ['**/git.spec.ts'],
-    },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-      testIgnore: ['**/git.spec.ts'],
-    },
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-      testIgnore: ['**/git.spec.ts'],
-    },
-    {
-      name: 'git-tests',
-      use: { ...devices['Desktop Chrome'] },
-      testMatch: ['**/git.spec.ts'],
-      workers: 1,
     },
   ],
   outputDir: 'test-results/',

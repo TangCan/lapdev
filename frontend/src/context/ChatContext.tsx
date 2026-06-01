@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
+import React, { createContext, useContext, useCallback, useState, useEffect, useRef } from 'react';
 
 export interface ChatContextItem {
   type: 'file' | 'selection';
@@ -91,6 +91,12 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isStreaming, setIsStreaming] = useState(false);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
+  
+  // 使用ref保存currentSessionId以避免闭包问题
+  const currentSessionIdRef = useRef<string | null>(currentSessionId);
+  useEffect(() => {
+    currentSessionIdRef.current = currentSessionId;
+  }, [currentSessionId]);
 
   // 计算当前会话
   const currentSession = sessions.find(s => s.id === currentSessionId) || null;
@@ -151,7 +157,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // 发送消息
   const sendMessage = useCallback(async (content: string, contexts?: ChatContextItem[]) => {
-    let sessionId = currentSessionId;
+    let sessionId = currentSessionIdRef.current;
 
     // 如果没有会话，先创建
     if (!sessionId) {
@@ -317,7 +323,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsStreaming(false);
       setAbortController(null);
     }
-  }, [currentSessionId]);
+  }, []);
 
   // 中断流式响应
   const abortStream = useCallback(() => {

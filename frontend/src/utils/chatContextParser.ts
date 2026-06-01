@@ -48,12 +48,7 @@ export async function parseContextReferences(content: string): Promise<ChatConte
     try {
       filePath = sanitizePath(rawPath);
     } catch (error) {
-      contexts.push({
-        type: 'file',
-        path: rawPath,
-        content: `[Error: ${error instanceof Error ? error.message : 'Invalid path'}]`,
-      });
-      continue;
+      throw new Error(error instanceof Error ? error.message : 'Invalid path');
     }
 
     try {
