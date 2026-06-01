@@ -1,10 +1,8 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('[E2E] Code Editor', () => {
-  test.beforeEach(async ({ page, context }) => {
-    const baseURL = context.baseURL || 'http://localhost:5173';
-    await page.goto(baseURL);
-    // Wait for the file tree to load
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
     await page.waitForSelector('[data-testid="file-tree"]', { timeout: 10000 });
   });
 

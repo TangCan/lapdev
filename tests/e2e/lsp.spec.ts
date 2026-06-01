@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 async function openTestFile(page: any) {
-  await page.goto('http://localhost:5173');
+  await page.goto('http://127.0.0.1:5173');
   
   await page.waitForSelector('[data-testid="file-tree"]', { timeout: 10000 });
   await page.waitForSelector('[data-testid="file-item"]', { timeout: 10000 });
