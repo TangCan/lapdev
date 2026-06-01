@@ -1,12 +1,24 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { CodeEditor } from './CodeEditor';
+import { AIProvider } from '../../context/AIContext';
+import { InlineCompletionProvider } from '../../context/InlineCompletionContext';
 
 describe('CodeEditor Component', () => {
   const mockOnChange = vi.fn();
 
+  const renderWithProviders = (ui: React.ReactElement) => {
+    return render(
+      <AIProvider>
+        <InlineCompletionProvider>
+          {ui}
+        </InlineCompletionProvider>
+      </AIProvider>
+    );
+  };
+
   it('should render editor container', () => {
-    render(
+    renderWithProviders(
       <CodeEditor
         value="console.log('Hello');"
         language="javascript"
@@ -24,7 +36,7 @@ describe('CodeEditor Component', () => {
       { lineNumber: 2, type: 'modified' as const },
     ];
 
-    render(
+    renderWithProviders(
       <CodeEditor
         value="line1\nline2\nline3"
         language="javascript"
@@ -38,7 +50,7 @@ describe('CodeEditor Component', () => {
   });
 
   it('should handle empty value', () => {
-    render(
+    renderWithProviders(
       <CodeEditor
         value=""
         language="plaintext"
@@ -51,7 +63,7 @@ describe('CodeEditor Component', () => {
   });
 
   it('should handle readOnly mode', () => {
-    render(
+    renderWithProviders(
       <CodeEditor
         value="const x = 1;"
         language="typescript"
@@ -65,7 +77,7 @@ describe('CodeEditor Component', () => {
   });
 
   it('should handle custom font size', () => {
-    render(
+    renderWithProviders(
       <CodeEditor
         value="console.log('test');"
         language="javascript"
