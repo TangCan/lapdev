@@ -26,14 +26,23 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      testIgnore: ['**/git.spec.ts'],
     },
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
+      testIgnore: ['**/git.spec.ts'],
     },
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
+      testIgnore: ['**/git.spec.ts'],
+    },
+    {
+      name: 'git-tests',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: ['**/git.spec.ts'],
+      workers: 1,
     },
   ],
   outputDir: 'test-results/',
