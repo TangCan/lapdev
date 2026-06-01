@@ -37,6 +37,12 @@ export interface ChatResponse {
   finishReason?: string;
 }
 
+export interface StreamEvent {
+  type: 'content' | 'done' | 'error';
+  content?: string;
+  error?: string;
+}
+
 // AI服务常量
 const AI_CONSTANTS = {
   CONNECTION_TIMEOUT_MS: 10000,
@@ -214,6 +220,95 @@ class AiService {
       throw new Error(
         error instanceof Error ? error.message : '聊天请求失败'
       );
+    }
+  }
+
+  async *sendStreamChatRequest(
+    modelConfig: AIModelConfig,
+    messages: ChatMessage[]
+  ): AsyncGenerator<StreamEvent> {
+    try {
+      const response = await fetch(`${modelConfig.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${modelConfig.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: modelConfig.model,
+          messages,
+          max_tokens: AI_CONSTANTS.MAX_TOKENS_CHAT,
+          temperature: AI_CONSTANTS.TEMPERATURE,
+          stream: true,
+        }),
+        signal: AbortSignal.timeout(AI_CONSTANTS.CHAT_TIMEOUT_MS),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        yield {
+          type: 'error',
+          error: errorBody?.error?.message || `HTTP ${response.status}: ${response.statusText}`,
+        };
+        return;
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        yield { type: 'error', error: 'No response body' };
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.trim() === '') continue;
+          if (!line.startsWith('data: ')) continue;
+
+          const data = line.slice(6);
+          if (data === '[DONE]') {
+            yield { type: 'done' };
+            return;
+          }
+
+          try {
+            const event = JSON.parse(data);
+            
+            if (event.choices && event.choices.length > 0) {
+              const delta = event.choices[0].delta;
+              if (delta?.content) {
+                yield { type: 'content', content: delta.content };
+              }
+            }
+          } catch {
+            continue;
+          }
+        }
+      }
+
+      yield { type: 'done' };
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        yield { type: 'done' };
+      } else {
+        yield {
+          type: 'error',
+          error: error instanceof Error ? error.message : 'Stream error',
+        };
+      }
     }
   }
 

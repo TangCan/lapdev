@@ -391,3 +391,73 @@ export async function handleAiModels(req: Request): Promise<Response> {
     );
   }
 }
+
+export async function handleAiChatStream(req: Request): Promise<Response> {
+  try {
+    const body = await req.json();
+    const { modelId, messages } = body;
+
+    if (!modelId || !messages) {
+      return new Response(
+        JSON.stringify({
+          status: 'error',
+          message: '缺少必填字段: modelId, messages',
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    let modelConfig = modelConfigs.get(modelId);
+    
+    if (!modelConfig && modelId === 'current') {
+      modelConfig = currentModelId ? modelConfigs.get(currentModelId) || null : null;
+    }
+
+    if (!modelConfig) {
+      return new Response(
+        JSON.stringify({
+          status: 'error',
+          message: '模型配置不存在',
+        }),
+        { status: 404, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const encoder = new TextEncoder();
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const event of aiService.sendStreamChatRequest(modelConfig!, messages)) {
+            const sseData = `data: ${JSON.stringify(event)}\n\n`;
+            controller.enqueue(encoder.encode(sseData));
+          }
+        } catch (error) {
+          const errorEvent = {
+            type: 'error',
+            error: error instanceof Error ? error.message : 'Stream error',
+          };
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(errorEvent)}\n\n`));
+        } finally {
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
+  } catch (error) {
+    return new Response(
+      JSON.stringify({
+        status: 'error',
+        message: error instanceof Error ? error.message : '流式聊天请求失败',
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+}

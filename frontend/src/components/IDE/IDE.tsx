@@ -4,8 +4,10 @@ import { CodeEditor, type DiffLine } from '../Editor/CodeEditor';
 import { LspCodeEditor } from '../Editor/LspCodeEditor';
 import { Terminal } from '../Terminal/Terminal';
 import GitPanel from '../Git/GitPanel';
-import ProblemsPanel from '../Problems/ProblemsPanel';
+import ProblemsPanel from '../ProblemsPanel';
+import AIChatPanel from '../AI/AIChatPanel';
 import { useGit } from '../../context/GitContext';
+import { useChat } from '../../context/ChatContext';
 import type { FileInfo } from '../../types/file';
 import { readFile, writeFile, formatCode } from '../../services/fileService';
 import { fetchGitDiff } from '../../services/gitService';
@@ -33,6 +35,7 @@ function IDE() {
   const [diffLines, setDiffLines] = useState<Record<string, DiffLine[]>>({});
   
   const { status, currentBranch, refreshStatus } = useGit();
+  const { isPanelOpen, togglePanel } = useChat();
 
   const showError = (message: string) => {
     setErrorMessage(message);
@@ -313,6 +316,13 @@ function IDE() {
           >
             ⚙️ 设置
           </Link>
+          <button 
+            className={`action-button ${isPanelOpen ? 'active' : ''}`}
+            onClick={togglePanel}
+            data-testid="ai-panel-button"
+          >
+            🤖 AI Chat
+          </button>
         </div>
       </header>
       
@@ -426,6 +436,8 @@ function IDE() {
           </aside>
         )}
       </div>
+      
+      <AIChatPanel />
     </div>
   );
 }
