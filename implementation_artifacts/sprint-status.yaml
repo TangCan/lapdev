@@ -56,11 +56,11 @@ development_status:
   epic-2-retrospective: done
 
   # Epic 3: AI功能 (4 stories)
-  epic-3: in-progress
+  epic-3: done
   3-1-ai-model-config: done
   3-2-ai-chat-panel: done
   3-3-ai-inline-completion: done
-  3-4-agent-mode: in-progress
+  3-4-agent-mode: done
   epic-3-retrospective: optional
 
   # Epic 4: Skill系统 (2 stories)
@@ -84,11 +84,11 @@ development_status:
 summary:
   total_epics: 6
   total_stories: 17
-  epics_in_progress: 2
+  epics_in_progress: 1
   stories_ready_for_dev: 0
   stories_in_progress: 0
   stories_in_review: 0
-  stories_completed: 7
+  stories_completed: 8
 
 story_mapping:
   epic-1:
