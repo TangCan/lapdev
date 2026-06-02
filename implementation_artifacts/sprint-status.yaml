@@ -61,7 +61,7 @@ development_status:
   3-2-ai-chat-panel: done
   3-3-ai-inline-completion: done
   3-4-agent-mode: done
-  epic-3-retrospective: optional
+  epic-3-retrospective: done
 
   # Epic 4: Skill系统 (2 stories)
   epic-4: backlog
