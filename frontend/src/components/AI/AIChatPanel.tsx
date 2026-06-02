@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useChat, ChatMessage } from '../../context/ChatContext';
 import { useAI } from '../../context/AIContext';
+import { AgentModeToggle } from './AgentModeToggle';
 import { parseContextReferences } from '../../utils/chatContextParser';
 import './AIChatPanel.css';
 
@@ -126,6 +127,7 @@ const AIChatPanel: React.FC = () => {
           <span className="title">AI Chat</span>
         </div>
         <div className="header-right">
+          <AgentModeToggle />
           <button
             className="header-btn"
             onClick={togglePanel}
