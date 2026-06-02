@@ -42,6 +42,19 @@ export function CodeEditor({
   const { isConnected } = useAI();
   const { inlineCompletionEnabled, inlineCompletionVisible, setInlineCompletionVisible, ghostText, setGhostText } = useInlineCompletion();
 
+  // 使用 ref 存储最新版本的值，避免闭包问题
+  const inlineCompletionEnabledRef = useRef(inlineCompletionEnabled);
+  const isConnectedRef = useRef(isConnected);
+
+  useEffect(() => {
+    inlineCompletionEnabledRef.current = inlineCompletionEnabled;
+  }, [inlineCompletionEnabled]);
+
+  useEffect(() => {
+    isConnectedRef.current = isConnected;
+    console.log('isConnected updated:', isConnected);
+  }, [isConnected]);
+
   const cancelCurrentCompletion = useCallback(() => {
     if (currentCompletionRequestRef.current) {
       currentCompletionRequestRef.current.abort();
@@ -91,18 +104,31 @@ export function CodeEditor({
 
   const triggerCompletion = useCallback(async () => {
     const editor = editorRef.current;
-    if (!editor) return;
+    if (!editor) {
+      console.log('triggerCompletion: editor is null');
+      return;
+    }
 
-    if (!inlineCompletionEnabled || !isConnected) {
+    // 使用 ref 访问最新值，避免闭包问题
+    if (!inlineCompletionEnabledRef.current) {
+      console.log('triggerCompletion: inlineCompletionEnabled is false');
+      clearGhostText();
+      return;
+    }
+    
+    if (!isConnectedRef.current) {
+      console.log('triggerCompletion: isConnected is false');
       clearGhostText();
       return;
     }
 
     if (!SUPPORTED_LANGUAGES.includes(language.toLowerCase())) {
+      console.log('triggerCompletion: unsupported language:', language);
       clearGhostText();
       return;
     }
 
+    console.log('triggerCompletion: proceeding with completion');
     cancelCurrentCompletion();
 
     const model = editor.getModel();
@@ -258,12 +284,16 @@ export function CodeEditor({
   };
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current) {
+      console.log('CodeEditor: containerRef is null');
+      return;
+    }
 
+    console.log('CodeEditor: initializing Monaco editor');
+    
     const editorOptions: Monaco.editor.IStandaloneEditorConstructionOptions = {
-      value,
-      language,
-      readOnly,
+      value: value || '',
+      language: language,
       minimap: { enabled: minimap },
       fontSize,
       lineNumbers: 'on',
@@ -290,10 +320,14 @@ export function CodeEditor({
     };
 
     editorRef.current = Monaco.editor.create(containerRef.current, editorOptions);
+    console.log('CodeEditor: Monaco editor created successfully');
 
     const editor = editorRef.current;
+    
+    console.log('CodeEditor: attaching onDidChangeModelContent listener');
 
     editor.onDidChangeModelContent(() => {
+      console.log('onDidChangeModelContent: called');
       const newValue = editor.getValue() || '';
       onChange(newValue);
 
@@ -301,17 +335,34 @@ export function CodeEditor({
         clearGhostText();
       }
 
+      console.log('onDidChangeModelContent: calling triggerCompletion');
       triggerCompletion();
     });
 
     document.addEventListener('keydown', handleKeyDown);
 
+    // 为测试暴露全局方法
+    (window as any).__test_triggerCompletion = () => {
+      console.log('Global triggerCompletion called');
+      triggerCompletion();
+    };
+
+    (window as any).__test_setEditorValue = (value: string) => {
+      editor.setValue(value);
+      console.log('Global setEditorValue called:', value);
+    };
+
     return () => {
       cancelCurrentCompletion();
       editor.dispose();
       document.removeEventListener('keydown', handleKeyDown);
+      delete (window as any).__test_triggerCompletion;
+      delete (window as any).__test_setEditorValue;
     };
   }, []);
+
+  // 暴露给测试的方法
+  const getEditorRef = () => editorRef.current;
 
   useEffect(() => {
     if (editorRef.current && editorRef.current.getValue() !== value) {

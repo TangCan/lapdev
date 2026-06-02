@@ -2,6 +2,9 @@ import React, { useEffect, useRef, useCallback, useState, forwardRef, useImperat
 import * as Monaco from 'monaco-editor';
 import { useLSP } from '../../context/LSPContext';
 import { Position } from 'vscode-languageserver-types';
+import { aiService } from '../../services/aiService';
+import { useAI } from '../../context/AIContext';
+import { useInlineCompletion } from '../../context/InlineCompletionContext';
 
 export interface DiffLine {
   lineNumber: number;
@@ -25,6 +28,12 @@ export interface LspCodeEditorHandle {
   setPosition: (line: number, column: number) => void;
 }
 
+// 支持内联补全的语言
+const SUPPORTED_LANGUAGES = ['javascript', 'typescript', 'python', 'rust', 'go', 'java', 'cpp', 'csharp'];
+
+// 防抖延迟（毫秒）
+const DEBOUNCE_DELAY = 500;
+
 export const LspCodeEditor = forwardRef<LspCodeEditorHandle, LspCodeEditorProps>(({
   value,
   language,
@@ -40,6 +49,25 @@ export const LspCodeEditor = forwardRef<LspCodeEditorHandle, LspCodeEditorProps>
   const decorationRef = useRef<string[]>([]);
   const { connect, registerEditor, unregisterEditor } = useLSP();
   const [isLspConnected, setIsLspConnected] = useState(false);
+  
+  // 内联补全相关状态
+  const { isConnected } = useAI();
+  const { inlineCompletionEnabled, inlineCompletionVisible, setInlineCompletionVisible, ghostText, setGhostText } = useInlineCompletion();
+  
+  // 使用 ref 存储最新版本的值，避免闭包问题
+  const inlineCompletionEnabledRef = useRef(inlineCompletionEnabled);
+  const isConnectedRef = useRef(isConnected);
+  const ghostTextDecorationRef = useRef<string[]>([]);
+  const debounceTimerRef = useRef<number | null>(null);
+  const currentCompletionRequestRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    inlineCompletionEnabledRef.current = inlineCompletionEnabled;
+  }, [inlineCompletionEnabled]);
+
+  useEffect(() => {
+    isConnectedRef.current = isConnected;
+  }, [isConnected]);
 
   const updateDiffDecorations = useCallback(() => {
     if (!editorRef.current) return;
@@ -76,6 +104,164 @@ export const LspCodeEditor = forwardRef<LspCodeEditorHandle, LspCodeEditorProps>
       decorationRef.current = editorRef.current.deltaDecorations([], decorations);
     }
   }, [diffLines]);
+
+  // 清除幽灵文本
+  const clearGhostText = useCallback(() => {
+    if (ghostTextDecorationRef.current.length > 0 && editorRef.current) {
+      editorRef.current.deltaDecorations(ghostTextDecorationRef.current, []);
+      ghostTextDecorationRef.current = [];
+    }
+    setGhostText('');
+    setInlineCompletionVisible(false);
+  }, [setGhostText, setInlineCompletionVisible]);
+
+  // 应用幽灵文本装饰
+  const applyGhostText = useCallback((text: string) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const position = editor.getPosition();
+    if (!position) return;
+
+    const range = new Monaco.Range(
+      position.lineNumber,
+      position.column,
+      position.lineNumber,
+      position.column + text.length
+    );
+
+    // 清除之前的装饰
+    if (ghostTextDecorationRef.current.length > 0) {
+      editor.deltaDecorations(ghostTextDecorationRef.current, []);
+    }
+
+    ghostTextDecorationRef.current = editor.deltaDecorations([], [{
+      range,
+      options: {
+        isWholeLine: false,
+        inlineClassName: 'inline-completion-ghost',
+        letterSpacing: '0px',
+      },
+    }]);
+  }, []);
+
+  // 取消当前进行中的补全请求
+  const cancelCurrentCompletion = useCallback(() => {
+    if (currentCompletionRequestRef.current) {
+      currentCompletionRequestRef.current.abort();
+      currentCompletionRequestRef.current = null;
+    }
+    if (debounceTimerRef.current !== null) {
+      window.clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+  }, []);
+
+  // 触发内联补全
+  const triggerCompletion = useCallback(async () => {
+    const editor = editorRef.current;
+    if (!editor) {
+      console.log('triggerCompletion: editor is null');
+      return;
+    }
+
+    // 使用 ref 访问最新值，避免闭包问题
+    if (!inlineCompletionEnabledRef.current) {
+      console.log('triggerCompletion: inlineCompletionEnabled is false');
+      clearGhostText();
+      return;
+    }
+    
+    if (!isConnectedRef.current) {
+      console.log('triggerCompletion: isConnected is false');
+      clearGhostText();
+      return;
+    }
+
+    if (!SUPPORTED_LANGUAGES.includes(language.toLowerCase())) {
+      console.log('triggerCompletion: unsupported language:', language);
+      clearGhostText();
+      return;
+    }
+
+    console.log('triggerCompletion: proceeding with completion request');
+    cancelCurrentCompletion();
+
+    const model = editor.getModel();
+    if (!model) return;
+
+    const position = editor.getPosition();
+    if (!position) return;
+
+    const lineContent = model.getValueInRange({
+      startLineNumber: position.lineNumber,
+      startColumn: 1,
+      endLineNumber: position.lineNumber,
+      endColumn: position.column,
+    });
+
+    // 获取完整文件内容作为上下文
+    const fileContent = model.getValue();
+
+    // 构建补全请求
+    const requestData = {
+      prompt: lineContent,
+      prefix: lineContent,
+      suffix: model.getValueInRange({
+        startLineNumber: position.lineNumber,
+        startColumn: position.column,
+        endLineNumber: model.getLineCount(),
+        endColumn: model.getLineLength(model.getLineCount()) + 1,
+      }),
+      fileContent,
+      language: language.toLowerCase(),
+      maxTokens: 50,
+    };
+
+    debounceTimerRef.current = window.setTimeout(() => {
+      debounceTimerRef.current = null;
+      
+      console.log('triggerCompletion: debounce timer fired, sending request');
+      
+      // 使用 AbortController 支持取消请求
+      const abortController = new AbortController();
+      currentCompletionRequestRef.current = abortController;
+
+      (async () => {
+        try {
+          if (abortController.signal.aborted) {
+            console.log('triggerCompletion: request was aborted before sending');
+            return;
+          }
+
+          console.log('triggerCompletion: calling aiService.getInlineCompletion');
+          const result = await aiService.getInlineCompletion(requestData);
+
+          if (abortController.signal.aborted) {
+            console.log('triggerCompletion: request was aborted after response');
+            return;
+          }
+
+          if (result.completion && result.completion.trim()) {
+            console.log('triggerCompletion: got completion result:', result.completion);
+            setGhostText(result.completion.trim());
+            setInlineCompletionVisible(true);
+          } else {
+            console.log('triggerCompletion: empty completion result');
+            clearGhostText();
+          }
+        } catch (error) {
+          if (error instanceof Error && error.name !== 'AbortError') {
+            console.error('Inline completion error:', error);
+          } else if (error instanceof Error && error.name === 'AbortError') {
+            console.log('Inline completion request aborted');
+          }
+        }
+      })().catch((error) => {
+        console.error('Unhandled inline completion error:', error);
+      });
+    }, DEBOUNCE_DELAY);
+  }, [language, cancelCurrentCompletion, clearGhostText, setGhostText, setInlineCompletionVisible, inlineCompletionEnabled, isConnected]);
 
   const getDiffColor = (type: string): string => {
     switch (type) {
@@ -152,6 +338,12 @@ export const LspCodeEditor = forwardRef<LspCodeEditorHandle, LspCodeEditorProps>
     editorRef.current.onDidChangeModelContent(() => {
       const newValue = editorRef.current?.getValue() || '';
       onChange(newValue);
+
+      if (inlineCompletionVisible) {
+        clearGhostText();
+      }
+
+      triggerCompletion();
     });
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -171,13 +363,61 @@ export const LspCodeEditor = forwardRef<LspCodeEditorHandle, LspCodeEditorProps>
         e.preventDefault();
         editorRef.current?.trigger('keyboard', 'editor.action.rename', {});
       }
+
+      // 内联补全快捷键处理
+      if (inlineCompletionVisible) {
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          // 接受补全建议
+          if (ghostText && editorRef.current) {
+            const editor = editorRef.current;
+            const position = editor.getPosition();
+            if (position) {
+              editor.executeEdits('inline-completion', [{
+                range: {
+                  startLineNumber: position.lineNumber,
+                  startColumn: position.column,
+                  endLineNumber: position.lineNumber,
+                  endColumn: position.column,
+                },
+                text: ghostText,
+              }]);
+              clearGhostText();
+            }
+          }
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          clearGhostText();
+        }
+      }
     };
 
     document.addEventListener('keydown', handleKeyDown);
 
+    // 为测试暴露全局方法
+    (window as any).__test_triggerCompletion = () => {
+      console.log('Global __test_triggerCompletion called');
+      triggerCompletion();
+    };
+
+    (window as any).__test_setEditorValue = (val: string) => {
+      editorRef.current?.setValue(val);
+      // 设置光标到文本末尾
+      const model = editorRef.current?.getModel();
+      if (model) {
+        const lineCount = model.getLineCount();
+        const lastLineLength = model.getLineLength(lineCount);
+        editorRef.current?.setPosition(new Monaco.Position(lineCount, lastLineLength + 1));
+      }
+      console.log('Global __test_setEditorValue called:', val);
+    };
+
     return () => {
+      cancelCurrentCompletion();
       editorRef.current?.dispose();
       document.removeEventListener('keydown', handleKeyDown);
+      delete (window as any).__test_triggerCompletion;
+      delete (window as any).__test_setEditorValue;
     };
   }, []);
 
@@ -220,6 +460,15 @@ export const LspCodeEditor = forwardRef<LspCodeEditorHandle, LspCodeEditorProps>
   useEffect(() => {
     updateDiffDecorations();
   }, [updateDiffDecorations]);
+
+  // 应用幽灵文本装饰
+  useEffect(() => {
+    if (ghostText && inlineCompletionVisible) {
+      applyGhostText(ghostText);
+    } else {
+      clearGhostText();
+    }
+  }, [ghostText, inlineCompletionVisible, applyGhostText, clearGhostText]);
 
   const focus = useCallback(() => {
     editorRef.current?.focus();

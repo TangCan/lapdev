@@ -64,19 +64,23 @@ class AiService {
 
   constructor() {
     // 从sessionStorage恢复配置（仅内存存储，刷新页面丢失）
+    console.log('AiService constructor called');
     this.loadFromStorage();
   }
 
   private loadFromStorage(): void {
     try {
       const stored = sessionStorage.getItem('lapdev-ai-models');
+      console.log('loadFromStorage: stored value:', stored);
       if (stored) {
         const data = JSON.parse(stored);
         this.models = data.models || [];
         this.currentModelId = data.currentModelId || null;
+        console.log('loadFromStorage: models loaded:', this.models.length);
+        console.log('loadFromStorage: currentModelId:', this.currentModelId);
       }
-    } catch {
-      // 忽略解析错误
+    } catch (e) {
+      console.error('loadFromStorage error:', e);
     }
   }
 
@@ -266,6 +270,11 @@ class AiService {
       { provider: 'deepseek', name: 'DeepSeek Chat', model: 'deepseek-chat' },
       { provider: 'deepseek', name: 'DeepSeek R1', model: 'deepseek-r1' },
     ];
+  }
+
+  // 重新加载从存储（用于测试或动态更新）
+  reloadFromStorage(): void {
+    this.loadFromStorage();
   }
 
   // 清空所有配置（用于登出或重置）

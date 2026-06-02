@@ -27,8 +27,14 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({ children }
 
   // 初始化加载模型
   useEffect(() => {
+    // 确保重新加载最新的存储数据（处理测试环境中存储在代码执行前设置的情况）
+    aiService.reloadFromStorage();
+    
     const loadedModels = aiService.getModels();
     const loadedCurrentModel = aiService.getCurrentModel();
+    
+    console.log('AIContext init: models loaded:', loadedModels.length);
+    console.log('AIContext init: currentModel:', loadedCurrentModel?.name || null);
     
     setModels(loadedModels);
     setCurrentModel(loadedCurrentModel);
