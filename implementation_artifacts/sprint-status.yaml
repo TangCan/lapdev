@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review
 
 generated: 2026-05-25
-last_updated: 2026-05-28T14:15:00Z
+last_updated: 2026-06-02T10:00:00Z
 project: Lapdev
 project_key: NOKEY
 tracking_system: file-system
@@ -60,7 +60,7 @@ development_status:
   3-1-ai-model-config: done
   3-2-ai-chat-panel: done
   3-3-ai-inline-completion: done
-  3-4-agent-mode: backlog
+  3-4-agent-mode: ready-for-dev
   epic-3-retrospective: optional
 
   # Epic 4: Skill系统 (2 stories)
