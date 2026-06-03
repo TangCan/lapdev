@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review
 
 generated: 2026-05-25
-last_updated: 2026-06-02T10:00:00Z
+last_updated: 2026-06-02T11:00:00Z
 project: Lapdev
 project_key: NOKEY
 tracking_system: file-system
@@ -64,8 +64,8 @@ development_status:
   epic-3-retrospective: done
 
   # Epic 4: Skill系统 (2 stories)
-  epic-4: backlog
-  4-1-skill-development: backlog
+  epic-4: in-progress
+  4-1-skill-development: done
   4-2-skill-auto-match: backlog
   epic-4-retrospective: optional
 
@@ -84,11 +84,11 @@ development_status:
 summary:
   total_epics: 6
   total_stories: 17
-  epics_in_progress: 1
+  epics_in_progress: 2
   stories_ready_for_dev: 0
   stories_in_progress: 0
   stories_in_review: 0
-  stories_completed: 8
+  stories_completed: 9
 
 story_mapping:
   epic-1:
