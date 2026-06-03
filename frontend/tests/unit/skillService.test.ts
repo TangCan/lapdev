@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi, Mock } from 'vitest';
-import { SkillService } from '../../frontend/src/services/skillService';
-import type { Skill, SkillTrigger } from '../../frontend/src/types/skill';
+import { SkillService } from '../../src/services/skillService';
+import type { Skill, SkillTrigger } from '../../src/types/skill';
 
 // 使用vi.hoisted确保mock函数在vi.mock提升之前就被定义
 const { mockExistsSync, mockReadDirSync, mockReadFileSync, mockStatSync } = vi.hoisted(() => ({

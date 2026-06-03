@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest';
-import { SkillCLI } from '../../frontend/src/cli/skillCli';
+import { SkillCLI } from '../../src/cli/skillCli';
 
 // 使用vi.hoisted确保mock函数在vi.mock提升之前就被定义
 const { mockSpawnSync, mockExistsSync, mockMkdirSync, mockReload, mockGetSkills } = vi.hoisted(() => ({
@@ -11,6 +11,9 @@ const { mockSpawnSync, mockExistsSync, mockMkdirSync, mockReload, mockGetSkills 
 }));
 
 vi.mock('child_process', () => ({
+  default: {
+    spawnSync: mockSpawnSync,
+  },
   spawnSync: mockSpawnSync,
 }));
 
@@ -23,7 +26,7 @@ vi.mock('fs', () => ({
   mkdirSync: mockMkdirSync,
 }));
 
-vi.mock('../../frontend/src/services/skillService', () => ({
+vi.mock('../../src/services/skillService', () => ({
   skillService: {
     reload: mockReload,
     getSkills: mockGetSkills,

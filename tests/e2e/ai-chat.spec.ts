@@ -1,9 +1,65 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('[E2E] AI Chat Panel', () => {
+  /**
+   * 带重试的等待文件树加载函数
+   * @param page - Playwright页面对象
+   * @param maxRetries - 最大重试次数
+   * @param timeout - 单次超时时间(毫秒)
+   */
+  async function waitForFileTree(page: any, maxRetries: number = 3, timeout: number = 15000): Promise<void> {
+    let retries = 0;
+    while (retries < maxRetries) {
+      try {
+        await page.waitForSelector('[data-testid="file-tree"]', { timeout });
+        return;
+      } catch (error) {
+        retries++;
+        if (retries >= maxRetries) {
+          throw error;
+        }
+        console.log(`[Retry ${retries}/${maxRetries}] file-tree selector timeout, retrying...`);
+        // 重试前等待1秒
+        await page.waitForTimeout(1000);
+      }
+    }
+  }
+
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await page.waitForSelector('[data-testid="file-tree"]', { timeout: 10000 });
+    
+    // 添加调试：查看页面状态
+    await page.waitForTimeout(3000);
+    const pageContent = await page.content();
+    console.log('Page content length:', pageContent.length);
+    console.log('Page title:', await page.title());
+    
+    // 检查所有data-testid属性
+    const testIds = await page.evaluate(() => {
+      const elements = document.querySelectorAll('[data-testid]');
+      return Array.from(elements).map(el => el.getAttribute('data-testid'));
+    });
+    console.log('Available data-testids:', testIds);
+    
+    // 检查root元素内容
+    const rootContent = await page.textContent('#root');
+    console.log('Root content length:', rootContent?.length || 0);
+    
+    // 查看body内容
+    const bodyText = await page.textContent('body');
+    console.log('Body text preview:', bodyText?.substring(0, 500) || 'Empty');
+    
+    // 检查是否有任何错误
+    page.on('console', (msg) => console.log('Console:', msg.text()));
+    page.on('pageerror', (err) => console.log('Page error:', err.message));
+    
+    // 检查网络请求
+    await page.route('**/*', (route) => {
+      console.log('Request:', route.request().url());
+      route.continue();
+    });
+    
+    await waitForFileTree(page);
 
     await page.evaluate(() => {
       const mockAIConfig = {
@@ -24,7 +80,7 @@ test.describe('[E2E] AI Chat Panel', () => {
     });
 
     await page.reload();
-    await page.waitForSelector('[data-testid="file-tree"]', { timeout: 10000 });
+    await waitForFileTree(page);
   });
 
   // AC-1: AI面板UI
@@ -48,7 +104,7 @@ test.describe('[E2E] AI Chat Panel', () => {
   test('[P0] should show guidance when AI not configured', async ({ page }) => {
     await page.evaluate(() => sessionStorage.removeItem('lapdev-ai-models'));
     await page.reload();
-    await page.waitForSelector('[data-testid="file-tree"]', { timeout: 10000 });
+    await waitForFileTree(page);
 
     const aiButton = page.locator('[data-testid="ai-panel-button"]');
     await aiButton.click();

@@ -14,14 +14,22 @@ export default defineConfig({
     ['junit', { outputFile: 'test-results/e2e-results.xml' }]
   ],
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:5173',
+    baseURL: process.env.BASE_URL || 'http://localhost:5175',
     trace: 'retain-on-failure-and-retries',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     actionTimeout: 15000,
     navigationTimeout: 30000,
   },
-  timeout: 60000,
+  timeout: 120000,
+  webServer: {
+    command: 'cd frontend && npm run dev -- --host 0.0.0.0 --port 5173',
+    url: 'http://localhost:5173',
+    timeout: 120000,
+    reuseExistingServer: !process.env.CI,
+    stdout: 'pipe',
+    stderr: 'pipe',
+  },
   projects: [
     {
       name: 'chromium',

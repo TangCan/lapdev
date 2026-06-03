@@ -1,0 +1,30 @@
+import { MockFileTree } from '../FileTree/MockFileTree';
+import { MockAIPanel } from '../AI/MockAIPanel';
+
+function SimpleIDE() {
+  const handleFileOpen = (file: any) => {
+    console.log('File opened:', file);
+  };
+
+  return (
+    <div className="app">
+      <header className="header">
+        <h1>📝 Lapdev IDE</h1>
+      </header>
+      <div className="main-content">
+        <aside className="sidebar">
+          <MockFileTree onFileOpen={handleFileOpen} />
+        </aside>
+        <main className="editor-area">
+          <div className="welcome-screen">
+            <h2>欢迎使用 Lapdev</h2>
+            <p>从左侧文件树选择一个文件开始编辑</p>
+          </div>
+        </main>
+        <MockAIPanel />
+      </div>
+    </div>
+  );
+}
+
+export default SimpleIDE;
