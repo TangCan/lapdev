@@ -30,7 +30,7 @@ function SimpleIDE() {
           ) : (
             <div className="welcome-screen">
               <h2>欢迎使用 Lapdev</h2>
-              <p>从左侧文件树选择一个文件开始编辑</p>
+              <p>点击左侧文件树中的文件开始编辑</p>
             </div>
           )}
         </main>

@@ -121,12 +121,14 @@ export function MockFileTree({ onFileOpen }: MockFileTreeProps) {
 
   return (
     <div className="file-tree" data-testid="file-tree" role="tree">
-      <MockFileTreeNode
-        file={fileTree}
-        depth={0}
-        onFileClick={handleFileClick}
-        onContextMenu={handleContextMenu}
-      />
+      <div className="file-tree-content">
+        <MockFileTreeNode
+          file={fileTree}
+          depth={0}
+          onFileClick={handleFileClick}
+          onContextMenu={handleContextMenu}
+        />
+      </div>
       {contextMenu && (
         <FileTreeContextMenu
           file={contextMenu.file}
