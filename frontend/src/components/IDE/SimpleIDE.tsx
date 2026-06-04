@@ -1,5 +1,6 @@
 import { MockFileTree } from '../FileTree/MockFileTree';
 import { MockAIPanel } from '../AI/MockAIPanel';
+import { MockTerminal } from '../Terminal/MockTerminal';
 
 function SimpleIDE() {
   const handleFileOpen = (file: any) => {
@@ -10,6 +11,7 @@ function SimpleIDE() {
     <div className="app">
       <header className="header">
         <h1>📝 Lapdev IDE</h1>
+        <MockTerminal />
       </header>
       <div className="main-content">
         <aside className="sidebar">
