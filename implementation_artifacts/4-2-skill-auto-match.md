@@ -175,25 +175,39 @@ interface SkillContextValue {
 ## 🧪 测试要求
 
 ### 单元测试
-- [ ] 匹配度计算测试
-- [ ] 关键词匹配测试
-- [ ] 模式匹配测试
-- [ ] 激活/禁用状态管理测试
+- [x] 匹配度计算测试
+- [x] 关键词匹配测试
+- [x] 模式匹配测试
+- [x] 激活/禁用状态管理测试
 
 ### E2E测试
-- [ ] Skill自动激活流程
-- [ ] 手动禁用Skill
-- [ ] 多Skill组合
-- [ ] Skill指令注入验证
+- [x] Skill自动激活流程
+- [x] 手动禁用Skill
+- [x] 多Skill组合
+- [x] Skill指令注入验证
 
 ### 测试文件
 ```
 tests/
 ├── unit/
-│   └── skillMatchService.test.ts
+│   └── skillMatchService.test.ts    # ✅ 已创建
 └── e2e/
-    └── skill-match.spec.ts
+    └── skill-auto-match.spec.ts     # ✅ 已创建
 ```
+
+### 测试覆盖矩阵
+
+| 验收场景 | 测试用例 | 文件 |
+|----------|----------|------|
+| Skill扫描与匹配 | should scan and match skills based on user request | e2e/skill-auto-match.spec.ts |
+| 自动激活 | should auto activate skill when match score exceeds threshold | e2e/skill-auto-match.spec.ts |
+| 手动禁用 | should allow manual deactivation of active skill | e2e/skill-auto-match.spec.ts |
+| 多Skill组合 | should support multiple skills activation | e2e/skill-auto-match.spec.ts |
+| 低匹配度不激活 | should not activate skill when match score below threshold | e2e/skill-auto-match.spec.ts |
+| 激活提示显示 | should show activation notification when skills auto-activated | e2e/skill-auto-match.spec.ts |
+| 匹配度计算 | should calculate match score based on keywords | unit/skillMatchService.test.ts |
+| Jaccard相似度 | should calculate Jaccard similarity correctly | unit/skillMatchService.test.ts |
+| 模式匹配 | should match regex patterns | unit/skillMatchService.test.ts |
 
 ---
 
