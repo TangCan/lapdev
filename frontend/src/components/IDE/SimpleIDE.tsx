@@ -3,6 +3,7 @@ import { MockFileTree } from '../FileTree/MockFileTree';
 import { MockAIPanel } from '../AI/MockAIPanel';
 import { MockTerminal } from '../Terminal/MockTerminal';
 import { MockCodeEditor } from '../Editor/MockCodeEditor';
+import { MockGitPanel } from '../Git/MockGitPanel';
 
 function SimpleIDE() {
   const [openFile, setOpenFile] = useState<string | null>(null);
@@ -17,6 +18,7 @@ function SimpleIDE() {
       <header className="header">
         <h1>📝 Lapdev IDE</h1>
         <MockTerminal />
+        <MockGitPanel />
       </header>
       <div className="main-content">
         <aside className="sidebar">
