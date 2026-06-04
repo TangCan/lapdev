@@ -43,6 +43,11 @@ const mockFileTree: FileInfo = {
       ],
     },
     {
+      name: 'test.ts',
+      type: 'file',
+      path: '/workspace/test.ts',
+    },
+    {
       name: 'tests',
       type: 'directory',
       path: '/workspace/tests',
