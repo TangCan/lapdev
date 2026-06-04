@@ -64,10 +64,10 @@ development_status:
   epic-3-retrospective: done
 
   # Epic 4: Skill系统 (2 stories)
-  epic-4: in-progress
+  epic-4: done
   4-1-skill-development: done
-  4-2-skill-auto-match: ready-for-dev
-  epic-4-retrospective: optional
+  4-2-skill-auto-match: done
+  epic-4-retrospective: done
 
   # Epic 5: BMAD支持 (2 stories)
   epic-5: backlog

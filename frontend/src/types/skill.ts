@@ -1,9 +1,10 @@
 export interface SkillTrigger {
   keywords?: string[];
-  patterns?: string[];
+  patterns?: RegExp[];
 }
 
 export interface Skill {
+  id?: string;
   name: string;
   version: string;
   description: string;
@@ -11,7 +12,14 @@ export interface Skill {
   tags: string[];
   trigger: SkillTrigger;
   content: string;
-  fileName: string;
+  fileName?: string;
+  matchScore?: number;
+}
+
+export interface AIRequest {
+  text: string;
+  position?: number;
+  language?: string;
 }
 
 export interface SkillMetadata {

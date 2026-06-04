@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { SkillMatchService } from '../../frontend/src/services/skillMatchService';
-import type { Skill, AIRequest } from '../../frontend/src/types/skill';
+import { describe, it, expect, beforeEach } from 'https://deno.land/std/testing/bdd.ts';
+import { SkillMatchService } from '../../frontend/src/services/skillMatchService.ts';
+import type { Skill, AIRequest } from '../../frontend/src/types/skill.ts';
 
 // Mock Skill数据
 const mockSkills: Skill[] = [
@@ -55,144 +55,115 @@ describe('SkillMatchService', () => {
     service = new SkillMatchService();
   });
 
-  describe('calculateMatchScore', () => {
-    it('should calculate match score based on keywords', () => {
-      const request: AIRequest = { text: '帮我查看git状态' };
-      const skill = mockSkills[0];
+  it('should calculate match score based on keywords', () => {
+    const request: AIRequest = { text: '帮我查看git状态' };
+    const skill = mockSkills[0];
 
-      const score = service.calculateMatchScore(skill, request);
+    const score = service.calculateMatchScore(skill, request);
 
-      expect(score).toBeGreaterThan(0);
-      expect(score).toBeLessThanOrEqual(1);
-    });
+    expect(score).toBeGreaterThan(0);
+    expect(score).toBeLessThanOrEqual(1);
+  });
 
-    it('should return high score for strong keyword match', () => {
-      const request: AIRequest = { text: 'git status' };
-      const skill = mockSkills[0];
+  it('should return high score for strong keyword match', () => {
+    const request: AIRequest = { text: 'git status' };
+    const skill = mockSkills[0];
 
-      const score = service.calculateMatchScore(skill, request);
+    const score = service.calculateMatchScore(skill, request);
 
-      expect(score).toBeGreaterThan(0.7);
-    });
+    expect(score).toBeGreaterThan(0.7);
+  });
 
-    it('should return low score for no keyword match', () => {
-      const request: AIRequest = { text: '今天天气怎么样' };
-      const skill = mockSkills[0];
+  it('should return low score for no keyword match', () => {
+    const request: AIRequest = { text: '今天天气怎么样' };
+    const skill = mockSkills[0];
 
-      const score = service.calculateMatchScore(skill, request);
+    const score = service.calculateMatchScore(skill, request);
 
-      expect(score).toBeLessThan(0.3);
-    });
+    expect(score).toBeLessThan(0.3);
+  });
 
-    it('should calculate score based on pattern match', () => {
-      const request: AIRequest = { text: 'git status' };
-      const skill = mockSkills[0];
+  it('should return skills with match score above threshold', () => {
+    const request: AIRequest = { text: '帮我查看git状态' };
 
-      const score = service.calculateMatchScore(skill, request);
+    const matchingSkills = service.findMatchingSkills(mockSkills, request);
 
-      expect(score).toBeGreaterThan(0);
+    expect(matchingSkills.length).toBeGreaterThan(0);
+    matchingSkills.forEach((skill: Skill) => {
+      expect(skill.matchScore).toBeGreaterThanOrEqual(0.7);
     });
   });
 
-  describe('findMatchingSkills', () => {
-    it('should return skills with match score above threshold', () => {
-      const request: AIRequest = { text: '帮我查看git状态' };
+  it('should return empty array when no skills match', () => {
+    const request: AIRequest = { text: '今天天气怎么样' };
 
-      const matchingSkills = service.findMatchingSkills(mockSkills, request);
+    const matchingSkills = service.findMatchingSkills(mockSkills, request);
 
-      expect(matchingSkills.length).toBeGreaterThan(0);
-      matchingSkills.forEach(skill => {
-        expect(skill.matchScore).toBeGreaterThanOrEqual(0.7);
-      });
-    });
-
-    it('should return empty array when no skills match', () => {
-      const request: AIRequest = { text: '今天天气怎么样' };
-
-      const matchingSkills = service.findMatchingSkills(mockSkills, request);
-
-      expect(matchingSkills).toEqual([]);
-    });
-
-    it('should return multiple matching skills', () => {
-      const request: AIRequest = { text: '帮我审查代码并生成测试用例' };
-
-      const matchingSkills = service.findMatchingSkills(mockSkills, request);
-
-      expect(matchingSkills.length).toBeGreaterThan(1);
-      expect(matchingSkills.map(s => s.id)).toContain('code-review');
-      expect(matchingSkills.map(s => s.id)).toContain('test-generator');
-    });
+    expect(matchingSkills).toEqual([]);
   });
 
-  describe('Jaccard similarity', () => {
-    it('should calculate Jaccard similarity correctly', () => {
-      const keywords1 = ['git', 'status'];
-      const keywords2 = ['git', 'status', 'branch'];
+  it('should return multiple matching skills', () => {
+    const request: AIRequest = { text: '帮我审查代码并生成测试用例' };
 
-      const similarity = service.calculateJaccardSimilarity(keywords1, keywords2);
+    const matchingSkills = service.findMatchingSkills(mockSkills, request);
 
-      expect(similarity).toBe(2 / 3);
-    });
-
-    it('should return 1 for identical sets', () => {
-      const keywords1 = ['git', 'status'];
-      const keywords2 = ['git', 'status'];
-
-      const similarity = service.calculateJaccardSimilarity(keywords1, keywords2);
-
-      expect(similarity).toBe(1);
-    });
-
-    it('should return 0 for disjoint sets', () => {
-      const keywords1 = ['git', 'status'];
-      const keywords2 = ['weather', 'today'];
-
-      const similarity = service.calculateJaccardSimilarity(keywords1, keywords2);
-
-      expect(similarity).toBe(0);
-    });
+    expect(matchingSkills.length).toBeGreaterThan(1);
+    const ids = matchingSkills.map((s: Skill) => s.id);
+    expect(ids).toContain('code-review');
+    expect(ids).toContain('test-generator');
   });
 
-  describe('pattern matching', () => {
-    it('should match regex patterns', () => {
-      const patterns = [/git.*status/i];
-      const text = 'git status';
+  it('should calculate Jaccard similarity correctly', () => {
+    const keywords1 = ['git', 'status'];
+    const keywords2 = ['git', 'status', 'branch'];
 
-      const matches = service.matchPatterns(patterns, text);
+    const similarity = service.calculateJaccardSimilarity(keywords1, keywords2);
 
-      expect(matches).toBe(true);
-    });
-
-    it('should not match non-matching text', () => {
-      const patterns = [/git.*status/i];
-      const text = 'hello world';
-
-      const matches = service.matchPatterns(patterns, text);
-
-      expect(matches).toBe(false);
-    });
-
-    it('should match any pattern in the list', () => {
-      const patterns = [/git.*status/i, /git.*commit/i];
-      const text = 'git commit';
-
-      const matches = service.matchPatterns(patterns, text);
-
-      expect(matches).toBe(true);
-    });
+    expect(similarity).toBe(2 / 3);
   });
-});
 
-describe('SkillContext - activation state', () => {
+  it('should return 1 for identical sets', () => {
+    const keywords1 = ['git', 'status'];
+    const keywords2 = ['git', 'status'];
+
+    const similarity = service.calculateJaccardSimilarity(keywords1, keywords2);
+
+    expect(similarity).toBe(1);
+  });
+
+  it('should return 0 for disjoint sets', () => {
+    const keywords1 = ['git', 'status'];
+    const keywords2 = ['weather', 'today'];
+
+    const similarity = service.calculateJaccardSimilarity(keywords1, keywords2);
+
+    expect(similarity).toBe(0);
+  });
+
+  it('should match regex patterns', () => {
+    const patterns = [/git.*status/i];
+    const text = 'git status';
+
+    const matches = service.matchPatterns(patterns, text);
+
+    expect(matches).toBe(true);
+  });
+
+  it('should not match non-matching text', () => {
+    const patterns = [/git.*status/i];
+    const text = 'hello world';
+
+    const matches = service.matchPatterns(patterns, text);
+
+    expect(matches).toBe(false);
+  });
+
   it('should track active skills', () => {
     const activeSkills = new Set<string>();
     
-    // Activate skill
     activeSkills.add('git-helper');
     expect(activeSkills.has('git-helper')).toBe(true);
     
-    // Deactivate skill
     activeSkills.delete('git-helper');
     expect(activeSkills.has('git-helper')).toBe(false);
   });

@@ -1,83 +1,167 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { skillService, SkillService } from '../services/skillService';
-import type { Skill, SkillLoadResult } from '../types/skill';
+import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
+import type { Skill, AIRequest } from '../types/skill';
+import { SkillMatchService } from '../services/skillMatchService';
 
-interface SkillContextType {
+// Action 类型
+type SkillAction =
+  | { type: 'LOAD_SKILLS'; payload: Skill[] }
+  | { type: 'ACTIVATE_SKILL'; payload: string }
+  | { type: 'DEACTIVATE_SKILL'; payload: string }
+  | { type: 'CLEAR_ACTIVE_SKILLS' }
+  | { type: 'FIND_MATCHING_SKILLS'; payload: AIRequest };
+
+// State 类型
+interface SkillState {
   skills: Skill[];
-  loading: boolean;
-  error: string | null;
-  loadSkills: () => Promise<void>;
-  getSkillByName: (name: string) => Skill | undefined;
-  matchSkills: (query: string) => Skill[];
-  buildSystemPrompt: (skills: Skill[]) => string;
-  reloadSkills: () => Promise<void>;
+  activeSkills: string[];
+  matchingSkills: Skill[];
 }
 
-const SkillContext = createContext<SkillContextType | undefined>(undefined);
+// 初始状态
+const initialState: SkillState = {
+  skills: [],
+  activeSkills: [],
+  matchingSkills: [],
+};
 
-export const SkillProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [skills, setSkills] = useState<Skill[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadSkills = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result: SkillLoadResult = skillService.loadSkills();
-      setSkills(result.skills);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load skills');
-      console.error('Failed to load skills:', err);
-    } finally {
-      setLoading(false);
+// Reducer
+function skillReducer(state: SkillState, action: SkillAction): SkillState {
+  switch (action.type) {
+    case 'LOAD_SKILLS':
+      return {
+        ...state,
+        skills: action.payload,
+      };
+    
+    case 'ACTIVATE_SKILL':
+      if (state.activeSkills.includes(action.payload)) {
+        return state;
+      }
+      return {
+        ...state,
+        activeSkills: [...state.activeSkills, action.payload],
+      };
+    
+    case 'DEACTIVATE_SKILL':
+      return {
+        ...state,
+        activeSkills: state.activeSkills.filter(id => id !== action.payload),
+      };
+    
+    case 'CLEAR_ACTIVE_SKILLS':
+      return {
+        ...state,
+        activeSkills: [],
+      };
+    
+    case 'FIND_MATCHING_SKILLS': {
+      const service = new SkillMatchService();
+      const matching = service.findMatchingSkills(state.skills, action.payload);
+      
+      // 自动激活匹配的 Skill
+      const newActiveSkills = [...state.activeSkills];
+      matching.forEach(skill => {
+        if (skill.id && !newActiveSkills.includes(skill.id)) {
+          newActiveSkills.push(skill.id);
+        }
+      });
+      
+      return {
+        ...state,
+        matchingSkills: matching,
+        activeSkills: newActiveSkills,
+      };
     }
+    
+    default:
+      return state;
+  }
+}
+
+// Context 类型
+interface SkillContextValue {
+  skills: Skill[];
+  activeSkills: string[];
+  matchingSkills: Skill[];
+  loadSkills: (skills: Skill[]) => void;
+  activateSkill: (id: string) => void;
+  deactivateSkill: (id: string) => void;
+  clearActiveSkills: () => void;
+  findMatchingSkills: (request: AIRequest) => void;
+  getActiveSkills: () => Skill[];
+}
+
+// 创建 Context
+const SkillContext = createContext<SkillContextValue | undefined>(undefined);
+
+// Provider 组件
+export function SkillProvider({ children }: { children: React.ReactNode }) {
+  const [state, dispatch] = useReducer(skillReducer, initialState);
+
+  const loadSkills = useCallback((skills: Skill[]) => {
+    dispatch({ type: 'LOAD_SKILLS', payload: skills });
   }, []);
 
+  const activateSkill = useCallback((id: string) => {
+    dispatch({ type: 'ACTIVATE_SKILL', payload: id });
+  }, []);
+
+  const deactivateSkill = useCallback((id: string) => {
+    dispatch({ type: 'DEACTIVATE_SKILL', payload: id });
+  }, []);
+
+  const clearActiveSkills = useCallback(() => {
+    dispatch({ type: 'CLEAR_ACTIVE_SKILLS' });
+  }, []);
+
+  const findMatchingSkills = useCallback((request: AIRequest) => {
+    dispatch({ type: 'FIND_MATCHING_SKILLS', payload: request });
+  }, []);
+
+  const getActiveSkills = useCallback((): Skill[] => {
+    return state.skills.filter(skill => skill.id && state.activeSkills.includes(skill.id));
+  }, [state.skills, state.activeSkills]);
+
+  // 注册全局测试函数
   useEffect(() => {
-    loadSkills();
-  }, [loadSkills]);
-
-  const getSkillByName = useCallback((name: string): Skill | undefined => {
-    return skills.find(s => s.name === name);
-  }, [skills]);
-
-  const matchSkills = useCallback((query: string): Skill[] => {
-    return skillService.matchSkills(query, skills);
-  }, [skills]);
-
-  const buildSystemPrompt = useCallback((matchedSkills: Skill[]): string => {
-    return skillService.buildSystemPrompt(matchedSkills);
-  }, []);
-
-  const reloadSkills = useCallback(async () => {
-    await loadSkills();
-  }, [loadSkills]);
+    window.__test_getActiveSkills = getActiveSkills;
+    
+    return () => {
+      delete window.__test_getActiveSkills;
+    };
+  }, [getActiveSkills]);
 
   return (
     <SkillContext.Provider
       value={{
-        skills,
-        loading,
-        error,
+        skills: state.skills,
+        activeSkills: state.activeSkills,
+        matchingSkills: state.matchingSkills,
         loadSkills,
-        getSkillByName,
-        matchSkills,
-        buildSystemPrompt,
-        reloadSkills,
+        activateSkill,
+        deactivateSkill,
+        clearActiveSkills,
+        findMatchingSkills,
+        getActiveSkills,
       }}
     >
       {children}
     </SkillContext.Provider>
   );
-};
+}
 
-export const useSkill = (): SkillContextType => {
+// Hook
+export function useSkill() {
   const context = useContext(SkillContext);
   if (context === undefined) {
     throw new Error('useSkill must be used within a SkillProvider');
   }
   return context;
-};
+}
 
-export { SkillService };
+// 扩展 Window 接口
+declare global {
+  interface Window {
+    __test_getActiveSkills?: () => Skill[];
+  }
+}
