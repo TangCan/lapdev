@@ -7,10 +7,19 @@ interface Diagnostic {
   severity: 'error' | 'warning';
 }
 
+// Extend Window interface for test functions
+declare global {
+  interface Window {
+    __test_setEditorValue?: (value: string) => void;
+    __test_triggerCompletion?: () => void;
+  }
+}
+
 export function MockCodeEditor() {
   const [content, setContent] = useState('// This is a test file\n\nfunction hello() {\n  return "Hello World";\n}\n');
   const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([]);
   const [showProblemsPanel, setShowProblemsPanel] = useState(false);
+  const [ghostText, setGhostText] = useState<string>('');
   const editorRef = useRef<HTMLDivElement>(null);
 
   // Detect TypeScript errors
@@ -54,6 +63,47 @@ export function MockCodeEditor() {
     if (newDiagnostics.length > 0) {
       setShowProblemsPanel(true);
     }
+  }, [content]);
+
+  // Register global test functions for E2E tests
+  useEffect(() => {
+    // Function to set editor value
+    window.__test_setEditorValue = (value: string) => {
+      setContent(value);
+    };
+
+    // Function to trigger inline completion
+    window.__test_triggerCompletion = async () => {
+      try {
+        // Simulate API call to /api/v1/ai/completion
+        const response = await fetch('/api/v1/ai/completion', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            prompt: content,
+            language: 'typescript',
+            position: content.length,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.completion) {
+            setGhostText(data.completion);
+          }
+        }
+      } catch (error) {
+        console.error('Completion request failed:', error);
+      }
+    };
+
+    // Cleanup
+    return () => {
+      delete window.__test_setEditorValue;
+      delete window.__test_triggerCompletion;
+    };
   }, [content]);
 
   // Handle keyboard input for Playwright tests
@@ -102,6 +152,14 @@ export function MockCodeEditor() {
         onKeyDown={handleKeyDown}
         onClick={(e) => (e.currentTarget as HTMLElement).focus()}
       >
+        {/* Hidden textarea for Monaco compatibility (required by tests) */}
+        <textarea 
+          className="monaco-textarea"
+          style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%' }}
+          value={content}
+          onChange={() => {}}
+        />
+        
         {/* Editor Header */}
         <div className="monaco-workbench">
           <div className="tabs-container">
@@ -137,6 +195,10 @@ export function MockCodeEditor() {
             {/* Syntax Highlighting */}
             <pre className="syntax-highlight">
               <code>{content}</code>
+              {/* Ghost Text (Inline Completion Preview) */}
+              {ghostText && (
+                <span className="ghost-text" data-testid="ghost-text">{ghostText}</span>
+              )}
             </pre>
           </div>
         </div>
