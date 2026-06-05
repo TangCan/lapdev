@@ -1,5 +1,5 @@
-import type { Skill, AIRequest } from '../types/skill';
-import { SimilarityUtils } from '../utils/similarity';
+import type { Skill, AIRequest } from '../types/skill.ts';
+import { SimilarityUtils } from '../utils/similarity.ts';
 
 export class SkillMatchService {
   private activeSkills: Set<string> = new Set();
