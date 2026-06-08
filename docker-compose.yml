@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  lapdev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: lapdev:latest
+    container_name: lapdev
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "3000:3000"
+    volumes:
+      # 挂载工作区目录
+      - ./workspace:/workspace
+      # 挂载 API 密钥配置（可选）
+      - ./api-keys.env:/app/.env:ro
+    environment:
+      - NODE_ENV=production
+      - WORKSPACE_PATH=/workspace
+      - PORT=8080
+      - DENO_PORT=3000
+      # AI API Keys（从 .env 文件加载）
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    networks:
+      - lapdev-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "app.name=Lapdev"
+      - "app.description=AI-Powered Development Environment"
+      - "app.version=1.0.0"
+
+  # 可选：Nginx 反向代理
+  nginx:
+    image: nginx:alpine
+    container_name: lapdev-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - lapdev
+    networks:
+      - lapdev-network
+    profiles:
+      - with-proxy
+
+networks:
+  lapdev-network:
+    driver: bridge
+
+volumes:
+  workspace:
+    driver: local
