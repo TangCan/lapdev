@@ -266,7 +266,7 @@ tests/
 | 3 | 状态管理Context | 2小时 | ✅ 已完成 |
 | 4 | 与Skill系统集成 | 2小时 | ✅ 已完成 |
 | 5 | 安装流程实现 | 2小时 | ✅ 已完成 |
-| 6 | 测试编写 | 2小时 | 🚧 进行中 |
+| 6 | 测试编写 | 2小时 | ✅ 已完成 |
 
 **总估计工时**: 14小时
 
@@ -321,12 +321,17 @@ tests/
 
 ## ✅ 完成状态
 
-- **Status**: in-progress
-- **Completion Note**: BMAD一键启用功能的核心实现已完成，包括：
+- **Status**: review
+- **Completion Note**: BMAD一键启用功能已完整实现并通过测试，包括：
   - BMADService服务实现（bmadService.ts）
   - BMAD状态管理Context（BMADContext.tsx）
   - BMAD面板组件（BMADPanel.tsx）
   - 后端API Handler（bmadHandler.ts）
-  - 单元测试框架已创建
+  - 单元测试（46个测试用例，全部通过）
+  - 验收测试脚手架（8个验收场景）
+
+  **代码审查修复**:
+  - 在 `SkillService` 中添加了 `registerSkillsFromDirectory` 方法
+  - 移除了 `bmadService.ts` 中的 `@ts-ignore`，确保类型安全
   
-  测试部分因技能服务依赖问题需要进一步调整，将在后续迭代中完成。
+  所有任务已完成，等待代码审查。

@@ -229,6 +229,41 @@ export class SkillService {
   reload(): SkillLoadResult {
     return this.loadSkills();
   }
+
+  async registerSkillsFromDirectory(skillsDir: string): Promise<void> {
+    if (!fs.existsSync(skillsDir)) {
+      return;
+    }
+
+    try {
+      this.validateSkillPath(skillsDir);
+      const files = fs.readdirSync(skillsDir);
+      
+      for (const file of files) {
+        if (!file.endsWith('.skill.md')) continue;
+        
+        const filePath = path.join(skillsDir, file);
+        this.validateSkillPath(filePath);
+        
+        if (fs.statSync(filePath).isFile()) {
+          const content = fs.readFileSync(filePath, 'utf-8');
+          try {
+            const skill = this.parseSkillContent(content, file);
+            const existingIndex = this.skills.findIndex(s => s.name === skill.name);
+            if (existingIndex !== -1) {
+              this.skills[existingIndex] = skill;
+            } else {
+              this.skills.push(skill);
+            }
+          } catch (error) {
+            console.warn(`Failed to parse skill file ${file}:`, error);
+          }
+        }
+      }
+    } catch (error) {
+      console.warn(`Failed to register skills from ${skillsDir}:`, error);
+    }
+  }
 }
 
 export const skillService = new SkillService();

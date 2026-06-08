@@ -109,10 +109,7 @@ export class BMADServiceImpl implements BMADService {
   private async registerBMADSkills(): Promise<void> {
     const bmadSkillsPath = `${this.workspacePath}/_bmad/skills`;
     if (await exists(bmadSkillsPath)) {
-      // @ts-ignore - registerSkillsFromDirectory may not exist yet
-      if (typeof this.skillService.registerSkillsFromDirectory === 'function') {
-        await this.skillService.registerSkillsFromDirectory(bmadSkillsPath);
-      }
+      await this.skillService.registerSkillsFromDirectory(bmadSkillsPath);
     }
   }
 }
