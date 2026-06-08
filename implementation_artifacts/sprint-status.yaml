@@ -70,10 +70,10 @@ development_status:
   epic-4-retrospective: done
 
   # Epic 5: BMAD支持 (2 stories)
-  epic-5: in-progress
+  epic-5: done
   5-1-bmad-one-click: done
-  5-2-bmad-offline: backlog
-  epic-5-retrospective: optional
+  5-2-bmad-offline: done
+  epic-5-retrospective: done
 
   # Epic 6: 部署适配 (2 stories)
   epic-6: backlog

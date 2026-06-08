@@ -7,7 +7,7 @@
 | **Story ID** | 2-2-lsp-intelligence |
 | **所属Epic** | Epic 2: 高级IDE功能 |
 | **标题** | LSP代码智能 |
-| **状态** | review |
+| **状态** | done |
 | **优先级** | 高 |
 | **估计工时** | 8小时 |
 | **关联FR** | FR-011, FR-012, FR-013, FR-014 |

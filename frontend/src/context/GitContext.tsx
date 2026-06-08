@@ -15,6 +15,7 @@ interface GitContextType {
   stageFile: (path: string) => void;
   commit: (message: string) => void;
   checkout: (branch: string) => void;
+  subscribeToBranchChange: (callback: (branch: string) => void) => () => void;
 }
 
 const GitContext = createContext<GitContextType | null>(null);
@@ -34,6 +35,17 @@ export function GitProvider({ children }: { children: ReactNode }) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectDelayRef = useRef(1000);
   const reconnectAttemptsRef = useRef(0);
+  const branchChangeSubscribersRef = useRef<Set<(branch: string) => void>>(new Set());
+
+  const notifyBranchChange = useCallback((branch: string) => {
+    branchChangeSubscribersRef.current.forEach((callback) => {
+      try {
+        callback(branch);
+      } catch (error) {
+        console.error('Error notifying branch change subscriber:', error);
+      }
+    });
+  }, []);
 
   const loadGitData = useCallback(async () => {
     setIsLoading(true);
@@ -198,6 +210,8 @@ export function GitProvider({ children }: { children: ReactNode }) {
         if (branchesResult.status === 'success' && branchesResult.data) {
           setBranches(branchesResult.data.branches);
           setCurrentBranch(branchesResult.data.current);
+          // Notify subscribers about branch change
+          notifyBranchChange(branchesResult.data.current);
         }
       } else {
         setError(result.message);
@@ -205,6 +219,13 @@ export function GitProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to checkout');
     }
+  }, [notifyBranchChange]);
+
+  const subscribeToBranchChange = useCallback((callback: (branch: string) => void): () => void => {
+    branchChangeSubscribersRef.current.add(callback);
+    return () => {
+      branchChangeSubscribersRef.current.delete(callback);
+    };
   }, []);
 
   return (
@@ -221,7 +242,8 @@ export function GitProvider({ children }: { children: ReactNode }) {
         getFileDiff,
         stageFile,
         commit,
-        checkout
+        checkout,
+        subscribeToBranchChange
       }}
     >
       {children}

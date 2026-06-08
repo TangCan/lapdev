@@ -10,6 +10,7 @@ interface LSPContextType {
   getDiagnostics: (uri: string) => LspDiagnostic[];
   registerEditor: (editor: Monaco.editor.IStandaloneCodeEditor, uri: string) => void;
   unregisterEditor: (uri: string) => void;
+  subscribeToDiagnostics: (callback: () => void) => () => void;
 }
 
 const LSPContext = createContext<LSPContextType | null>(null);
@@ -41,6 +42,17 @@ const convertCompletionKind = (kind: number): Monaco.languages.CompletionItemKin
 export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
   const editorsRef = useRef<Map<string, Monaco.editor.IStandaloneCodeEditor>>(new Map());
+  const diagnosticSubscribersRef = useRef<Set<() => void>>(new Set());
+
+  const notifyDiagnosticSubscribers = useCallback(() => {
+    diagnosticSubscribersRef.current.forEach((callback) => {
+      try {
+        callback();
+      } catch (error) {
+        console.error('Error notifying diagnostic subscriber:', error);
+      }
+    });
+  }, []);
 
   const handleDiagnosticsChange = useCallback((uri: string, diagnostics: LspDiagnostic[]) => {
     const editor = editorsRef.current.get(uri);
@@ -56,7 +68,8 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         markers as Monaco.editor.IMarkerData[]
       );
     }
-  }, []);
+    notifyDiagnosticSubscribers();
+  }, [notifyDiagnosticSubscribers]);
 
   const connect = useCallback(async (config: LspConfig) => {
     try {
@@ -246,6 +259,13 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     editorsRef.current.delete(uri);
   }, []);
 
+  const subscribeToDiagnostics = useCallback((callback: () => void): () => void => {
+    diagnosticSubscribersRef.current.add(callback);
+    return () => {
+      diagnosticSubscribersRef.current.delete(callback);
+    };
+  }, []);
+
   useEffect(() => {
     return () => {
       disconnect();
@@ -261,6 +281,7 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         getDiagnostics,
         registerEditor,
         unregisterEditor,
+        subscribeToDiagnostics,
       }}
     >
       {children}

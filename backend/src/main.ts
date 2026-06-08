@@ -49,7 +49,7 @@ import {
   handleAiChatStream,
   handleAiCompletion
 } from './handlers/aiHandler.ts';
-import { handleBMADInstall, handleBMADStatus } from './handlers/bmadHandler.ts';
+import { handleBMADInstall, handleBMADStatus, handleBMADUpgrade } from './handlers/bmadHandler.ts';
 
 const PORT = parseInt(Deno.env.get('PORT') || '3000');
 
@@ -414,6 +414,13 @@ async function handleRequest(req: Request): Promise<Response> {
     case '/api/bmad/status':
       if (req.method === 'GET') {
         response = await handleBMADStatus(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/bmad/upgrade':
+      if (req.method === 'POST') {
+        response = await handleBMADUpgrade(req);
       } else {
         response = new Response('Method Not Allowed', { status: 405 });
       }

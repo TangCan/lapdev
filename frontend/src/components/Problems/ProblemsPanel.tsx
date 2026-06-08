@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import * as Monaco from 'monaco-editor';
 import { useLSP } from '../../context/LSPContext';
 
@@ -7,7 +7,7 @@ interface ProblemsPanelProps {
 }
 
 const ProblemsPanel: React.FC<ProblemsPanelProps> = ({ onSelectProblem }) => {
-  const { getDiagnostics } = useLSP();
+  const { getDiagnostics, subscribeToDiagnostics } = useLSP();
   const [problems, setProblems] = useState<Array<{
     line: number;
     column: number;
@@ -16,35 +16,35 @@ const ProblemsPanel: React.FC<ProblemsPanelProps> = ({ onSelectProblem }) => {
     source: string;
   }>>([]);
 
-  useEffect(() => {
-    const updateProblems = () => {
-      const allProblems: typeof problems = [];
+  const updateProblems = useCallback(() => {
+    const allProblems: typeof problems = [];
+    
+    const model = Monaco.editor.getModels()[0];
+    if (model) {
+      const uri = model.uri.toString();
+      const diagnostics = getDiagnostics(uri);
       
-      const model = Monaco.editor.getModels()[0];
-      if (model) {
-        const uri = model.uri.toString();
-        const diagnostics = getDiagnostics(uri);
-        
-        diagnostics.forEach((d) => {
-          allProblems.push({
-            line: d.range.startLineNumber,
-            column: d.range.startColumn,
-            severity: d.severity === Monaco.MarkerSeverity.Error ? 'error' :
-                      d.severity === Monaco.MarkerSeverity.Warning ? 'warning' : 'info',
-            message: d.message,
-            source: d.source,
-          });
+      diagnostics.forEach((d) => {
+        allProblems.push({
+          line: d.range.startLineNumber,
+          column: d.range.startColumn,
+          severity: d.severity === Monaco.MarkerSeverity.Error ? 'error' :
+                    d.severity === Monaco.MarkerSeverity.Warning ? 'warning' : 'info',
+          message: d.message,
+          source: d.source,
         });
-      }
-      
-      setProblems(allProblems);
-    };
+      });
+    }
+    
+    setProblems(allProblems);
+  }, [getDiagnostics]);
 
+  useEffect(() => {
     updateProblems();
 
-    const interval = setInterval(updateProblems, 1000);
-    return () => clearInterval(interval);
-  }, [getDiagnostics]);
+    const unsubscribe = subscribeToDiagnostics(updateProblems);
+    return () => unsubscribe();
+  }, [updateProblems, subscribeToDiagnostics]);
 
   const getSeverityIcon = (severity: string): string => {
     switch (severity) {
