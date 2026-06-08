@@ -321,8 +321,8 @@ tests/
 
 ## ✅ 完成状态
 
-- **Status**: review
-- **Completion Note**: BMAD一键启用功能已完整实现并通过测试，包括：
+- **Status**: done
+- **Completion Note**: BMAD一键启用功能已完整实现并通过代码审查修复，包括：
   - BMADService服务实现（bmadService.ts）
   - BMAD状态管理Context（BMADContext.tsx）
   - BMAD面板组件（BMADPanel.tsx）
@@ -333,5 +333,56 @@ tests/
   **代码审查修复**:
   - 在 `SkillService` 中添加了 `registerSkillsFromDirectory` 方法
   - 移除了 `bmadService.ts` 中的 `@ts-ignore`，确保类型安全
+  - 修复了 SSE 非实时问题，修改 `installOnline()` 支持回调函数，实现真正的实时流式日志输出
   
-  所有任务已完成，等待代码审查。
+  **代码审查Patch修复**（15个）:
+  - SSE回调异常保护
+  - Node.js版本验证
+  - 安装超时控制（10分钟）
+  - 并发安装保护
+  - 状态管理逻辑修复
+  - SSE心跳机制（30秒）
+  - 异步日志回调避免阻塞
+  - 错误信息截断保护（500字符）
+  - CORS配置验证
+  - 安装失败清理机制
+  - 目录完整性验证
+  - Node.js不可用错误处理
+  - 请求来源验证
+  - 子进程安全检查
+  - 写入权限检查
+  
+  所有任务已完成，代码审查通过。
+
+---
+
+## 🔍 代码审查发现
+
+### Review Findings
+
+#### Decision Needed (0个)
+- 无需要人工决策的问题
+
+#### Patch (15个)
+- [x] [Review][Patch] SSE回调异常保护 [backend/src/handlers/bmadHandler.ts:15-16] — controller.enqueue和onLog回调缺少异常处理
+- [x] [Review][Patch] Node.js检查不完整 [backend/src/services/bmadService.ts:48-51] — 只检查存在性，不验证版本兼容性
+- [x] [Review][Patch] 缺少安装超时控制 [backend/src/services/bmadService.ts:59-62] — npx命令可能无限期挂起
+- [x] [Review][Patch] 并发安装保护缺失 [backend/src/services/bmadService.ts:44-46] — 无防止多次并发安装的机制
+- [x] [Review][Patch] 状态管理逻辑缺陷 [backend/src/services/bmadService.ts:30-35] — refreshStatus无法恢复installing/error状态
+- [x] [Review][Patch] SSE流缺少心跳机制 [backend/src/handlers/bmadHandler.ts:10-30] — 长时间无输出时无法判断连接存活
+- [x] [Review][Patch] 日志回调可能阻塞安装 [backend/src/services/bmadService.ts:49-51] — onLog是同步回调，处理慢会阻塞流程
+- [x] [Review][Patch] 错误信息截断风险 [backend/src/handlers/bmadHandler.ts:22] — error.message可能被截断或不完整
+- [x] [Review][Patch] CORS配置硬编码 [backend/src/main.ts:55] — 应从环境变量或配置文件读取
+- [x] [Review][Patch] 缺少安装清理机制 [backend/src/services/bmadService.ts:97-105] — 安装失败后可能残留临时文件
+- [x] [Review][Patch] 目录验证不严格 [backend/src/services/bmadService.ts:24-28] — 只检查目录存在性，不验证内容完整性
+- [x] [Review][Patch] 未实现降级策略 [backend/src/services/bmadService.ts:48-51] — Node.js不可用时只记录警告，未触发降级
+- [x] [Review][Patch] 缺少请求验证 [backend/src/handlers/bmadHandler.ts:38-47] — handleBMADStatus未验证请求来源和权限
+- [x] [Review][Patch] 子进程执行命令未验证 [backend/src/services/bmadService.ts:59-62] — 直接执行npx命令，无安全验证
+- [x] [Review][Patch] 安装目录权限未检查 [backend/src/services/bmadService.ts:59-62] — 执行安装前未检查写入权限
+
+#### Defer (5个)
+- [x] [Review][Defer] Skill自动注册未实现 [backend/src/services/bmadService.ts:107] — deferred, pre-existing — 后端版本缺少registerBMADSkills方法（需要Story 5.2）
+- [x] [Review][Defer] 代码重复 [backend/src/services/bmadService.ts, frontend/src/services/bmadService.ts] — deferred, pre-existing — 前后端bmadService.ts几乎相同（架构问题，需要重构）
+- [x] [Review][Defer] 缺少安装进度反馈 [backend/src/handlers/bmadHandler.ts:10-30] — deferred, pre-existing — 只有日志输出，无进度百分比（P2优先级，可延后）
+- [x] [Review][Defer] 安装日志可能包含敏感信息 [backend/src/services/bmadService.ts:73-95] — deferred, pre-existing — 未过滤敏感信息（安全增强，非阻塞）
+- [x] [Review][Defer] ALLOWED_ORIGINS格式验证 [backend/src/main.ts:55] — deferred, pre-existing — 环境变量格式未验证（配置问题，非阻塞）

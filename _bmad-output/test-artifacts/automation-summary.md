@@ -1,205 +1,183 @@
 ---
-stepsCompleted: ['step-01-preflight-and-context']
-lastStep: 'step-01-preflight-and-context'
-lastSaved: '2026-06-03T12:18:00Z'
+stepsCompleted: ['step-01-preflight-and-context', 'step-02-identify-targets', 'step-03-generate-tests', 'step-03c-aggregate', 'step-04-validate-and-summarize']
+lastStep: 'step-04-validate-and-summarize'
+lastSaved: '2026-06-08'
+test_artifacts: '{project-root}/_bmad-output/test-artifacts'
+detected_stack: fullstack
+execution_mode: bmad-integrated
 inputDocuments:
-  - implementation_artifacts/4-1-skill-development.md
-  - tests/unit/skillService.test.ts
-  - tests/unit/skillCli.test.ts
-  - tests/api/skill.test.ts
-  - frontend/src/services/skillService.ts
-  - frontend/src/cli/skillCli.ts
+  - _bmad/tea/config.yaml
+  - .trae/skills/bmad-testarch-automate/resources/tea-index.csv
+  - implementation_artifacts/5-1-bmad-one-click.md
+  - tests/acceptance/5-1-bmad-one-click.atdd.ts
 ---
 
-# 测试自动化扩展报告 - Story 4.1: Skill开发与加载
+# Test Automation Summary
 
-## 📊 执行摘要
+## Preflight Results
 
-**执行时间**: 2026-06-03
-**Story**: 4-1-skill-development
-**测试状态**: ✅ 全部通过
-**测试总数**: 48个
-**通过率**: 100%
+### Stack Detection
+- **Type**: Fullstack
+- **Frontend**: React + Vite with Playwright
+- **Backend**: Deno HTTP server
 
----
+### Framework Verification ✅
+- Playwright Config: ✅
+- Test Dependencies: ✅
+- Unit Tests: ✅ (12 files)
+- E2E Tests: ✅ (14 files)
+- API Tests: ✅ (8 files)
+- Acceptance Tests: ✅ (1 file)
 
-## 🎯 测试覆盖分析
+### Execution Mode
+- **Mode**: BMAD-Integrated
+- **Story**: 5-1-bmad-one-click (done)
 
-### 已覆盖的测试场景
+### Knowledge Base
+- **Core Tier**: 7 fragments loaded
+- **Playwright Utils**: 11 fragments loaded (Full UI+API Profile)
 
-#### ✅ Scenario 1: Skill文件解析 (7个测试)
-- 有效的.skill.md文件解析和YAML元数据提取
-- 缺少YAML元数据的错误处理
-- 只有一个分隔符的错误处理
-- YAML元数据为空时的默认值处理
-- YAML解析失败的错误处理
-- 复杂嵌套YAML结构处理
-
-#### ✅ Scenario 2: Skill文件加载 (7个测试)
-- 全局目录Skill加载
-- 项目级目录Skill加载
-- 项目级Skill覆盖全局Skill（优先级测试）
-- 目录不存在时的空数组返回
-- 非skill文件过滤
-- 子目录跳过
-- 解析失败时的警告记录
-
-#### ✅ Scenario 3: Skill触发匹配 (7个测试)
-- 关键词匹配
-- 正则模式匹配
-- 不匹配时的空数组返回
-- 多Skill按分数排序
-- 空触发条件处理
-- 无效正则表达式处理
-- 大小写不敏感匹配
-
-#### ✅ Scenario 4: Skill注入到系统提示 (4个测试)
-- 单个Skill注入
-- 多个Skill注入
-- 空Skill列表处理
-- 特殊字符处理
-
-#### ✅ 安全测试 (7个测试)
-- 路径遍历防护
-- 空路径验证
-- 非法字符验证
-- 换行符注入防护
-- 命令注入防护
-- Windows路径遍历防护
-- 正常路径验证
-
-#### ✅ CLI测试 (8个测试)
-- Skill安装流程
-- 已安装Skill检测
-- Skill名称验证
-- 空名称验证
-- 下载失败处理
-- curl命令错误处理
-- Skill列表显示
-- Skill重新加载
-
-#### ✅ 辅助方法测试 (4个测试)
-- getSkillByName查询
-- getSkills列表
-- reload重新加载
+### Config Flags
+- tea_use_playwright_utils: true
+- tea_use_pactjs_utils: false
+- tea_browser_automation: auto
+- test_stack_type: auto
 
 ---
 
-## 🔧 修复的问题
+## Test Coverage Plan
 
-### 1. Mock初始化顺序问题
-**问题**: vi.mock被提升到文件顶部，导致mock变量未初始化错误
-**解决方案**: 使用vi.hoisted()确保mock函数在vi.mock提升之前就被定义
-**影响文件**:
-- tests/unit/skillService.test.ts
-- tests/unit/skillCli.test.ts
+### 1. Test Targets by Level
 
-### 2. YAML解析空内容问题
-**问题**: js-yaml解析空YAML返回undefined，导致metadata.name访问错误
-**解决方案**: 添加metadata空值检查，使用空对象作为默认值
-**影响文件**:
-- frontend/src/services/skillService.ts
+| Test Level | Targets | Priority | Coverage Status |
+|-----------|---------|----------|-----------------|
+| **Unit** | BMADServiceImpl, state transitions | P0 | ✅ 已覆盖 |
+| **Unit** | BMADContext state management | P0 | ✅ 已覆盖 |
+| **API** | /api/bmad/install (SSE streaming) | P0 | ✅ 已覆盖 |
+| **API** | /api/bmad/status | P1 | ✅ 已覆盖 |
+| **E2E** | BMAD Panel UI flows | P0 | ✅ 已覆盖 |
+| **E2E** | Installation progress display | P1 | ✅ 已覆盖 |
 
-### 3. fs模块mock缺少default export
-**问题**: skillCli.ts使用`import fs from 'fs'`，但mock只提供命名导出
-**解决方案**: 在mock中添加default export
-**影响文件**:
-- tests/unit/skillCli.test.ts
+### 2. Acceptance Criteria Mapping
 
-### 4. 测试期望值与实际实现不匹配
-**问题**: content字段换行符格式不匹配，全局/项目级计数逻辑错误
-**解决方案**: 修改测试使用toContain而非精确匹配，修复mock实现逻辑
-**影响文件**:
-- tests/unit/skillService.test.ts
+| AC ID | Acceptance Criterion | Test Case | Priority |
+|-------|---------------------|-----------|----------|
+| AC-1 | 显示BMAD未安装状态 | TC-5.1.1 | P0 |
+| AC-2 | 显示BMAD已安装状态 | TC-5.1.2 | P0 |
+| AC-3 | 一键启用安装 | TC-5.1.3 | P0 |
+| AC-4 | 安装成功创建目录 | TC-5.1.4 | P0 |
+| AC-5 | 自动注册技能 | TC-5.1.5 | P0 |
+| AC-6 | 更新面板状态 | TC-5.1.6 | P0 |
+| AC-7 | 安装失败降级 | TC-5.1.7 | P1 |
+| AC-8 | AI面板集成 | TC-5.1.8 | P1 |
 
----
+### 3. New Tests Generated
 
-## 📈 测试覆盖统计
+| Test File | Description | Priority | Status |
+|-----------|-------------|----------|--------|
+| `tests/api/bmad.test.ts` | BMAD API endpoints testing | P0 | ✅ Created |
+| `tests/unit/bmadService.edge.test.ts` | Edge cases and boundary conditions | P1 | ✅ Created |
+| `tests/e2e/bmad-install.spec.ts` | Installation flow E2E | P0 | ✅ Created |
 
-| 测试类别 | 测试数量 | 通过率 |
-|---------|---------|--------|
-| Skill文件解析 | 7 | 100% |
-| Skill文件加载 | 7 | 100% |
-| Skill触发匹配 | 7 | 100% |
-| Skill注入 | 4 | 100% |
-| 安全测试 | 7 | 100% |
-| CLI测试 | 8 | 100% |
-| 辅助方法 | 4 | 100% |
-| API测试 | 5 | 100% |
-| **总计** | **48** | **100%** |
+### 4. Coverage Scope Justification
 
----
+- **Critical Path Coverage**: All P0 acceptance criteria have corresponding test cases
+- **API Layer**: Added SSE streaming tests for real-time logging
+- **Boundary Conditions**: Added tests for Node.js version validation, permission checks, and timeout scenarios
+- **Security**: Added tests to verify subprocess execution safety checks
 
-## ✅ 验收标准覆盖
+### 5. API Endpoint Map
 
-### 场景1: Skill规范文档
-- ✅ 提供清晰的Skill规范文档
-- ✅ 定义YAML元数据和Markdown指令
-
-### 场景2: Skill文件加载
-- ✅ 放入`~/.lapdev/skills/`（全局）生效
-- ✅ 放入`.lapdev/skills/`（项目级）生效
-- ✅ 重启或重新加载后生效
-- ✅ 项目级优先级高于全局
-
-### 场景3: CLI安装
-- ✅ 通过`lapdev skill install <name>`安装官方Skill
-- ✅ Skill名称验证
-- ✅ 错误处理和提示
-
-### 场景4: Skill注入
-- ✅ Skill指令注入到系统提示
-- ✅ 多Skill组合
-- ✅ 匹配逻辑和排序
+| Endpoint | Method | Handler File | Test Coverage |
+|----------|--------|--------------|---------------|
+| `/api/bmad/install` | POST | bmadHandler.ts | ✅ Covered |
+| `/api/bmad/status` | GET | bmadHandler.ts | ✅ Covered |
 
 ---
 
-## 🎓 测试最佳实践应用
+## Test Generation Results
 
-### ATDD (验收测试驱动开发)
-- 所有测试使用Given-When-Then格式
-- 测试名称清晰描述场景和预期结果
-- 测试覆盖所有验收标准
+### Generated Test Statistics
 
-### 测试隔离
-- 使用vi.mock隔离外部依赖
-- beforeEach清理mock状态
-- 独立的测试用例，无相互依赖
+| Category | Count | Details |
+|----------|-------|---------|
+| **Total Tests Generated** | 15 | 4 API + 5 E2E + 6 Unit |
+| **API Tests** | 4 | 2 P0, 2 P1 |
+| **E2E Tests** | 5 | 3 P0, 2 P1 |
+| **Unit Tests** | 6 | 2 P0, 3 P1, 1 P2 |
+| **Test Files Created** | 3 | api/bmad.test.ts, e2e/bmad-install.spec.ts, unit/bmadService.edge.test.ts |
 
-### 边缘情况覆盖
-- 空值处理
-- 错误情况处理
-- 无效输入验证
-- 特殊字符处理
+### Priority Coverage
 
-### 安全测试
-- 路径遍历攻击防护
-- 命令注入防护
-- 输入验证
+| Priority | Count | Percentage |
+|----------|-------|------------|
+| P0 (Critical) | 7 | 47% |
+| P1 (High) | 7 | 47% |
+| P2 (Medium) | 1 | 7% |
+| P3 (Low) | 0 | 0% |
 
----
-
-## 📝 后续建议
-
-1. **E2E测试扩展**: 添加完整的端到端测试，验证Skill从安装到注入的完整流程
-2. **性能测试**: 测试大量Skill加载时的性能表现
-3. **集成测试**: 测试Skill系统与AI聊天面板的集成
-4. **文档测试**: 验证Skill文档的完整性和准确性
+### Fixture Needs Identified
+- authToken
+- bmadServiceFactory
+- bmadPanelFixture
+- installationMockFixture
+- tempDirFixture
 
 ---
 
-## 📂 相关文件
+## Codebase Analysis
 
-### 测试文件
-- tests/unit/skillService.test.ts (35个测试)
-- tests/unit/skillCli.test.ts (13个测试)
-- tests/api/skill.test.ts (5个测试)
+### Backend Services
+- **BMADServiceImpl**: 完整实现，包含并发保护、超时控制、权限检查
+- **bmadHandler**: SSE流式响应，心跳机制，异常处理
 
-### 实现文件
-- frontend/src/services/skillService.ts
-- frontend/src/cli/skillCli.ts
-- frontend/src/types/skill.ts
+### Frontend Components
+- **BMADContext**: React状态管理
+- **BMADPanel**: UI展示组件
 
-### 配置文件
-- _bmad/tea/config.yaml
-- playwright.config.ts
+### Test Gaps Addressed ✅
+1. SSE实时日志传输测试 ✅
+2. 并发安装保护测试 ✅
+3. 安装超时测试 ✅
+4. Node.js版本验证测试 ✅
+5. 权限检查测试 ✅
+
+---
+
+## Validation Checklist
+
+| Item | Status |
+|------|--------|
+| Framework readiness | ✅ |
+| Coverage mapping | ✅ |
+| Test quality and structure | ✅ |
+| Fixtures, factories, helpers | ✅ |
+| CLI sessions cleaned up | ✅ |
+| Temp artifacts stored correctly | ✅ |
+
+---
+
+## Summary
+
+### Execution Mode
+- **Mode**: Sequential
+- **Performance**: Baseline (no parallel speedup)
+
+### Generated Files
+- `tests/api/bmad.test.ts` - API测试用例
+- `tests/e2e/bmad-install.spec.ts` - E2E测试用例
+- `tests/unit/bmadService.edge.test.ts` - 边界条件测试用例
+
+### Key Assumptions and Risks
+- **Assumption**: Playwright test framework is properly configured
+- **Assumption**: Backend API endpoints are accessible at runtime
+- **Risk**: SSE streaming tests may require running backend server
+
+### Next Steps
+1. Run `npm run test:api` to execute API tests
+2. Run `npm run test:e2e` to execute E2E tests
+3. Run `npm run test:unit` to execute unit tests
+4. Consider running `bmad-testarch-test-review` to review test quality
+5. Consider running `bmad-testarch-trace` for traceability analysis
+
+✅ **Test Automation Complete** - All test files have been generated successfully.

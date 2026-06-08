@@ -49,16 +49,42 @@ import {
   handleAiChatStream,
   handleAiCompletion
 } from './handlers/aiHandler.ts';
+import { handleBMADInstall, handleBMADStatus } from './handlers/bmadHandler.ts';
 
 const PORT = parseInt(Deno.env.get('PORT') || '3000');
-const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') || 'http://localhost:3000').split(',');
+
+// 验证和解析ALLOWED_ORIGINS环境变量
+function parseAllowedOrigins(): string[] {
+  const envValue = Deno.env.get('ALLOWED_ORIGINS');
+  if (!envValue) {
+    return ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173'];
+  }
+  
+  const origins = envValue.split(',').map(o => o.trim()).filter(o => o.length > 0);
+  
+  // 验证每个origin格式
+  const validOrigins: string[] = [];
+  for (const origin of origins) {
+    try {
+      const url = new URL(origin);
+      if (url.protocol === 'http:' || url.protocol === 'https:') {
+        validOrigins.push(origin);
+      }
+    } catch {
+      console.warn(`Invalid ALLOWED_ORIGINS value: ${origin} - skipping`);
+    }
+  }
+  
+  return validOrigins.length > 0 ? validOrigins : ['http://localhost:3000', 'http://localhost:5173'];
+}
+
+const ALLOWED_ORIGINS = parseAllowedOrigins();
 
 // Helper to build CORS headers based on origin
 function getCorsHeaders(origin: string | null): Headers {
   const headers = new Headers({
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Content-Type': 'application/json'
   });
   
   // Only allow specified origins
@@ -374,6 +400,20 @@ async function handleRequest(req: Request): Promise<Response> {
     case '/api/v1/ai/completion':
       if (req.method === 'POST') {
         response = await handleAiCompletion(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/bmad/install':
+      if (req.method === 'POST') {
+        response = await handleBMADInstall(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/bmad/status':
+      if (req.method === 'GET') {
+        response = await handleBMADStatus(req);
       } else {
         response = new Response('Method Not Allowed', { status: 405 });
       }

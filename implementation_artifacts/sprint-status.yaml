@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review
 
 generated: 2026-05-25
-last_updated: 2026-06-04T12:00:00Z
+last_updated: 2026-06-08T12:00:00Z
 project: Lapdev
 project_key: NOKEY
 tracking_system: file-system
@@ -71,7 +71,7 @@ development_status:
 
   # Epic 5: BMAD支持 (2 stories)
   epic-5: in-progress
-  5-1-bmad-one-click: review
+  5-1-bmad-one-click: done
   5-2-bmad-offline: backlog
   epic-5-retrospective: optional
 

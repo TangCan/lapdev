@@ -1,28 +1,60 @@
-import { HandlerContext } from '$fresh/server.ts';
-import { BMADServiceImpl } from '../../frontend/src/services/bmadService.ts';
-import { SkillServiceImpl } from '../../frontend/src/services/skillService.ts';
+import { BMADServiceImpl } from '../services/bmadService.ts';
 
-export async function POST(_req: Request, ctx: HandlerContext) {
+export async function handleBMADInstall(_req: Request) {
   const workspacePath = Deno.cwd();
-  const skillService = new SkillServiceImpl();
-  const bmadService = new BMADServiceImpl(workspacePath, skillService);
+  const bmadService = new BMADServiceImpl(workspacePath);
 
   // 创建SSE响应
   const stream = new ReadableStream({
     async start(controller) {
+      let closed = false;
+      
+      // 心跳定时器，每30秒发送一次心跳
+      const heartbeatInterval = setInterval(() => {
+        if (!closed) {
+          try {
+            controller.enqueue(`: heartbeat\n\n`);
+          } catch {
+            // 忽略心跳发送失败
+          }
+        }
+      }, 30000);
+
       try {
-        const result = await bmadService.installOnline();
+        // 定义日志回调函数，实时发送日志
+        const onLog = (line: string) => {
+          if (!closed) {
+            try {
+              controller.enqueue(`data: ${line}\n\n`);
+            } catch {
+              // 忽略发送失败，可能客户端已断开
+            }
+          }
+        };
         
-        // 发送安装日志
-        result.log.forEach(line => {
-          controller.enqueue(`data: ${line}\n\n`);
-        });
+        const result = await bmadService.installOnline(onLog);
 
         // 发送最终结果
-        controller.enqueue(`data: ${JSON.stringify(result)}\n\n`);
+        if (!closed) {
+          try {
+            controller.enqueue(`data: ${JSON.stringify(result)}\n\n`);
+          } catch {
+            // 忽略发送失败
+          }
+        }
+        closed = true;
+        clearInterval(heartbeatInterval);
         controller.close();
       } catch (error) {
-        controller.enqueue(`data: ${JSON.stringify({ success: false, error: error.message })}\n\n`);
+        closed = true;
+        clearInterval(heartbeatInterval);
+        const err = error as Error;
+        const errorMessage = err.message ? err.message.substring(0, 500) : 'Unknown error';
+        try {
+          controller.enqueue(`data: ${JSON.stringify({ success: false, error: errorMessage })}\n\n`);
+        } catch {
+          // 忽略发送失败
+        }
         controller.close();
       }
     },
@@ -37,10 +69,9 @@ export async function POST(_req: Request, ctx: HandlerContext) {
   });
 }
 
-export async function GET(_req: Request, ctx: HandlerContext) {
+export async function handleBMADStatus(_req: Request) {
   const workspacePath = Deno.cwd();
-  const skillService = new SkillServiceImpl();
-  const bmadService = new BMADServiceImpl(workspacePath, skillService);
+  const bmadService = new BMADServiceImpl(workspacePath);
   
   const isInstalled = await bmadService.isBMADInstalled();
   

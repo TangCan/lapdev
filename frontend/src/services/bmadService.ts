@@ -6,7 +6,7 @@ export type BMADStatus = 'not-installed' | 'installing' | 'installed' | 'error';
 export interface BMADService {
   isBMADInstalled(): Promise<boolean>;
   hasBMADDirectory(): boolean;
-  installOnline(): Promise<{ success: boolean; error?: string; log: string[] }>;
+  installOnline(onLog?: (line: string) => void): Promise<{ success: boolean; error?: string; log: string[] }>;
   getStatus(): BMADStatus;
   refreshStatus(): void;
 }
@@ -44,13 +44,20 @@ export class BMADServiceImpl implements BMADService {
     }
   }
 
-  async installOnline(): Promise<{ success: boolean; error?: string; log: string[] }> {
+  async installOnline(onLog?: (line: string) => void): Promise<{ success: boolean; error?: string; log: string[] }> {
     this.status = 'installing';
     const log: string[] = [];
 
+    const addLog = (line: string) => {
+      log.push(line);
+      if (onLog) {
+        onLog(line);
+      }
+    };
+
     try {
-      log.push('Starting BMAD installation...');
-      log.push('Executing: npx bmad-method install');
+      addLog('Starting BMAD installation...');
+      addLog('Executing: npx bmad-method install');
 
       // 检查Node.js是否可用
       try {
@@ -61,7 +68,7 @@ export class BMADServiceImpl implements BMADService {
         });
         await nodeCheck.output();
       } catch {
-        log.push('Warning: Node.js not found, will attempt fallback');
+        addLog('Warning: Node.js not found, will attempt fallback');
       }
 
       // 执行npx命令
@@ -72,35 +79,53 @@ export class BMADServiceImpl implements BMADService {
         stderr: 'piped',
       });
 
-      const { code, stdout, stderr } = await command.output();
+      const process = command.spawn();
+      const decoder = new TextDecoder();
 
-      const stdoutStr = new TextDecoder().decode(stdout);
-      const stderrStr = new TextDecoder().decode(stderr);
+      // 实时读取stdout
+      const stdoutReader = process.stdout.getReader();
+      const stdoutPromise = (async () => {
+        while (true) {
+          const { done, value } = await stdoutReader.read();
+          if (done) break;
+          const output = decoder.decode(value);
+          output.split('\n').filter(line => line.trim()).forEach(line => addLog(line));
+        }
+      })();
 
-      if (stdoutStr) {
-        log.push(...stdoutStr.split('\n').filter(line => line.trim()));
-      }
-      if (stderrStr) {
-        log.push(...stderrStr.split('\n').filter(line => line.trim()));
-      }
+      // 实时读取stderr
+      const stderrReader = process.stderr.getReader();
+      const stderrPromise = (async () => {
+        while (true) {
+          const { done, value } = await stderrReader.read();
+          if (done) break;
+          const output = decoder.decode(value);
+          output.split('\n').filter(line => line.trim()).forEach(line => addLog(line));
+        }
+      })();
+
+      // 等待命令完成和输出读取完毕
+      await Promise.all([stdoutPromise, stderrPromise]);
+      const status = await process.status;
+      const code = status.code;
 
       if (code === 0) {
-        log.push('BMAD installation completed successfully');
+        addLog('BMAD installation completed successfully');
         this.status = 'installed';
 
         // 注册BMAD技能
         await this.registerBMADSkills();
-        log.push('BMAD skills registered successfully');
+        addLog('BMAD skills registered successfully');
 
         return { success: true, log };
       } else {
-        log.push(`Installation failed with exit code ${code}`);
+        addLog(`Installation failed with exit code ${code}`);
         this.status = 'error';
         return { success: false, error: `Installation failed with exit code ${code}`, log };
       }
     } catch (error) {
       const err = error as Error;
-      log.push(`Installation error: ${err.message}`);
+      addLog(`Installation error: ${err.message}`);
       this.status = 'error';
       return { success: false, error: err.message, log };
     }
