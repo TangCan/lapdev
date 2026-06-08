@@ -50,7 +50,7 @@ development_status:
   epic-1-retrospective: done
 
   # Epic 2: 高级IDE功能 (2 stories)
-  epic-2: in-progress
+  epic-2: done
   2-1-git-visualization: done
   2-2-lsp-intelligence: done
   epic-2-retrospective: done
@@ -76,9 +76,9 @@ development_status:
   epic-5-retrospective: done
 
   # Epic 6: 部署适配 (2 stories)
-  epic-6: in-progress
+  epic-6: done
   6-1-podman-support: done
-  6-2-domestic-hosting: backlog
+  6-2-domestic-hosting: done
   epic-6-retrospective: optional
 
 summary:
