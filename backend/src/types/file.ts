@@ -18,6 +18,9 @@ export interface FileContentResult {
   data?: {
     path: string;
     content: string;
+    lastModified?: string;
+    size?: number;
+    type?: 'file' | 'directory';
   };
   message?: string;
 }

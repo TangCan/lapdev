@@ -196,11 +196,14 @@ run_test() {
   echo -e "\n${YELLOW}${test_name}${NC}"
   echo "------------------------------------------------"
 
-  if eval "${test_command}"; then
+  eval "${test_command}"
+  local exit_code=$?
+
+  if [ $exit_code -eq 0 ]; then
     echo -e "${GREEN}✓ ${test_name} 全部通过${NC}"
     TEST_RESULTS+=("✓ ${test_name}")
   else
-    echo -e "${RED}✗ ${test_name} 失败${NC}"
+    echo -e "${RED}✗ ${test_name} 失败 (退出码: ${exit_code})${NC}"
     TEST_RESULTS+=("✗ ${test_name}")
     ALL_PASSED=false
   fi

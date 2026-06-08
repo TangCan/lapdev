@@ -215,7 +215,7 @@ async function parseGitignore(dirPath: string): Promise<string[]> {
 export async function readFile(path: string): Promise<FileContentResult> {
   try {
     const sanitizedPath = sanitizePath(path);
-    const content = await Deno.readTextFile(sanitizedPath, { encoding: 'utf-8' });
+    const content = await Deno.readTextFile(sanitizedPath);
     const stat = await Deno.stat(sanitizedPath);
     
     return {
@@ -243,7 +243,7 @@ export async function writeFile(path: string, content: string): Promise<Operatio
     const dirPath = sanitizedPath.substring(0, sanitizedPath.lastIndexOf('/'));
     await Deno.mkdir(dirPath, { recursive: true });
     
-    await Deno.writeTextFile(sanitizedPath, content, { encoding: 'utf-8' });
+    await Deno.writeTextFile(sanitizedPath, content);
     
     return {
       status: 'success',
@@ -275,7 +275,7 @@ export async function createFile(path: string, content?: string): Promise<Operat
     const dirPath = sanitizedPath.substring(0, sanitizedPath.lastIndexOf('/'));
     await Deno.mkdir(dirPath, { recursive: true });
     
-    await Deno.writeTextFile(sanitizedPath, content || '', { encoding: 'utf-8' });
+    await Deno.writeTextFile(sanitizedPath, content || '');
     
     return {
       status: 'success',

@@ -18,7 +18,9 @@ interface GitBranch {
   isRemote: boolean;
 }
 
-const WORKSPACE_PATH = Deno.env.get('WORKSPACE_PATH') || '/workspace';
+function getWorkspacePath(): string {
+  return Deno.env.get('WORKSPACE_PATH') || '/workspace';
+}
 
 // 安全检查：防止路径遍历攻击
 function sanitizePath(path: string): string {
@@ -41,6 +43,17 @@ function sanitizePath(path: string): string {
 
 // 验证路径是否在工作空间内
 function validatePath(path: string): boolean {
+  // 首先检查原始路径是否包含路径遍历字符
+  if (path.includes('..')) {
+    return false;
+  }
+  
+  // 检查危险字符（命令注入）
+  const dangerousChars = /[;&|`$()!<>]/;
+  if (dangerousChars.test(path)) {
+    return false;
+  }
+  
   const sanitized = sanitizePath(path);
   if (!sanitized || sanitized.startsWith('/') || sanitized.includes('\\')) {
     return false;
@@ -50,7 +63,7 @@ function validatePath(path: string): boolean {
 
 export async function getGitStatus(): Promise<{ status: string; data?: GitStatus; message?: string }> {
   try {
-    const repoPath = WORKSPACE_PATH;
+    const repoPath = getWorkspacePath();
     
     const isGitRepo = await isGitRepository(repoPath);
     if (!isGitRepo) {
@@ -84,7 +97,7 @@ export async function getGitDiff(path: string): Promise<{ status: string; data?:
       return { status: 'error', message: 'Invalid path' };
     }
     
-    const repoPath = WORKSPACE_PATH;
+    const repoPath = getWorkspacePath();
     const sanitizedPath = sanitizePath(path);
 
     const isGitRepo = await isGitRepository(repoPath);
@@ -107,7 +120,7 @@ export async function getGitDiff(path: string): Promise<{ status: string; data?:
 
 export async function getBranches(): Promise<{ status: string; data?: { branches: GitBranch[]; current: string }; message?: string }> {
   try {
-    const repoPath = WORKSPACE_PATH;
+    const repoPath = getWorkspacePath();
 
     const isGitRepo = await isGitRepository(repoPath);
     if (!isGitRepo) {
@@ -156,7 +169,7 @@ export async function stageFiles(paths: string[]): Promise<{ status: string; mes
       return { status: 'error', message: 'Invalid paths' };
     }
     
-    const repoPath = WORKSPACE_PATH;
+    const repoPath = getWorkspacePath();
     const sanitizedPaths = paths.map(p => sanitizePath(p));
 
     const isGitRepo = await isGitRepository(repoPath);
@@ -193,7 +206,7 @@ export async function commitChanges(message: string): Promise<{ status: string; 
       return { status: 'error', message: 'Invalid commit message' };
     }
 
-    const repoPath = WORKSPACE_PATH;
+    const repoPath = getWorkspacePath();
 
     const isGitRepo = await isGitRepository(repoPath);
     if (!isGitRepo) {
@@ -225,7 +238,7 @@ export async function checkoutBranch(branch: string): Promise<{ status: string; 
       return { status: 'error', message: 'Invalid branch name' };
     }
 
-    const repoPath = WORKSPACE_PATH;
+    const repoPath = getWorkspacePath();
 
     const isGitRepo = await isGitRepository(repoPath);
     if (!isGitRepo) {
@@ -323,20 +336,16 @@ async function runGitCommand(args: string[], cwd: string): Promise<{ stdout: str
     }
   }
 
-  const process = await Deno.run({
-    cmd: ['git', ...args],
+  const command = new Deno.Command('git', {
+    args,
     cwd,
     stdout: 'piped',
     stderr: 'piped'
   });
 
-  const [stdout, stderr] = await Promise.all([
-    process.output(),
-    process.stderrOutput()
-  ]);
+  const { code, stdout, stderr } = await command.output();
 
-  const status = await process.status();
-  if (!status.success) {
+  if (code !== 0) {
     const errorMessage = new TextDecoder().decode(stderr);
     throw new Error(errorMessage || 'Git command failed');
   }

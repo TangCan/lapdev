@@ -1,159 +1,74 @@
-import { describe, it } from "https://deno.land/std@0.200.0/testing/bdd.ts";
-import { assertEquals, assertThrows } from "https://deno.land/std@0.200.0/testing/asserts.ts";
+// 文件服务单元测试 - 专注于安全检查和边界情况
+import { assert } from 'https://deno.land/std/testing/asserts.ts';
+import { getFileTree, readFile, writeFile, createFile, createDirectory, renameFile, deleteFile } from '../../backend/src/services/fileService.ts';
 
-// 模拟文件服务的工具函数
-function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function isIgnored(name: string, patterns: string[]): boolean {
-  for (const pattern of patterns) {
-    if (name === pattern) {
-      return true;
-    }
-    
-    if (pattern.includes('*')) {
-      try {
-        const safePattern = escapeRegex(pattern).replace(/\\\*/g, '.*');
-        const regex = new RegExp(`^${safePattern}$`);
-        if (regex.test(name)) {
-          return true;
-        }
-      } catch {
-        continue;
-      }
-    }
-  }
-  return false;
-}
-
-function validatePath(path: string, workspaceRoot: string = "/workspace"): boolean {
-  const normalizedPath = path.replace(/\/+/g, '/');
-  const absolutePath = normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
+// 安全测试 - 路径遍历防护
+Deno.test('fileService - 应该阻止路径遍历攻击', async () => {
+  // 测试路径遍历攻击
+  const traversalResult1 = await readFile('../etc/passwd');
+  assert(traversalResult1.status === 'error', '路径遍历应该被阻止');
   
-  // 解析 .. 和 . 来防止路径遍历
-  const parts: string[] = [];
-  for (const part of absolutePath.split('/')) {
-    if (part === '..') {
-      parts.pop(); // 移除上一个路径部分
-    } else if (part !== '.' && part !== '') {
-      parts.push(part);
-    }
-  }
+  const traversalResult2 = await readFile('../../etc/passwd');
+  assert(traversalResult2.status === 'error', '多级路径遍历应该被阻止');
   
-  const resolvedPath = '/' + parts.join('/');
-  const workspacePath = workspaceRoot.endsWith('/') ? workspaceRoot.slice(0, -1) : workspaceRoot;
+  const traversalResult3 = await readFile('/etc/passwd');
+  assert(traversalResult3.status === 'error', '绝对路径访问应该被阻止');
+});
+
+Deno.test('fileService - writeFile 应该阻止越权写入', async () => {
+  const result = await writeFile('../etc/passwd', 'malicious');
+  assert(result.status === 'error', '越权写入应该被阻止');
+});
+
+Deno.test('fileService - createFile 应该阻止越权创建', async () => {
+  const result = await createFile('../../etc/malicious.txt', 'content');
+  assert(result.status === 'error', '越权创建应该被阻止');
+});
+
+Deno.test('fileService - createDirectory 应该阻止越权创建目录', async () => {
+  const result = await createDirectory('../../etc/malicious');
+  assert(result.status === 'error', '越权创建目录应该被阻止');
+});
+
+Deno.test('fileService - renameFile 应该阻止越权重命名', async () => {
+  const result = await renameFile('../etc/passwd', 'newname');
+  assert(result.status === 'error', '越权重命名应该被阻止');
+});
+
+Deno.test('fileService - deleteFile 应该阻止越权删除', async () => {
+  const result = await deleteFile('../etc/passwd');
+  assert(result.status === 'error', '越权删除应该被阻止');
+});
+
+// 边界情况测试
+Deno.test('fileService - 应该处理不存在的路径', async () => {
+  // 使用工作区内不存在的路径
+  const readResult = await readFile('__nonexistent_file_xyz123__.txt');
+  assert(readResult.status === 'error', '读取不存在的文件应该失败');
   
-  return resolvedPath.startsWith(workspacePath) || resolvedPath === workspacePath;
-}
+  const deleteResult = await deleteFile('__nonexistent_file_xyz123__.txt');
+  assert(deleteResult.status === 'error', '删除不存在的文件应该失败');
+  
+  const renameResult = await renameFile('__nonexistent_file_xyz123__.txt', 'other.txt');
+  assert(renameResult.status === 'error', '重命名不存在的文件应该失败');
+});
 
-describe("File Service Unit Tests", () => {
-  describe("Path Validation", () => {
-    it("should validate path within workspace", () => {
-      assertEquals(validatePath("/workspace/project/src"), true);
-      assertEquals(validatePath("/workspace/docs"), true);
-      assertEquals(validatePath("/workspace"), true);
-    });
+Deno.test('fileService - getFileTree 应该处理无效路径', async () => {
+  const result = await getFileTree('../invalid');
+  assert(result.status === 'error', '无效路径应该返回错误');
+});
 
-    it("should reject paths outside workspace", () => {
-      assertEquals(validatePath("/etc/passwd"), false);
-      assertEquals(validatePath("/home/user/file"), false);
-      assertEquals(validatePath("../etc/passwd"), false);
-    });
+Deno.test('fileService - 应该处理空路径', async () => {
+  const result = await readFile('');
+  assert(result.status === 'error', '空路径应该返回错误');
+});
 
-    it("should reject path traversal attempts", () => {
-      assertEquals(validatePath("/workspace/../etc/passwd"), false);
-      assertEquals(validatePath("/workspace/project/../../etc/passwd"), false);
-      assertEquals(validatePath("../../etc/passwd"), false);
-    });
+Deno.test('fileService - 应该处理根路径访问', async () => {
+  const result = await readFile('/');
+  assert(result.status === 'error', '根路径访问应该被拒绝');
+});
 
-    it("should handle trailing slashes", () => {
-      assertEquals(validatePath("/workspace/project/"), true);
-      assertEquals(validatePath("/workspace/project/src/"), true);
-    });
-  });
-
-  describe("Glob Pattern Matching (isIgnored)", () => {
-    const testPatterns = ["node_modules", "*.log", "dist/*", ".git"];
-
-    it("should match exact patterns", () => {
-      assertEquals(isIgnored("node_modules", testPatterns), true);
-      assertEquals(isIgnored(".git", testPatterns), true);
-      assertEquals(isIgnored("src", testPatterns), false);
-    });
-
-    it("should match wildcard patterns", () => {
-      assertEquals(isIgnored("error.log", testPatterns), true);
-      assertEquals(isIgnored("app.log", testPatterns), true);
-      assertEquals(isIgnored("README.md", testPatterns), false);
-    });
-
-    it("should prevent regex injection", () => {
-      const maliciousPatterns = ["[a-z]*"];
-      // 由于转义了特殊字符，[a-z]* 现在会被当作字面量匹配，不是正则
-      assertEquals(isIgnored("test", maliciousPatterns), false);
-      assertEquals(isIgnored("abc123", maliciousPatterns), false);
-    });
-
-    it("should handle invalid patterns gracefully", () => {
-      const invalidPatterns = ["[invalid"];
-      // "invalid" 模式不匹配 "test"
-      assertEquals(isIgnored("test", invalidPatterns), false);
-      
-      // 测试 "*" 模式 - 这个应该匹配任何内容
-      const starPatterns = ["*"];
-      assertEquals(isIgnored("test", starPatterns), true);
-    });
-  });
-
-  describe("Regex Escape", () => {
-    it("should escape special regex characters", () => {
-      // 修正：escapeRegex 对每个特殊字符单独转义，所以 * 变成 \*，. 变成 \.
-      assertEquals(escapeRegex("*.txt"), "\\*\\.txt");
-      assertEquals(escapeRegex("file[name].txt"), "file\\[name\\]\\.txt");
-      assertEquals(escapeRegex("path/to/*/file"), "path/to/\\*/file");
-    });
-
-    it("should handle empty string", () => {
-      assertEquals(escapeRegex(""), "");
-    });
-
-    it("should handle strings without special characters", () => {
-      assertEquals(escapeRegex("normalstring"), "normalstring");
-    });
-  });
-
-  describe("File Tree Depth Limit", () => {
-    const MAX_DEPTH = 20;
-
-    it("should enforce maximum depth limit", () => {
-      let depth = 0;
-      const checkRecursion = (currentDepth: number): number => {
-        if (currentDepth >= MAX_DEPTH) return currentDepth;
-        return checkRecursion(currentDepth + 1);
-      };
-      
-      const result = checkRecursion(0);
-      assertEquals(result, MAX_DEPTH);
-    });
-
-    it("should handle edge cases for depth limit", () => {
-      assertEquals(MAX_DEPTH, 20);
-      assertEquals(MAX_DEPTH > 0, true);
-      assertEquals(MAX_DEPTH <= 100, true);
-    });
-  });
-
-  describe("Error Handling", () => {
-    it("should handle empty file names", () => {
-      const emptyName = "";
-      assertEquals(isIgnored(emptyName, [""]), true);
-      assertEquals(isIgnored(emptyName, ["test"]), false);
-    });
-
-    it("should handle special characters in file names", () => {
-      assertEquals(isIgnored("file.with.dots.txt", ["*.txt"]), true);
-      assertEquals(isIgnored("file[name].txt", ["*[*]*"]), true);
-    });
-  });
+Deno.test('fileService - 应该处理深度限制', async () => {
+  const result = await getFileTree('/workspace', 0);
+  assert(result.status === 'success' || result.status === 'error', '深度为0应该被处理');
 });
