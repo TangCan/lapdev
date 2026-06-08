@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  lapdev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: lapdev:latest
+    container_name: lapdev
+    ports:
+      - "8080:8080"
+      - "3000:3000"
+    volumes:
+      - ./workspace:/workspace
+      - ./backend:/app/backend
+      - ./frontend:/app/frontend
+    environment:
+      - NODE_ENV=production
+      - WORKSPACE_PATH=/workspace
+      - PORT=8080
+      - API_PORT=3000
+    networks:
+      - lapdev-network
+    restart: unless-stopped
+
+networks:
+  lapdev-network:
+    driver: bridge
+
+volumes:
+  workspace:
+    driver: local
