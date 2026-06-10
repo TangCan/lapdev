@@ -11,7 +11,7 @@ on:
       - main
 
 env:
-  REGISTRY: registry.cn-guangzhou.aliyuncs.com
+  REGISTRY: crpi-ygp4wzq7icdrlm64.cn-shenzhen.personal.cr.aliyuncs.com
   NAMESPACE: lapdev
   IMAGE_NAME: lapdev
 
@@ -35,6 +35,7 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.ALIYUN_ACR_USERNAME }}
           password: ${{ secrets.ALIYUN_ACR_PASSWORD }}
+          logout: true
 
       - name: Extract metadata (tags, labels)
         id: meta
