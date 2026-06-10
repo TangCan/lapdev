@@ -51,6 +51,7 @@ import {
 } from './handlers/aiHandler.ts';
 import { handleBMADInstall, handleBMADStatus, handleBMADUpgrade } from './handlers/bmadHandler.ts';
 import { handleSkillLoad, handleSkillMatch, handleSkillRegister, handleSkillList } from './handlers/skillHandler.ts';
+import { join, extname } from 'https://deno.land/std@0.224.0/path/mod.ts';
 
 const PORT = parseInt(Deno.env.get('PORT') || '3000');
 
@@ -455,10 +456,77 @@ async function handleRequest(req: Request): Promise<Response> {
       }
       break;
     default:
-      response = new Response('Not Found', { status: 404 });
+      // Serve static frontend files
+      response = await serveStaticFiles(url.pathname);
   }
 
   return addCorsHeaders(response, corsHeaders);
+}
+
+// Static file serving for frontend
+const FRONTEND_DIST = './frontend/dist';
+
+const MIME_TYPES: Record<string, string> = {
+  '.html': 'text/html',
+  '.js': 'application/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.map': 'application/json',
+};
+
+async function serveStaticFiles(pathname: string): Promise<Response> {
+  // Default to index.html for client-side routing
+  let filePath = pathname === '/' ? '/index.html' : pathname;
+  
+  // Remove leading slash and resolve path
+  const cleanPath = filePath.replace(/^\//, '');
+  const fullPath = join(FRONTEND_DIST, cleanPath);
+  
+  try {
+    const fileInfo = await Deno.stat(fullPath);
+    
+    if (fileInfo.isDirectory) {
+      // Try index.html in directory
+      const indexPath = join(fullPath, 'index.html');
+      try {
+        const content = await Deno.readFile(indexPath);
+        const ext = extname(indexPath);
+        const contentType = MIME_TYPES[ext] || 'text/html';
+        return new Response(content, {
+          headers: { 'Content-Type': contentType }
+        });
+      } catch {
+        // Directory without index.html - serve 404
+        return new Response('Not Found', { status: 404 });
+      }
+    }
+    
+    const content = await Deno.readFile(fullPath);
+    const ext = extname(fullPath);
+    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+    
+    return new Response(content, {
+      headers: { 'Content-Type': contentType }
+    });
+  } catch {
+    // File not found - try index.html for SPA routing
+    try {
+      const indexPath = join(FRONTEND_DIST, 'index.html');
+      const content = await Deno.readFile(indexPath);
+      return new Response(content, {
+        headers: { 'Content-Type': 'text/html' }
+      });
+    } catch {
+      return new Response('Not Found', { status: 404 });
+    }
+  }
 }
 
 // Start file watcher
