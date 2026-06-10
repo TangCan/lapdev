@@ -50,6 +50,7 @@ import {
   handleAiCompletion
 } from './handlers/aiHandler.ts';
 import { handleBMADInstall, handleBMADStatus, handleBMADUpgrade } from './handlers/bmadHandler.ts';
+import { handleSkillLoad, handleSkillMatch, handleSkillRegister, handleSkillList } from './handlers/skillHandler.ts';
 
 const PORT = parseInt(Deno.env.get('PORT') || '3000');
 
@@ -421,6 +422,34 @@ async function handleRequest(req: Request): Promise<Response> {
     case '/api/bmad/upgrade':
       if (req.method === 'POST') {
         response = await handleBMADUpgrade(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/skills/load':
+      if (req.method === 'GET') {
+        response = await handleSkillLoad(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/skills/list':
+      if (req.method === 'GET') {
+        response = await handleSkillList(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/skills/match':
+      if (req.method === 'POST') {
+        response = await handleSkillMatch(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/skills/register':
+      if (req.method === 'POST') {
+        response = await handleSkillRegister(req);
       } else {
         response = new Response('Method Not Allowed', { status: 405 });
       }

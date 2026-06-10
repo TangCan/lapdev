@@ -4,7 +4,7 @@
 # ========================================
 
 # Stage 1: Frontend Build
-FROM node:20-alpine AS frontend-builder
+FROM docker.io/library/node:20-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 
@@ -12,8 +12,9 @@ WORKDIR /app/frontend
 COPY frontend/package*.json ./
 
 # 安装前端依赖（使用国内镜像加速）
+# 注意：构建需要安装所有依赖（包括开发依赖）来进行 TypeScript 编译
 RUN npm config set registry https://registry.npmmirror.com && \
-    npm ci --only=production
+    npm ci
 
 # 复制前端源代码
 COPY frontend/ ./
@@ -22,18 +23,18 @@ COPY frontend/ ./
 RUN npm run build
 
 # Stage 2: Backend Build
-FROM denoland/deno:alpine-1.42.0 AS backend-builder
+FROM docker.io/denoland/deno:alpine-1.42.0 AS backend-builder
 
 WORKDIR /app/backend
 
 # 复制后端源代码
 COPY backend/ ./
 
-# 预缓存依赖
-RUN deno cache --allow-all src/main.ts
+# 预缓存依赖（使用 deno cache 来缓存依赖）
+RUN deno cache src/main.ts
 
 # Stage 3: Production Runtime
-FROM alpine:3.19 AS production
+FROM docker.io/library/alpine:3.19 AS production
 
 # 安装运行时依赖
 RUN apk add --no-cache \
@@ -44,27 +45,24 @@ RUN apk add --no-cache \
     npm \
     && rm -rf /var/cache/apk/*
 
-# 安装 Deno
-RUN curl -fsSL https://deno.land/install.sh | sh
-ENV PATH="/root/.deno/bin:${PATH}"
-
 # 创建非 root 用户
 RUN addgroup -g 1001 -S lapdev && \
     adduser -S lapdev -u 1001 -G lapdev
+
+# 安装 Deno（Alpine 兼容版本）
+RUN apk add --no-cache deno
 
 WORKDIR /app
 
 # 从构建阶段复制构建产物
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 COPY --from=backend-builder /app/backend ./backend
-COPY --from=backend-builder /app/deno ./deno
 
 # 复制 BMAD 核心文件（离线支持）
 COPY _bmad ./_bmad
 
 # 复制配置文件
 COPY package*.json ./
-COPY tsconfig.json ./
 
 # 设置工作区目录
 RUN mkdir -p /workspace && chown -R lapdev:lapdev /workspace
@@ -90,7 +88,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8080/health || exit 1
 
 # 启动命令
-CMD ["deno", "run", "--allow-all", "backend/src/main.ts"]
+CMD ["deno", "run", "--no-lock", "-A", "backend/src/main.ts"]
 
 # ========================================
 # Build Instructions:

@@ -1,4 +1,4 @@
-import { useBMAD } from '../context/BMADContext.tsx';
+import { useBMAD } from '../../context/BMADContext.tsx';
 
 export function BMADPanel() {
   const { status, installationLog, isInstalling, enableBMAD, refreshStatus } = useBMAD();

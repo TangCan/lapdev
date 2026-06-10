@@ -1,123 +1,22 @@
-import fs from 'fs';
-import path from 'path';
-import yaml from 'js-yaml';
 import type { Skill, SkillTrigger, SkillLoadResult } from '../types/skill';
 
-const PATH_TRAVERSAL_PATTERN = /\.\.[\/\\]/;
-const VALID_PATH_PATTERN = /^[a-zA-Z0-9_\-\.\/\\:~]+$/;
+const API_BASE_URL = '/api/v1/skills';
 
 export class SkillService {
   private skills: Skill[] = [];
-  private globalSkillsDir: string;
-  private projectSkillsDir: string;
 
-  constructor() {
-    this.globalSkillsDir = path.join(
-      process.env.HOME || process.env.USERPROFILE || '/',
-      '.lapdev',
-      'skills'
-    );
-    this.projectSkillsDir = path.join(process.cwd(), '.lapdev', 'skills');
-  }
-
-  validateSkillPath(filePath: string): void {
-    if (!filePath || filePath.trim() === '') {
-      throw new Error('文件路径不能为空');
-    }
-    if (PATH_TRAVERSAL_PATTERN.test(filePath)) {
-      throw new Error('路径遍历攻击检测：文件路径包含非法的路径遍历字符');
-    }
-    if (!VALID_PATH_PATTERN.test(filePath)) {
-      throw new Error('文件路径包含非法字符');
-    }
-  }
-
-  parseSkillContent(content: string, fileName: string): Skill {
-    const yamlSeparator = '---';
-    const firstSeparatorIndex = content.indexOf(yamlSeparator);
-    const secondSeparatorIndex = content.indexOf(yamlSeparator, firstSeparatorIndex + 3);
-
-    if (firstSeparatorIndex === -1 || secondSeparatorIndex === -1) {
-      throw new Error('无效的Skill文件格式：缺少YAML元数据');
-    }
-
-    const yamlContent = content.substring(firstSeparatorIndex + 3, secondSeparatorIndex).trim();
-    const skillContent = content.substring(secondSeparatorIndex + 3).trim();
-
-    const loadedMetadata = yaml.load(yamlContent);
-    const metadata = (loadedMetadata && typeof loadedMetadata === 'object' ? loadedMetadata : {}) as Record<string, unknown>;
-
-    return {
-      name: typeof metadata.name === 'string' ? metadata.name : path.basename(fileName, '.skill.md'),
-      version: typeof metadata.version === 'string' ? metadata.version : '1.0.0',
-      description: typeof metadata.description === 'string' ? metadata.description : '',
-      author: typeof metadata.author === 'string' ? metadata.author : '',
-      tags: Array.isArray(metadata.tags) ? metadata.tags as string[] : [],
-      trigger: typeof metadata.trigger === 'object' && metadata.trigger !== null 
-        ? metadata.trigger as SkillTrigger 
-        : {},
-      content: skillContent,
-      fileName,
-    };
-  }
-
-  loadSkills(): SkillLoadResult {
-    const allSkills: Skill[] = [];
-    let globalCount = 0;
-    let projectCount = 0;
-
-    if (fs.existsSync(this.globalSkillsDir)) {
-      const globalSkills = this.loadSkillsFromDir(this.globalSkillsDir);
-      allSkills.push(...globalSkills);
-      globalCount = globalSkills.length;
-    }
-
-    if (fs.existsSync(this.projectSkillsDir)) {
-      const projectSkills = this.loadSkillsFromDir(this.projectSkillsDir);
-      
-      for (const projectSkill of projectSkills) {
-        const existingIndex = allSkills.findIndex(s => s.name === projectSkill.name);
-        if (existingIndex !== -1) {
-          allSkills[existingIndex] = projectSkill;
-        } else {
-          allSkills.push(projectSkill);
-        }
-      }
-      projectCount = projectSkills.length;
-    }
-
-    this.skills = allSkills;
-    return { skills: allSkills, globalCount, projectCount };
-  }
-
-  private loadSkillsFromDir(dir: string): Skill[] {
-    const skills: Skill[] = [];
-    
+  async loadSkills(): Promise<SkillLoadResult> {
     try {
-      this.validateSkillPath(dir);
-      const files = fs.readdirSync(dir);
-      
-      for (const file of files) {
-        if (!file.endsWith('.skill.md')) continue;
-        
-        const filePath = path.join(dir, file);
-        this.validateSkillPath(filePath);
-        
-        if (fs.statSync(filePath).isFile()) {
-          const content = fs.readFileSync(filePath, 'utf-8');
-          try {
-            const skill = this.parseSkillContent(content, file);
-            skills.push(skill);
-          } catch (error) {
-            console.warn(`Failed to parse skill file ${file}:`, error);
-          }
-        }
+      const response = await fetch(`${API_BASE_URL}/load`);
+      if (!response.ok) {
+        throw new Error('Failed to load skills');
       }
-    } catch (error) {
-      console.warn(`Failed to load skills from ${dir}:`, error);
+      const result = await response.json() as SkillLoadResult;
+      this.skills = result.skills;
+      return result;
+    } catch {
+      return { skills: [], globalCount: 0, projectCount: 0 };
     }
-
-    return skills;
   }
 
   getSkills(): Skill[] {
@@ -128,78 +27,22 @@ export class SkillService {
     return this.skills.find(s => s.name === name);
   }
 
-  matchSkills(query: string, skills?: Skill[]): Skill[] {
-    const targetSkills = skills || this.skills;
-    const matched: Skill[] = [];
-
-    for (const skill of targetSkills) {
-      if (this.doesMatch(query, skill.trigger)) {
-        matched.push(skill);
+  async matchSkills(query: string): Promise<Skill[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/match`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to match skills');
       }
+      return await response.json() as Skill[];
+    } catch {
+      return [];
     }
-
-    return matched.sort((a, b) => {
-      const scoreA = this.calculateMatchScore(query, a.trigger);
-      const scoreB = this.calculateMatchScore(query, b.trigger);
-      return scoreB - scoreA;
-    });
-  }
-
-  private doesMatch(query: string, trigger: SkillTrigger): boolean {
-    if (!trigger) return false;
-
-    const lowerQuery = query.toLowerCase();
-
-    if (trigger.keywords) {
-      for (const keyword of trigger.keywords) {
-        if (lowerQuery.includes(keyword.toLowerCase())) {
-          return true;
-        }
-      }
-    }
-
-    if (trigger.patterns) {
-      for (const pattern of trigger.patterns) {
-        try {
-          const regex = new RegExp(pattern, 'i');
-          if (regex.test(query)) {
-            return true;
-          }
-        } catch {
-          continue;
-        }
-      }
-    }
-
-    return false;
-  }
-
-  private calculateMatchScore(query: string, trigger: SkillTrigger): number {
-    let score = 0;
-    const lowerQuery = query.toLowerCase();
-
-    if (trigger.keywords) {
-      for (const keyword of trigger.keywords) {
-        if (lowerQuery.includes(keyword.toLowerCase())) {
-          score += 1;
-        }
-      }
-    }
-
-    if (trigger.patterns) {
-      for (const pattern of trigger.patterns) {
-        try {
-          const regex = new RegExp(pattern, 'i');
-          if (regex.test(query)) {
-            score += 2;
-          }
-        } catch {
-          continue;
-        }
-      }
-    }
-
-    return score;
   }
 
   buildSystemPrompt(skills: Skill[]): string {
@@ -226,42 +69,21 @@ export class SkillService {
     return prompt;
   }
 
-  reload(): SkillLoadResult {
+  async reload(): Promise<SkillLoadResult> {
     return this.loadSkills();
   }
 
   async registerSkillsFromDirectory(skillsDir: string): Promise<void> {
-    if (!fs.existsSync(skillsDir)) {
-      return;
-    }
-
     try {
-      this.validateSkillPath(skillsDir);
-      const files = fs.readdirSync(skillsDir);
-      
-      for (const file of files) {
-        if (!file.endsWith('.skill.md')) continue;
-        
-        const filePath = path.join(skillsDir, file);
-        this.validateSkillPath(filePath);
-        
-        if (fs.statSync(filePath).isFile()) {
-          const content = fs.readFileSync(filePath, 'utf-8');
-          try {
-            const skill = this.parseSkillContent(content, file);
-            const existingIndex = this.skills.findIndex(s => s.name === skill.name);
-            if (existingIndex !== -1) {
-              this.skills[existingIndex] = skill;
-            } else {
-              this.skills.push(skill);
-            }
-          } catch (error) {
-            console.warn(`Failed to parse skill file ${file}:`, error);
-          }
-        }
-      }
-    } catch (error) {
-      console.warn(`Failed to register skills from ${skillsDir}:`, error);
+      await fetch(`${API_BASE_URL}/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ skillsDir }),
+      });
+    } catch {
+      // 忽略错误
     }
   }
 }

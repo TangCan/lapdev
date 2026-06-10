@@ -1,16 +1,13 @@
-import fs from 'fs';
-import path from 'path';
-import { spawnSync } from 'child_process';
-import { skillService } from '../services/skillService';
+import { skillService } from '../services/skillService.ts';
 
 const SKILL_NAME_PATTERN = /^[a-zA-Z0-9_-]+$/;
 
 const OFFICIAL_SKILLS_REGISTRY = 'https://github.com/lapdev/skills';
-const GLOBAL_SKILLS_DIR = path.join(
-  process.env.HOME || process.env.USERPROFILE || '/',
-  '.lapdev',
-  'skills'
-);
+
+function getGlobalSkillsDir(): string {
+  const home = Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '/';
+  return `${home}/.lapdev/skills`;
+}
 
 export class SkillCLI {
   install(skillName: string): void {
@@ -20,9 +17,10 @@ export class SkillCLI {
       throw new Error(`Invalid skill name: ${skillName}`);
     }
 
-    const skillDir = path.join(GLOBAL_SKILLS_DIR, `${skillName}.skill.md`);
+    const skillDir = getGlobalSkillsDir();
+    const skillPath = `${skillDir}/${skillName}.skill.md`;
 
-    if (fs.existsSync(skillDir)) {
+    if (Deno.existsSync(skillPath)) {
       console.log(`✅ Skill "${skillName}" 已安装`);
       return;
     }
@@ -30,22 +28,25 @@ export class SkillCLI {
     try {
       console.log(`📥 正在安装 Skill: ${skillName}`);
       
-      if (!fs.existsSync(GLOBAL_SKILLS_DIR)) {
-        fs.mkdirSync(GLOBAL_SKILLS_DIR, { recursive: true });
+      if (!Deno.existsSync(skillDir)) {
+        Deno.mkdirSync(skillDir, { recursive: true });
       }
 
       const downloadUrl = `${OFFICIAL_SKILLS_REGISTRY}/raw/main/skills/${skillName}.skill.md`;
       
-      const result = spawnSync('curl', ['-sL', downloadUrl, '-o', skillDir]);
+      const result = Deno.run({
+        cmd: ['curl', '-sL', downloadUrl, '-o', skillPath],
+        stderr: 'piped',
+        stdout: 'piped'
+      });
+
+      const status = result.status();
+      const stderr = new TextDecoder().decode(await result.stderrOutput());
       
-      if (result.error) {
-        console.error(`❌ 下载失败: ${result.error.message}`);
-        throw new Error(`Failed to download skill: ${skillName}`);
-      }
+      result.close();
       
-      if (result.status !== 0) {
-        const stderr = result.stderr?.toString() || 'Unknown error';
-        console.error(`❌ 下载失败，退出码: ${result.status}`);
+      if (!status.success) {
+        console.error(`❌ 下载失败，退出码: ${status.code}`);
         console.error(`   错误信息: ${stderr}`);
         throw new Error(`Failed to download skill: ${skillName}`);
       }
@@ -119,7 +120,7 @@ export class SkillCLI {
   lapdev skill list
 
 说明:
-  - 全局Skill安装路径: ${GLOBAL_SKILLS_DIR}
+  - 全局Skill安装路径: ${getGlobalSkillsDir()}
   - 项目级Skill路径: .lapdev/skills/
   - 项目级Skill优先级高于全局Skill
     `);

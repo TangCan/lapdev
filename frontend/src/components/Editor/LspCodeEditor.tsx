@@ -140,7 +140,6 @@ export const LspCodeEditor = forwardRef<LspCodeEditorHandle, LspCodeEditorProps>
       options: {
         isWholeLine: false,
         inlineClassName: 'inline-completion-ghost',
-        letterSpacing: '0px',
       },
     }]);
   }, []);
@@ -307,7 +306,6 @@ export const LspCodeEditor = forwardRef<LspCodeEditorHandle, LspCodeEditorProps>
       overviewRulerLanes: 2,
       glyphMargin: true,
       suggest: {
-        enabled: true,
         showWords: true,
         showFunctions: true,
         showMethods: true,
@@ -475,7 +473,7 @@ export const LspCodeEditor = forwardRef<LspCodeEditorHandle, LspCodeEditorProps>
   }, []);
 
   const getPosition = useCallback((): Monaco.Position | undefined => {
-    return editorRef.current?.getPosition();
+    return editorRef.current?.getPosition() ?? undefined;
   }, []);
 
   const setPosition = useCallback((line: number, column: number) => {

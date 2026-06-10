@@ -31,7 +31,6 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
       language,
       theme: 'vs-dark',
       readOnly,
-      minimap: { enabled: true },
       fontSize: 14,
       fontFamily: 'JetBrains Mono, Fira Code, Consolas, monospace',
       tabSize: 2,

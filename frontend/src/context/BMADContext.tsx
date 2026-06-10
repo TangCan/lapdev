@@ -1,5 +1,5 @@
 import { createContext, useContext, ReactNode, useEffect, useState, useCallback } from 'react';
-import type { BMADStatus } from '../services/bmadService.ts';
+import type { BMADStatus } from '../types/bmad.ts';
 
 export interface BMADContextValue {
   status: BMADStatus;

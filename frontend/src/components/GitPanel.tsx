@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { GitBranch, GitCommit, GitPullRequest, GitMerge, FileModified, FileAdded, FileDeleted } from 'lucide-react';
+import { GitBranch, GitCommit, GitPullRequest, GitMerge, File, Plus, Trash2 } from 'lucide-react';
 
 interface GitStatus {
   branch: string;
@@ -99,7 +99,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repositoryPath }) => {
         {status?.staged.length > 0 && (
           <div className="mb-4">
             <div className="text-xs text-gray-400 mb-1 flex items-center gap-1">
-              <FileAdded size={12} />
+              <Plus size={12} />
               <span>Staged</span>
             </div>
             {status.staged.map(file => (
@@ -118,7 +118,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repositoryPath }) => {
         {status?.modified.length > 0 && (
           <div className="mb-4">
             <div className="text-xs text-gray-400 mb-1 flex items-center gap-1">
-              <FileModified size={12} />
+              <File size={12} />
               <span>Modified</span>
             </div>
             {status.modified.map(file => (
@@ -143,7 +143,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repositoryPath }) => {
         {status?.untracked.length > 0 && (
           <div>
             <div className="text-xs text-gray-400 mb-1 flex items-center gap-1">
-              <FileDeleted size={12} />
+              <Trash2 size={12} />
               <span>Untracked</span>
             </div>
             {status.untracked.map(file => (

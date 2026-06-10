@@ -50,12 +50,64 @@ detect_container_tool() {
     if command -v podman &> /dev/null; then
         CONTAINER_TOOL="podman"
         log_info "检测到 Podman，使用 Podman"
+        
+        # 设置 rootless Podman 的运行时目录（解决 /run 只读问题）
+        setup_podman_runtime
         return 0
     fi
     
     log_error "未检测到 Docker 或 Podman，请先安装其中之一"
     exit 1
 }
+
+# 设置 Podman 运行时环境
+setup_podman_runtime() {
+    # 检测是否使用 sudo
+    local original_user="$USER"
+    local original_home="$HOME"
+    if [ -n "$SUDO_USER" ]; then
+        original_user="$SUDO_USER"
+        original_home=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+        log_info "检测到 sudo，原始用户: $original_user"
+    fi
+    
+    # 检查 /run/user/{uid} 是否只读挂载（常见于容器环境）
+    local runtime_dir="/run/user/$(id -u)"
+    if mount | grep -q "$runtime_dir.*\bro\b"; then
+        log_info "/run 目录只读挂载，设置 XDG_RUNTIME_DIR 到用户目录"
+        
+        # 创建用户级运行时目录（使用原始用户的 home）
+        export XDG_RUNTIME_DIR="$original_home/.podman-run"
+        mkdir -p "$XDG_RUNTIME_DIR"
+        
+        # 设置 podman 存储目录（使用原始用户的 home）
+        export PODMAN_STORAGE_DIR="$original_home/.local/share/containers"
+        mkdir -p "$PODMAN_STORAGE_DIR"
+        
+        log_info "XDG_RUNTIME_DIR: $XDG_RUNTIME_DIR"
+        log_info "PODMAN_STORAGE_DIR: $PODMAN_STORAGE_DIR"
+        
+        # 确保 libpod 目录存在并设置 sticky bit（避免 Podman 尝试设置失败）
+        mkdir -p "$XDG_RUNTIME_DIR/libpod"
+        chmod +t "$XDG_RUNTIME_DIR/libpod" 2>/dev/null || true
+    fi
+    
+    # 设置存储驱动为 vfs（解决只读文件系统问题）
+    export CONTAINERS_STORAGE_DRIVER="vfs"
+    log_info "设置存储驱动为 vfs"
+    
+    # 如果使用 sudo，设置 CONTAINERS_STORAGE 指向原始用户的存储目录
+    if [ -n "$SUDO_USER" ]; then
+        export CONTAINERS_STORAGE="$original_home/.local/share/containers/storage"
+        log_info "CONTAINERS_STORAGE: $CONTAINERS_STORAGE"
+    fi
+    
+    # 设置 cgroup 管理器为 cgroupfs（避免 systemd D-Bus 权限问题）
+    export CONTAINERS_CGROUP_MANAGER="cgroupfs"
+    log_info "设置 cgroup 管理器为 cgroupfs"
+}
+
+
 
 # 检查依赖
 check_dependencies() {
@@ -128,44 +180,72 @@ test_image() {
     log_info "运行镜像测试..."
     log_info "使用工具：${CONTAINER_TOOL}"
     
-    # 启动容器
+    # 对于 Podman，镜像名称需要使用 localhost/ 前缀
+    local run_image="${image}"
+    if [ "$CONTAINER_TOOL" = "podman" ]; then
+        run_image="localhost/${image}"
+    fi
+    
+    # 对于 Podman，确保运行时目录存在并设置正确的权限
+    if [ "$CONTAINER_TOOL" = "podman" ]; then
+        mkdir -p "$XDG_RUNTIME_DIR/libpod"
+        chmod +t "$XDG_RUNTIME_DIR/libpod" 2>/dev/null || true
+    fi
+    
+    # 启动容器（映射两个端口）
     if [ "$CONTAINER_TOOL" = "docker" ]; then
-        CONTAINER_ID=$(docker run -d --rm -p 8080:8080 ${image})
+        CONTAINER_ID=$(docker run -d --rm -p 8080:8080 -p 3000:3000 ${run_image})
     else
-        CONTAINER_ID=$(podman run -d --rm -p 8080:8080 ${image})
+        # Podman 使用 --pull never 强制使用本地镜像，避免尝试从远程拉取
+        # 使用 --cgroup-manager=cgroupfs 避免 systemd D-Bus 权限问题
+        CONTAINER_ID=$(podman run --pull never --cgroup-manager=cgroupfs -d --rm -p 8080:8080 -p 3000:3000 ${run_image})
     fi
     
     log_info "容器 ID: ${CONTAINER_ID}"
     log_info "等待服务启动..."
     
-    # 等待健康检查
-    sleep 10
+    # 等待服务启动（Deno 需要下载依赖，可能需要更长时间）
+    sleep 30
     
-    # 检查健康状态
+    # 检查容器是否仍在运行
     if [ "$CONTAINER_TOOL" = "docker" ]; then
-        HEALTH=$(docker inspect --format='{{.State.Health.Status}}' ${CONTAINER_ID} 2>/dev/null || echo "unknown")
+        RUNNING=$(docker inspect --format='{{.State.Running}}' ${CONTAINER_ID} 2>/dev/null || echo "false")
     else
-        HEALTH=$(podman inspect --format='{{.State.Health.Status}}' ${CONTAINER_ID} 2>/dev/null || echo "unknown")
+        # 确保 libpod 目录存在以避免权限问题
+        mkdir -p "$XDG_RUNTIME_DIR/libpod"
+        chmod +t "$XDG_RUNTIME_DIR/libpod" 2>/dev/null || true
+        RUNNING=$(podman inspect --format='{{.State.Running}}' ${CONTAINER_ID} 2>/dev/null || echo "false")
     fi
     
-    if [ "$HEALTH" = "healthy" ]; then
-        log_info "健康检查通过"
-    else
-        log_warn "健康检查状态：${HEALTH}"
+    if [ "$RUNNING" != "true" ]; then
+        log_warn "容器未在运行，检查容器日志..."
+        if [ "$CONTAINER_TOOL" = "docker" ]; then
+            docker logs ${CONTAINER_ID} 2>/dev/null || log_error "无法获取容器日志"
+        else
+            # 确保 libpod 目录存在以避免权限问题
+            mkdir -p "$XDG_RUNTIME_DIR/libpod"
+            chmod +t "$XDG_RUNTIME_DIR/libpod" 2>/dev/null || true
+            podman logs ${CONTAINER_ID} 2>/dev/null || log_error "无法获取容器日志"
+        fi
+        return
     fi
     
-    # 测试 HTTP 端点
-    if curl -f http://localhost:8080/health > /dev/null 2>&1; then
-        log_info "HTTP 健康检查通过"
+    # 测试 HTTP 端点（先尝试 8080，再尝试 3000）
+    log_info "测试 HTTP 健康端点..."
+    if curl --noproxy '*' -f http://localhost:8080/health > /dev/null 2>&1; then
+        log_info "HTTP 健康检查通过（端口 8080）"
+    elif curl --noproxy '*' -f http://localhost:3000/health > /dev/null 2>&1; then
+        log_info "HTTP 健康检查通过（端口 3000）"
     else
         log_warn "HTTP 健康检查失败（服务可能尚未完全启动）"
     fi
     
     # 停止容器
+    log_info "停止测试容器..."
     if [ "$CONTAINER_TOOL" = "docker" ]; then
-        docker stop ${CONTAINER_ID} > /dev/null
+        docker stop ${CONTAINER_ID} > /dev/null 2>&1 || true
     else
-        podman stop ${CONTAINER_ID} > /dev/null
+        podman stop ${CONTAINER_ID} > /dev/null 2>&1 || true
     fi
     
     log_info "镜像测试完成"

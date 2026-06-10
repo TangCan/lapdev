@@ -21,17 +21,7 @@ vi.mock('monaco-editor', () => ({
 }));
 
 // Mock WebSocket
-interface MockWebSocket {
-  new (url: string | URL, protocols?: string | string[] | undefined): WebSocket;
-  prototype: WebSocket;
-  readonly CONNECTING: 0;
-  readonly OPEN: 1;
-  readonly CLOSING: 2;
-  readonly CLOSED: 3;
-  (url: string | URL, protocols?: string | string[]): WebSocket;
-}
-
-const mockWebSocket = vi.fn((url: string | URL, protocols?: string | string[]) => ({
+const createMockWebSocket = (url: string | URL, _protocols?: string | string[]) => ({
   onopen: null,
   onmessage: null,
   onerror: null,
@@ -40,16 +30,20 @@ const mockWebSocket = vi.fn((url: string | URL, protocols?: string | string[]) =
   close: vi.fn(),
   readyState: 0,
   url: typeof url === 'string' ? url : url.toString(),
-})) as unknown as MockWebSocket;
+});
 
-mockWebSocket.CONNECTING = 0;
-mockWebSocket.OPEN = 1;
-mockWebSocket.CLOSING = 2;
-mockWebSocket.CLOSED = 3;
+const mockWebSocket = vi.fn(createMockWebSocket);
 
-global.WebSocket = mockWebSocket;
+// 使用 Object.defineProperty 来设置只读属性
+Object.defineProperty(mockWebSocket, 'CONNECTING', { value: 0, writable: false });
+Object.defineProperty(mockWebSocket, 'OPEN', { value: 1, writable: false });
+Object.defineProperty(mockWebSocket, 'CLOSING', { value: 2, writable: false });
+Object.defineProperty(mockWebSocket, 'CLOSED', { value: 3, writable: false });
+
+// 使用 globalThis 替代 global（ES模块环境）
+(globalThis as any).WebSocket = mockWebSocket as unknown as typeof WebSocket;
 
 // Mock fetch
-global.fetch = vi.fn().mockResolvedValue({
+(globalThis as any).fetch = vi.fn().mockResolvedValue({
   json: vi.fn().mockResolvedValue({ status: 'success', data: {} }),
 });

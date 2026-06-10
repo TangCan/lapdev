@@ -1,0 +1,1 @@
+export type BMADStatus = 'not-installed' | 'installing' | 'installing-offline' | 'installed' | 'installed-offline' | 'error';

@@ -30,7 +30,6 @@ export const Terminal: React.FC<TerminalProps> = ({ sessionId }) => {
         background: '#1e1e1e',
         foreground: '#d4d4d4',
         cursor: '#aeafad',
-        selection: '#264f78',
         black: '#000000',
         red: '#f14c4c',
         green: '#6a9955',
