@@ -14,7 +14,8 @@ COPY frontend/package*.json ./
 # 安装前端依赖（使用国内镜像加速）
 # 注意：构建需要安装所有依赖（包括开发依赖）来进行 TypeScript 编译
 RUN npm config set registry https://registry.npmmirror.com && \
-    npm ci
+    npm config set fetch-retry-maxtimeout 60000 && \
+    npm install --prefer-offline --no-audit
 
 # 复制前端源代码
 COPY frontend/ ./
