@@ -79,7 +79,7 @@ development_status:
   epic-6: done
   6-1-podman-support: done
   6-2-domestic-hosting: done
-  epic-6-retrospective: optional
+  epic-6-retrospective: done
 
 summary:
   total_epics: 6
