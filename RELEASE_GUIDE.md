@@ -33,7 +33,34 @@
 
 ## 构建 Docker 镜像
 
-### 方案 A: 使用 Docker
+### 方案 A: GitHub Actions（推荐 - 自动构建）
+
+推送代码到 `main` 分支即可自动触发构建和推送：
+
+```bash
+# 1. 推送代码（自动触发构建）
+git push origin main
+
+# 2. 创建版本标签（自动触发版本构建）
+git tag v1.0.0
+git push origin v1.0.0
+
+# 3. 查看构建状态
+gh run list --repo TangCan/lapdev
+```
+
+**自动完成的工作**：
+- 构建 Docker 镜像
+- 推送到阿里云 ACR
+- 测试镜像健康状态
+
+**镜像地址**：
+```
+crpi-ygp4wzq7icdrlm64.cn-shenzhen.personal.cr.aliyuncs.com/lapdev/lapdev:main
+crpi-ygp4wzq7icdrlm64.cn-shenzhen.personal.cr.aliyuncs.com/lapdev/lapdev:v1.0.0
+```
+
+### 方案 B: 使用 Docker
 
 ```bash
 # 1. 安装 Docker (如未安装)
@@ -56,7 +83,7 @@ curl http://localhost:8080/health
 docker stop lapdev-test
 ```
 
-### 方案 B: 使用 Podman
+### 方案 C: 使用 Podman
 
 ```bash
 # 1. 安装 Podman (如未安装)
@@ -77,7 +104,7 @@ curl http://localhost:8080/health
 podman stop lapdev-test
 ```
 
-### 方案 C: 使用构建脚本
+### 方案 D: 使用构建脚本
 
 ```bash
 # 1. 运行构建脚本
@@ -92,26 +119,29 @@ docker images lapdev
 
 ## 推送到镜像仓库
 
-### Gitee 镜像仓库
+### 阿里云 ACR（当前配置）
 
 ```bash
-# 1. 登录 Gitee 镜像仓库
-export DOCKER_REGISTRY_USER=your-gitee-username
-export DOCKER_REGISTRY_PASSWORD=your-gitee-password
+# 1. 登录阿里云 ACR
+export REGISTRY=crpi-ygp4wzq7icdrlm64.cn-shenzhen.personal.cr.aliyuncs.com
+export DOCKER_REGISTRY_USER=your-username
+export DOCKER_REGISTRY_PASSWORD=your-password
+
+docker login $REGISTRY
 
 # 2. 标记镜像
-docker tag lapdev:latest registry.gitee.com/your-namespace/lapdev:latest
-docker tag lapdev:v1.0.0 registry.gitee.com/your-namespace/lapdev:v1.0.0
+docker tag lapdev:latest $REGISTRY/lapdev/lapdev:latest
+docker tag lapdev:v1.0.0 $REGISTRY/lapdev/lapdev:v1.0.0
 
 # 3. 推送镜像
-docker push registry.gitee.com/your-namespace/lapdev:latest
-docker push registry.gitee.com/your-namespace/lapdev:v1.0.0
+docker push $REGISTRY/lapdev/lapdev:latest
+docker push $REGISTRY/lapdev/lapdev:v1.0.0
 
 # 或使用脚本
 ./scripts/release.sh push
 ```
 
-### Docker Hub
+### GitHub Container Registry (GHCR)
 
 ```bash
 # 1. 登录 Docker Hub
@@ -147,12 +177,14 @@ docker push ghcr.io/your-github-username/lapdev:v1.0.0
 # 1. 创建版本标签
 git tag -a v1.0.0 -m "Lapdev v1.0.0 - Initial Release"
 
-# 2. 推送标签到 Gitee
+# 2. 推送标签到 GitHub
 git push origin v1.0.0
 
 # 3. 推送所有标签
 git push origin --tags
 ```
+
+> **提示**: 推送标签会自动触发 GitHub Actions 构建镜像并推送到阿里云 ACR。
 
 ## 发布到 Gitee Release
 
@@ -238,15 +270,27 @@ docker run -d -p 8080:8080 -p 3000:3000 \
 
 ## 发布后检查
 
-- [ ] Docker 镜像已推送到所有目标仓库
-- [ ] Git 标签已创建并推送
-- [ ] Gitee Release 已发布
+- [x] Docker 镜像已推送到所有目标仓库（阿里云 ACR）
+- [x] Git 标签已创建并推送
+- [x] GitHub Actions 自动构建已配置
+- [ ] GitHub Release 已发布（可选）
 - [ ] 文档已更新
 - [ ] 团队已通知
 - [ ] 监控已配置
 
+### 验证镜像推送
+
+```bash
+# 查看 GitHub Actions 构建状态
+gh run list --repo TangCan/lapdev --limit 5
+
+# 拉取镜像测试
+docker pull crpi-ygp4wzq7icdrlm64.cn-shenzhen.personal.cr.aliyuncs.com/lapdev/lapdev:main
+```
+
 ## 联系支持
 
 如有问题，请联系：
-- Email: support@lapdev.dev
-- Issues: https://gitee.com/your-namespace/lapdev/issues
+- Email: tangcan@example.com
+- Issues: https://github.com/TangCan/lapdev/issues
+- 项目主页: https://github.com/TangCan/lapdev

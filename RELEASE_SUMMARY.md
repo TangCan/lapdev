@@ -32,11 +32,17 @@
 
 ### 2. 发布工具
 
-- **scripts/release.sh**
+- **scripts/release.sh** (本地构建脚本)
   - 构建命令：`./scripts/release.sh build`
   - 测试命令：`./scripts/release.sh test`
   - 推送命令：`./scripts/release.sh push`
   - 完整发布：`./scripts/release.sh release`
+
+- **GitHub Actions** (自动构建 - 主要方式)
+  - 推送代码到 `main` 分支 → 自动构建并推送 `main` 标签
+  - 创建 `v*` 标签 → 自动构建并推送版本标签
+  - 自动测试镜像健康状态
+  - 镜像地址：`crpi-ygp4wzq7icdrlm64.cn-shenzhen.personal.cr.aliyuncs.com/lapdev/lapdev`
 
 - **RELEASE_GUIDE.md**
   - Docker/Podman 安装指南
@@ -110,12 +116,26 @@
 
 ## 🚀 下一步操作
 
-### 立即执行
+### ✅ 自动化发布（推荐）
+
+推送代码到 `main` 分支即可自动触发：
+1. **推送到远程仓库** → 自动
+2. **构建 Docker 镜像** → 自动（GitHub Actions）
+3. **推送到镜像仓库** → 自动（阿里云 ACR）
+4. **测试镜像** → 自动（健康检查）
+
+**创建版本发布**：
+```bash
+# 创建并推送版本标签
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+### 手动发布（备选）
 
 ```bash
 # 1. 推送到远程仓库
 git push origin main
-git push origin v1.0.0
 
 # 2. 构建 Docker 镜像（需要安装 Docker/Podman）
 ./scripts/release.sh build
@@ -124,27 +144,11 @@ git push origin v1.0.0
 ./scripts/release.sh test
 
 # 4. 推送到镜像仓库
+export REGISTRY=crpi-ygp4wzq7icdrlm64.cn-shenzhen.personal.cr.aliyuncs.com
 export DOCKER_REGISTRY_USER=your-username
 export DOCKER_REGISTRY_PASSWORD=your-password
 ./scripts/release.sh push
 ```
-
-### 后续工作
-
-1. **创建 Gitee Release**
-   - 访问项目发布页面
-   - 创建 v1.0.0 发布
-   - 附上发布说明
-
-2. **配置 CI/CD**
-   - 自动化构建流程
-   - 自动化测试流程
-   - 自动化推送流程
-
-3. **监控与日志**
-   - 配置应用监控
-   - 配置日志收集
-   - 配置告警通知
 
 ---
 
@@ -166,10 +170,19 @@ export DOCKER_REGISTRY_PASSWORD=your-password
 - [x] Docker 配置完成
 - [x] 发布脚本就绪
 - [x] Git 标签创建
-- [ ] 推送到远程仓库 ⬅️ **待执行**
-- [ ] 构建 Docker 镜像 ⬅️ **待执行**
-- [ ] 推送到镜像仓库 ⬅️ **待执行**
-- [ ] 创建 Gitee Release ⬅️ **待执行**
+- [x] 推送到远程仓库
+- [x] 构建 Docker 镜像（GitHub Actions）
+- [x] 推送到镜像仓库（阿里云 ACR）
+- [ ] 创建 GitHub Release（可选）
+
+### CI/CD 状态
+
+| 步骤 | 状态 | 自动化 |
+|------|------|--------|
+| 代码推送到 GitHub | ✅ | ✅ |
+| GitHub Actions 构建 | ✅ | ✅ |
+| 推送到阿里云 ACR | ✅ | ✅ |
+| 镜像健康检查 | ✅ | ✅ |
 
 ---
 
@@ -201,8 +214,9 @@ podman run -d -p 8080:8080 -p 3000:3000 \
 
 ## 📞 联系方式
 
-- **项目主页**: https://gitee.com/your-namespace/lapdev
-- **问题反馈**: https://gitee.com/your-namespace/lapdev/issues
+- **项目主页**: https://github.com/TangCan/lapdev
+- **问题反馈**: https://github.com/TangCan/lapdev/issues
+- **Docker 镜像**: `crpi-ygp4wzq7icdrlm64.cn-shenzhen.personal.cr.aliyuncs.com/lapdev/lapdev`
 - **许可证**: MIT
 
 ---
