@@ -14,6 +14,7 @@ env:
   REGISTRY: crpi-ygp4wzq7icdrlm64.cn-shenzhen.personal.cr.aliyuncs.com
   NAMESPACE: lapdev
   IMAGE_NAME: lapdev
+  DENO_VERSION: 1.42.0
 
 jobs:
   build:
@@ -22,6 +23,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Download Deno binary
+        run: |
+          curl -fsSL https://github.com/denoland/deno/releases/download/v${{ env.DENO_VERSION }}/deno-x86_64-unknown-linux-gnu.zip -o deno.zip
+          unzip deno.zip
+          chmod +x deno
+          rm deno.zip
+          ./deno --version
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

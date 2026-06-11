@@ -62,12 +62,12 @@ WORKDIR /app
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 COPY backend/ ./backend
 
-# 复制本地 Deno 2.8.2
+# 复制 Deno（由 build.sh 或 CI 提前准备）
 COPY deno /usr/local/bin/deno
-RUN chmod +x /usr/local/bin/deno
+RUN chmod +x /usr/local/bin/deno && deno --version
 
-# 复制 Deno 缓存
-COPY .deno /root/.cache/deno
+# 复制 Deno 缓存（如果存在）
+COPY .deno /root/.cache/deno 2>/dev/null || true
 
 # 复制其他文件
 COPY _bmad ./_bmad
@@ -97,19 +97,14 @@ CMD ["deno", "run", "--no-lock", "-A", "backend/src/main.ts"]
 # Build Instructions:
 # 
 # 默认使用国内源（适合本地构建）:
-#   docker build -t lapdev:latest .
+#   ./scripts/release.sh build
 #   
 # 使用国外源（适合 GitHub Actions）:
 #   docker build --build-arg USE_CN_MIRROR=false --build-arg NPM_REGISTRY=https://registry.npmjs.org -t lapdev:latest .
 #
-# 使用代理加速（如需）:
-#   docker build --build-arg NPM_PROXY=http://proxy.example.com:8080 --build-arg NPM_HTTPS_PROXY=http://proxy.example.com:8080 -t lapdev:latest .
-#
 # 所有可选构建参数:
 #   - USE_CN_MIRROR: 是否使用国内镜像源 (default: true)
 #   - NPM_REGISTRY: npm 镜像源 (default: https://registry.npmmirror.com)
-#   - NPM_PROXY: HTTP 代理地址 (optional)
-#   - NPM_HTTPS_PROXY: HTTPS 代理地址 (optional)
 #   - DEBIAN_MIRROR: Debian 镜像源 (default: mirrors.aliyun.com)
 #   - RUSTUP_URL: Rust 安装脚本地址 (default: https://rsproxy.cn/rustup-init.sh)
 # ========================================

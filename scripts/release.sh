@@ -130,6 +130,7 @@ prepare_deno() {
         cp "$system_deno" ./deno
         chmod +x ./deno
         log_info "Deno 已复制到项目根目录"
+        export DENO_COPIED=1
     else
         log_info "Deno 已存在于项目根目录"
     fi
@@ -140,6 +141,20 @@ prepare_deno() {
         rm -f ./deno
         exit 1
     fi
+}
+
+# 清理临时文件（如 deno 二进制）
+cleanup() {
+    log_info "清理临时文件..."
+    
+    # 如果是本脚本复制的 deno，删除它
+    if [ -n "$DENO_COPIED" ] && [ -f "./deno" ]; then
+        log_info "删除本脚本复制的 Deno 二进制..."
+        rm -f ./deno
+        log_info "Deno 已删除"
+    fi
+    
+    log_info "清理完成"
 }
 
 # 检查依赖
@@ -434,6 +449,7 @@ main() {
         build)
             check_dependencies
             build_image ${version}
+            cleanup
             ;;
         test)
             detect_container_tool
@@ -452,6 +468,7 @@ main() {
             build_image ${version}
             test_image ${IMAGE_NAME}:${version}
             create_release_notes ${version}
+            cleanup
             log_info "发布准备完成"
             log_info "下一步：运行 './release.sh push' 推送镜像"
             ;;
@@ -462,8 +479,11 @@ main() {
         version)
             echo ${version}
             ;;
+        cleanup)
+            cleanup
+            ;;
         help)
-            echo "用法: $0 {build|test|push|release|images|version|help}"
+            echo "用法: $0 {build|test|push|release|images|version|cleanup|help}"
             echo
             echo "命令说明:"
             echo "  build    - 构建镜像（自动检测 Docker/Podman）"
@@ -472,6 +492,7 @@ main() {
             echo "  release  - 完整发布流程（构建+测试+创建发布说明）"
             echo "  images   - 列出本地镜像"
             echo "  version  - 显示版本号"
+            echo "  cleanup  - 清理临时文件（如 deno 二进制）"
             echo "  help     - 显示帮助信息"
             echo
             echo "环境变量:"
