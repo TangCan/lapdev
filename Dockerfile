@@ -66,8 +66,8 @@ COPY backend/ ./backend
 COPY deno /usr/local/bin/deno
 RUN chmod +x /usr/local/bin/deno && deno --version
 
-# 复制 Deno 缓存（如果存在）
-COPY .deno /root/.cache/deno 2>/dev/null || true
+# 创建 Deno 缓存目录（用于运行时下载依赖）
+RUN mkdir -p /root/.cache/deno
 
 # 复制其他文件
 COPY _bmad ./_bmad
