@@ -14,7 +14,7 @@ env:
   REGISTRY: crpi-ygp4wzq7icdrlm64.cn-shenzhen.personal.cr.aliyuncs.com
   NAMESPACE: lapdev
   IMAGE_NAME: lapdev
-  DENO_VERSION: 1.42.0
+  DENO_VERSION: 2.8.2
 
 jobs:
   build:
