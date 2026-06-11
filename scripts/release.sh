@@ -109,6 +109,39 @@ setup_podman_runtime() {
 
 
 
+# 检查并准备 Deno 二进制
+prepare_deno() {
+    log_info "检查 Deno 二进制..."
+    
+    # 检查系统中是否安装了 deno
+    local system_deno=$(which deno 2>/dev/null)
+    
+    if [ -z "$system_deno" ]; then
+        log_error "系统中未安装 Deno，请先安装 Deno"
+        log_error "安装方法: curl -fsSL https://deno.land/install.sh | sh"
+        exit 1
+    fi
+    
+    log_info "找到系统 Deno: $system_deno"
+    
+    # 检查项目根目录是否已有 deno
+    if [ ! -f "./deno" ]; then
+        log_info "复制 Deno 到项目根目录..."
+        cp "$system_deno" ./deno
+        chmod +x ./deno
+        log_info "Deno 已复制到项目根目录"
+    else
+        log_info "Deno 已存在于项目根目录"
+    fi
+    
+    # 验证复制的 deno 可执行
+    if ! ./deno --version &> /dev/null; then
+        log_error "Deno 复制失败或不可执行"
+        rm -f ./deno
+        exit 1
+    fi
+}
+
 # 检查依赖
 check_dependencies() {
     log_info "检查依赖..."
@@ -120,6 +153,9 @@ check_dependencies() {
         log_error "Git 未安装"
         exit 1
     fi
+    
+    # 准备 Deno 二进制
+    prepare_deno
     
     log_info "依赖检查通过"
 }

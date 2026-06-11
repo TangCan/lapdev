@@ -1,6 +1,6 @@
 # ========================================
 # Lapdev Production Docker Image
-# Multi-stage build for optimized size
+# 支持条件化使用国内镜像源加速
 # ========================================
 
 # Stage 1: Frontend Build
@@ -8,96 +8,108 @@ FROM docker.io/library/node:20-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 
-# 复制前端依赖文件
+# 使用条件化的 npm 镜像源和代理配置
+ARG NPM_REGISTRY=https://registry.npmmirror.com
+ARG NPM_PROXY=
+ARG NPM_HTTPS_PROXY=
 COPY frontend/package*.json ./
-
-# 安装前端依赖（使用国内镜像加速）
-# 注意：构建需要安装所有依赖（包括开发依赖）来进行 TypeScript 编译
-RUN npm config set registry https://registry.npmmirror.com && \
-    npm config set fetch-retry-maxtimeout 60000 && \
+RUN npm config set registry ${NPM_REGISTRY} && \
+    ([ -z "$NPM_PROXY" ] || npm config set proxy ${NPM_PROXY}) && \
+    ([ -z "$NPM_HTTPS_PROXY" ] || npm config set https-proxy ${NPM_HTTPS_PROXY}) && \
     npm install --prefer-offline --no-audit
 
-# 复制前端源代码
 COPY frontend/ ./
-
-# 构建前端
 RUN npm run build
 
-# Stage 2: Backend Build
-FROM docker.io/denoland/deno:alpine-1.42.0 AS backend-builder
+# Stage 2: Rust Base（缓存层）
+FROM docker.io/library/node:20-slim AS rust-base
 
-WORKDIR /app/backend
+# 使用条件化的 Debian 源和 Rust 镜像
+ARG USE_CN_MIRROR=true
+ARG DEBIAN_MIRROR=mirrors.aliyun.com
+ARG RUSTUP_URL=https://rsproxy.cn/rustup-init.sh
 
-# 复制后端源代码
-COPY backend/ ./
-
-# 预缓存依赖（使用 deno cache 来缓存依赖）
-RUN deno cache src/main.ts
-
-# Stage 3: Production Runtime
-FROM docker.io/library/alpine:3.19 AS production
-
-# 安装运行时依赖
-RUN apk add --no-cache \
-    bash \
+# 根据参数决定是否使用国内源
+RUN if [ "$USE_CN_MIRROR" = "true" ]; then \
+      if [ -f /etc/apt/sources.list ]; then \
+        sed -i "s/deb.debian.org/${DEBIAN_MIRROR}/g" /etc/apt/sources.list; \
+      fi; \
+      if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
+        sed -i "s/deb.debian.org/${DEBIAN_MIRROR}/g" /etc/apt/sources.list.d/debian.sources; \
+      fi; \
+    fi && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
     curl \
     git \
-    nodejs \
-    npm \
-    && rm -rf /var/cache/apk/*
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-# 创建非 root 用户
-RUN addgroup -g 1001 -S lapdev && \
-    adduser -S lapdev -u 1001 -G lapdev
+# 根据参数决定使用哪个 Rust 安装脚本
+RUN if [ "$USE_CN_MIRROR" = "true" ]; then \
+      curl --proto '=https' --tlsv1.2 -sSf ${RUSTUP_URL} | sh -s -- -y --default-toolchain stable --profile minimal; \
+    else \
+      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal; \
+    fi
+ENV PATH="/root/.cargo/bin:${PATH}"
 
-# 安装 Deno（Alpine 兼容版本）
-RUN apk add --no-cache deno
+# Stage 3: Production Runtime
+FROM rust-base AS production
 
 WORKDIR /app
 
-# 从构建阶段复制构建产物
+# 从构建阶段复制产物
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
-COPY --from=backend-builder /app/backend ./backend
+COPY backend/ ./backend
 
-# 复制 BMAD 核心文件（离线支持）
+# 复制本地 Deno 2.8.2
+COPY deno /usr/local/bin/deno
+RUN chmod +x /usr/local/bin/deno
+
+# 复制 Deno 缓存
+COPY .deno /root/.cache/deno
+
+# 复制其他文件
 COPY _bmad ./_bmad
-
-# 复制配置文件
 COPY package*.json ./
 
-# 设置工作区目录
-RUN mkdir -p /workspace && chown -R lapdev:lapdev /workspace
-VOLUME /workspace
+# 创建用户和工作区
+RUN groupadd -g 1001 lapdev && \
+    useradd -m -u 1001 -g lapdev lapdev && \
+    mkdir -p /workspace && \
+    chown -R lapdev:lapdev /workspace /app
 
 # 设置环境变量
 ENV NODE_ENV=production \
     WORKSPACE_PATH=/workspace \
-    PORT=8080 \
+    PORT=3000 \
     DENO_PORT=3000
 
-# 设置权限
-RUN chown -R lapdev:lapdev /app
-
-# 切换到非 root 用户
 USER lapdev
+EXPOSE 3000
 
-# 暴露端口
-EXPOSE 8080 3000
-
-# 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
+    CMD curl -f http://localhost:3000/health || exit 1
 
-# 启动命令
 CMD ["deno", "run", "--no-lock", "-A", "backend/src/main.ts"]
 
 # ========================================
 # Build Instructions:
+# 
+# 默认使用国内源（适合本地构建）:
 #   docker build -t lapdev:latest .
-#   docker build -t lapdev:v1.0.0 .
+#   
+# 使用国外源（适合 GitHub Actions）:
+#   docker build --build-arg USE_CN_MIRROR=false --build-arg NPM_REGISTRY=https://registry.npmjs.org -t lapdev:latest .
 #
-# Run:
-#   docker run -d -p 8080:8080 -p 3000:3000 \
-#     -v $(pwd)/workspace:/workspace \
-#     lapdev:latest
+# 使用代理加速（如需）:
+#   docker build --build-arg NPM_PROXY=http://proxy.example.com:8080 --build-arg NPM_HTTPS_PROXY=http://proxy.example.com:8080 -t lapdev:latest .
+#
+# 所有可选构建参数:
+#   - USE_CN_MIRROR: 是否使用国内镜像源 (default: true)
+#   - NPM_REGISTRY: npm 镜像源 (default: https://registry.npmmirror.com)
+#   - NPM_PROXY: HTTP 代理地址 (optional)
+#   - NPM_HTTPS_PROXY: HTTPS 代理地址 (optional)
+#   - DEBIAN_MIRROR: Debian 镜像源 (default: mirrors.aliyun.com)
+#   - RUSTUP_URL: Rust 安装脚本地址 (default: https://rsproxy.cn/rustup-init.sh)
 # ========================================

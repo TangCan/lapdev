@@ -4,6 +4,8 @@ target/
 
 # Deno
 .deno/
+deno
+backend/deno.lock
 node_modules/
 
 # Node.js
