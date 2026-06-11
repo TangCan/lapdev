@@ -74,7 +74,7 @@ ANTHROPIC_API_KEY=sk-ant-your-anthropic-key
 docker build -t lapdev:latest .
 
 # 指定版本
-docker build -t lapdev:v1.0.0 --build-arg VERSION=1.0.0 .
+docker build -t lapdev:v1.1.0 --build-arg VERSION=1.1.0 .
 ```
 
 ### 使用发布脚本
