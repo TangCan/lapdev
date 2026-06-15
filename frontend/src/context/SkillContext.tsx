@@ -94,9 +94,33 @@ interface SkillContextValue {
 // 创建 Context
 const SkillContext = createContext<SkillContextValue | undefined>(undefined);
 
+// 从 sessionStorage 加载技能数据
+function loadSkillsFromStorage(): Skill[] {
+  try {
+    const stored = sessionStorage.getItem('lapdev-skills');
+    console.log('loadSkillsFromStorage: stored value:', stored);
+    if (stored) {
+      const skills = JSON.parse(stored);
+      console.log('loadSkillsFromStorage: skills loaded:', skills.length);
+      return skills;
+    }
+  } catch (error) {
+    console.warn('Failed to load skills from sessionStorage:', error);
+  }
+  return [];
+}
+
 // Provider 组件
 export function SkillProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(skillReducer, initialState);
+
+  // 使用 useEffect 在组件挂载时加载技能数据
+  useEffect(() => {
+    const skills = loadSkillsFromStorage();
+    if (skills.length > 0) {
+      dispatch({ type: 'LOAD_SKILLS', payload: skills });
+    }
+  }, []);
 
   const loadSkills = useCallback((skills: Skill[]) => {
     dispatch({ type: 'LOAD_SKILLS', payload: skills });
@@ -124,12 +148,24 @@ export function SkillProvider({ children }: { children: React.ReactNode }) {
 
   // 注册全局测试函数
   useEffect(() => {
+    console.log('Registering test functions');
     window.__test_getActiveSkills = getActiveSkills;
+    window.__test_getAllSkills = () => state.skills;
+    window.__test_loadSkills = (skills: Skill[]) => {
+      console.log('__test_loadSkills called with', skills.length, 'skills');
+      loadSkills(skills);
+    };
+    window.__test_activateSkill = activateSkill;
+    window.__test_clearActiveSkills = clearActiveSkills;
     
     return () => {
       delete window.__test_getActiveSkills;
+      delete window.__test_getAllSkills;
+      delete window.__test_loadSkills;
+      delete window.__test_activateSkill;
+      delete window.__test_clearActiveSkills;
     };
-  }, [getActiveSkills]);
+  }, [getActiveSkills, loadSkills, activateSkill, clearActiveSkills]);
 
   return (
     <SkillContext.Provider

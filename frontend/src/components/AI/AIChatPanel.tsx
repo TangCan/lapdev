@@ -1,8 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useChat, ChatMessage } from '../../context/ChatContext';
 import { useAI } from '../../context/AIContext';
+import { useSkill } from '../../context/SkillContext';
+import { useSkillMatch } from '../../hooks/useSkillMatch';
 import { AgentModeToggle } from './AgentModeToggle';
 import { parseContextReferences } from '../../utils/chatContextParser';
+import { SkillPanel } from '../SkillPanel/SkillPanel';
 import './AIChatPanel.css';
 
 interface MessageBubbleProps {
@@ -46,11 +49,15 @@ const AIChatPanel: React.FC = () => {
   } = useChat();
 
   const { isConnected, currentModel } = useAI();
+  const { activeSkills } = useSkill();
+  const { matchAndActivate } = useSkillMatch();
 
   const [inputValue, setInputValue] = useState('');
   const [isExpanded, setIsExpanded] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showActivationNotification, setShowActivationNotification] = useState(false);
+  const [activatedSkills, setActivatedSkills] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const MAX_INPUT_LENGTH = 10000;
@@ -73,6 +80,26 @@ const AIChatPanel: React.FC = () => {
       setError(`输入超过最大长度限制 (${MAX_INPUT_LENGTH} 字符)`);
       setTimeout(() => setError(null), 5000);
       return;
+    }
+
+    // 技能匹配和激活
+    try {
+      console.log('Starting skill matching for:', inputValue);
+      const matchingSkills = matchAndActivate({ text: inputValue });
+      console.log('Matching skills found:', matchingSkills);
+      const matchedSkillIds = matchingSkills.map(s => s.id).filter(Boolean) as string[];
+      console.log('Matched skill IDs:', matchedSkillIds);
+      
+      if (matchedSkillIds.length > 0) {
+        setActivatedSkills(matchedSkillIds);
+        setShowActivationNotification(true);
+        console.log('Showing activation notification');
+        setTimeout(() => setShowActivationNotification(false), 5000);
+      } else {
+        console.log('No skills matched');
+      }
+    } catch (err) {
+      console.warn('Skill matching error:', err);
     }
 
     try {
@@ -157,6 +184,18 @@ const AIChatPanel: React.FC = () => {
               <p className="notice-text">在设置中配置AI模型后即可使用聊天功能</p>
             </div>
           </div>
+        )}
+
+        {/* Skill Activation Notification */}
+        {showActivationNotification && (
+          <div className="skill-activation-notification" data-testid="skill-activation-notification">
+            💡 已自动激活 {activatedSkills.length} 个Skill: {activatedSkills.join(', ')}
+          </div>
+        )}
+
+        {/* Skill Panel */}
+        {isConnected && activeSkills.length > 0 && (
+          <SkillPanel />
         )}
 
         {/* Messages */}

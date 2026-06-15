@@ -41,6 +41,25 @@ const GitPanel: React.FC = () => {
     );
   }
 
+  if (!status) {
+    return (
+      <div className="git-panel" data-testid="git-panel">
+        <div className="git-panel-header">
+          <h2>Git</h2>
+          <BranchSelector />
+        </div>
+        <div className="git-panel-content">
+          <div className="no-git-repo" data-testid="no-git-repo">
+            <p>No Git repository</p>
+            <button onClick={refreshStatus} className="refresh-btn">
+              Refresh
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const totalChanges = status.changes.length + status.untracked.length;
 
   return (

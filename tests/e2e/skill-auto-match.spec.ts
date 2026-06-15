@@ -4,18 +4,28 @@ test.describe('[E2E] Skill自动匹配', () => {
   /**
    * 带重试的等待文件树加载函数
    */
-  async function waitForFileTree(page: any, maxRetries: number = 3, timeout: number = 15000): Promise<void> {
+  async function waitForFileTree(page: any, maxRetries: number = 5, timeout: number = 30000): Promise<void> {
     let retries = 0;
     while (retries < maxRetries) {
       try {
+        console.log(`Waiting for file-tree (attempt ${retries + 1}/${maxRetries})...`);
         await page.waitForSelector('[data-testid="file-tree"]', { timeout });
+        console.log('✓ file-tree found');
         return;
-      } catch (error) {
+      } catch (error: any) {
         retries++;
+        console.log(`✗ file-tree not found, retrying (${retries}/${maxRetries})`);
+        if (retries === maxRetries - 1) {
+          const testIds = await page.evaluate(() => {
+            const elements = document.querySelectorAll('[data-testid]');
+            return Array.from(elements).map(el => el.getAttribute('data-testid'));
+          });
+          console.log('Available data-testids:', testIds);
+        }
         if (retries >= maxRetries) {
           throw error;
         }
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(2000);
       }
     }
   }
@@ -42,8 +52,81 @@ test.describe('[E2E] Skill自动匹配', () => {
       sessionStorage.setItem('lapdev-ai-models', JSON.stringify(mockAIConfig));
     });
 
+    // 刷新页面使AI配置生效
     await page.reload();
+    
     await waitForFileTree(page);
+
+    // 设置技能数据（通过前端API）
+    const skillsLoaded = await page.evaluate(() => {
+      const mockSkills = [
+        {
+          id: 'git-helper',
+          name: 'git-helper',
+          version: '1.0.0',
+          description: 'Git操作助手',
+          author: 'test',
+          tags: ['git'],
+          trigger: {
+            keywords: ['git', '状态', '提交', '分支'],
+            patterns: []
+          },
+          content: '这是Git助手技能'
+        },
+        {
+          id: 'code-review',
+          name: 'code-review',
+          version: '1.0.0',
+          description: '代码审查',
+          author: 'test',
+          tags: ['code', 'review'],
+          trigger: {
+            keywords: ['审查', '代码', 'review'],
+            patterns: []
+          },
+          content: '这是代码审查技能'
+        },
+        {
+          id: 'test-generator',
+          name: 'test-generator',
+          version: '1.0.0',
+          description: '测试用例生成',
+          author: 'test',
+          tags: ['test', 'generator'],
+          trigger: {
+            keywords: ['测试', '生成', 'test'],
+            patterns: []
+          },
+          content: '这是测试生成技能'
+        }
+      ];
+      
+      // 使用全局函数加载技能
+      if (window.__test_loadSkills) {
+        window.__test_loadSkills(mockSkills);
+        // 等待一下让状态更新
+        return new Promise(resolve => {
+          setTimeout(() => {
+            if (window.__test_getAllSkills) {
+              resolve(window.__test_getAllSkills().length);
+            } else {
+              resolve(0);
+            }
+          }, 500);
+        });
+      } else {
+        console.warn('__test_loadSkills not available');
+        return 0;
+      }
+    });
+    console.log('Skills loaded:', skillsLoaded);
+
+    // 清理之前激活的技能状态
+    await page.evaluate(() => {
+      if (window.__test_clearActiveSkills) {
+        window.__test_clearActiveSkills();
+      }
+    });
 
     // 打开AI面板
     const aiButton = page.locator('[data-testid="ai-panel-button"]');

@@ -14,23 +14,28 @@ export class SkillMatchService {
     const { text } = request;
     const { trigger } = skill;
 
-    // 关键词匹配 (40%)
-    const requestKeywords = SimilarityUtils.extractKeywords(text);
+    // 关键词匹配 (50%) - 检查每个技能关键词是否在输入文本中
     const skillKeywords = trigger.keywords || [];
-    const keywordMatch = SimilarityUtils.jaccardSimilarity(requestKeywords, skillKeywords);
+    let keywordMatch = 0;
+    if (skillKeywords.length > 0) {
+      const matchedCount = skillKeywords.filter(keyword => 
+        text.toLowerCase().includes(keyword.toLowerCase())
+      ).length;
+      keywordMatch = matchedCount / skillKeywords.length;
+    }
 
     // 模式匹配 (20%)
     const patterns = trigger.patterns || [];
     const patternMatch = SimilarityUtils.matchPatterns(patterns, text) ? 1 : 0;
 
-    // 语义相似度 (40%) - 使用简单的包含匹配作为基础实现
+    // 语义相似度 (30%) - 检查技能描述和内容是否与输入文本相关
     const description = skill.description || '';
     const content = skill.content || '';
     const skillText = `${description} ${content}`;
     const semanticMatch = this.calculateSemanticMatch(text, skillText);
 
     // 综合计算
-    const matchScore = (keywordMatch * 0.4) + (semanticMatch * 0.4) + (patternMatch * 0.2);
+    const matchScore = (keywordMatch * 0.5) + (semanticMatch * 0.3) + (patternMatch * 0.2);
     
     return Math.min(1, Math.max(0, matchScore));
   }
@@ -55,12 +60,18 @@ export class SkillMatchService {
    * @param threshold - 激活阈值（默认0.7）
    * @returns 匹配的 Skill 列表（按匹配度排序）
    */
-  findMatchingSkills(skills: Skill[], request: AIRequest, threshold: number = 0.3): Skill[] {
+  findMatchingSkills(skills: Skill[], request: AIRequest, threshold: number = 0.15): Skill[] {
+    console.log('findMatchingSkills called with', skills.length, 'skills');
+    console.log('Request text:', request.text);
+    
     const matchingSkills = skills.map(skill => {
       const matchScore = this.calculateMatchScore(skill, request);
+      console.log('Skill', skill.id, 'match score:', matchScore);
       return { ...skill, matchScore };
     }).filter(skill => skill.matchScore >= threshold);
 
+    console.log('Matching skills found:', matchingSkills.length);
+    
     // 按匹配度降序排序
     matchingSkills.sort((a, b) => b.matchScore - a.matchScore);
     

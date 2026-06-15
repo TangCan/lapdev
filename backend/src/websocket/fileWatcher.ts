@@ -1,6 +1,6 @@
 // Deno WebSocket API is built-in, no external import needed
 
-const WORKSPACE_DIR = Deno.env.get('WORKSPACE_DIR') || '/workspace';
+const WORKSPACE_DIR = Deno.env.get('WORKSPACE_PATH') || `${Deno.cwd()}/../workspace`;
 
 // Heartbeat configuration
 const HEARTBEAT_INTERVAL = 30000; // 30 seconds

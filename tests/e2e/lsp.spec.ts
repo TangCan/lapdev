@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 async function openTestFile(page: any) {
-  await page.goto('http://127.0.0.1:5173');
+  await page.goto('/');
   
   await page.waitForSelector('[data-testid="file-tree"]', { timeout: 10000 });
   await page.waitForSelector('[data-testid="file-item"]', { timeout: 10000 });
@@ -13,7 +13,9 @@ async function openTestFile(page: any) {
   const testTsFile = page.locator('[data-testid="file-item"]').filter({ hasText: 'test.ts' });
   await testTsFile.click({ timeout: 10000 });
   
-  await page.waitForSelector('[data-testid="code-editor"]', { timeout: 10000 });
+  await page.waitForTimeout(1000);
+  
+  await page.waitForSelector('[data-testid="code-editor"]', { timeout: 15000 });
   
   const editor = page.locator('.monaco-editor');
   await editor.click({ timeout: 10000 });

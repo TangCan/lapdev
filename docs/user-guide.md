@@ -47,16 +47,15 @@
 ### 2.1 方式一：使用 Docker（推荐）
 
 ```bash
-# 拉取并运行镜像
+# 运行镜像
 docker run -d \
   --name lapdev \
-  -p 8080:8080 \
   -p 3000:3000 \
   -v $(pwd)/workspace:/workspace \
   crpi-ygp4wzq7icdrlm64.cn-shenzhen.personal.cr.aliyuncs.com/lapdev/lapdev:main
 
 # 访问应用
-open http://localhost:8080
+open http://localhost:3000
 ```
 
 ### 2.2 方式二：使用 Podman
@@ -65,13 +64,12 @@ open http://localhost:8080
 # 运行镜像
 podman run -d \
   --name lapdev \
-  -p 8080:8080 \
   -p 3000:3000 \
   -v $(pwd)/workspace:/workspace \
   crpi-ygp4wzq7icdrlm64.cn-shenzhen.personal.cr.aliyuncs.com/lapdev/lapdev:main
 
 # 访问应用
-open http://localhost:8080
+open http://localhost:3000
 ```
 
 ### 2.3 方式三：使用 Docker Compose
@@ -84,7 +82,6 @@ services:
   lapdev:
     image: crpi-ygp4wzq7icdrlm64.cn-shenzhen.personal.cr.aliyuncs.com/lapdev/lapdev:main
     ports:
-      - "8080:8080"
       - "3000:3000"
     volumes:
       - ./workspace:/workspace
@@ -95,7 +92,7 @@ services:
 
 ```bash
 docker-compose up -d
-open http://localhost:8080
+open http://localhost:3000
 ```
 
 ---
