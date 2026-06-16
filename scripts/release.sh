@@ -231,6 +231,17 @@ test_image() {
     log_info "运行镜像测试..."
     log_info "使用工具：${CONTAINER_TOOL}"
     
+    # 获取镜像 ID 并输出
+    local image_id=""
+    if [ "$CONTAINER_TOOL" = "docker" ]; then
+        image_id=$(docker inspect --format='{{.Id}}' ${image} 2>/dev/null | cut -d':' -f2)
+    else
+        image_id=$(podman inspect --format='{{.Id}}' ${image} 2>/dev/null | cut -d':' -f2)
+    fi
+    if [ -n "$image_id" ]; then
+        log_info "镜像 ID: ${image_id}"
+    fi
+    
     # 对于 Podman，镜像名称需要使用 localhost/ 前缀
     local run_image="${image}"
     if [ "$CONTAINER_TOOL" = "podman" ]; then
