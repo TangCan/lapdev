@@ -76,15 +76,18 @@ check_output() {
 # ========================================
 log_section "Lapdev E2E 测试"
 
+# 服务端口（后端 Deno 服务运行在 3000 端口）
+PORT=${PORT:-3000}
+
 # ========================================
 # 基础功能测试
 # ========================================
 log_section "1. 基础功能测试"
 
-check_output "前端健康检查" "curl -s http://localhost:8080/health" "ok"
-# 注意：后端和前端运行在同一个端口（8080）
-check_output "后端健康检查" "curl -s http://localhost:8080/health" "ok"
-check_output "前端页面可访问" "curl -s http://localhost:8080/" "<!DOCTYPE"
+# 健康检查返回 JSON 格式：{"status":"ok",...}
+check_output "前端健康检查" "curl -s http://localhost:${PORT}/health" "\"status\":\"ok\""
+check_output "后端健康检查" "curl -s http://localhost:${PORT}/health" "\"status\":\"ok\""
+check_output "前端页面可访问" "curl -s http://localhost:${PORT}/" "<!DOCTYPE"
 
 # ========================================
 # 文件树 API 测试
@@ -95,7 +98,7 @@ log_section "2. 文件树 API 测试"
 mkdir -p /home/richard/richard/2026/2026/pvm_2/lapdev/workspace/test-project
 echo "Hello World" > /home/richard/richard/2026/2026/pvm_2/lapdev/workspace/test-project/readme.txt
 
-check_output "文件树 API" "curl -s http://localhost:8080/api/v1/files/tree" "test-project"
+check_output "文件树 API" "curl -s http://localhost:${PORT}/api/v1/files/tree" "test-project"
 
 # ========================================
 # 容器状态测试
