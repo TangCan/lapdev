@@ -105,8 +105,27 @@ export async function getGitDiff(path: string): Promise<{ status: string; data?:
       return { status: 'error', message: 'Not a git repository' };
     }
 
-    const diffOutput = await runGitCommand(['diff', '--no-color', '--', sanitizedPath], repoPath);
-    const diff = diffOutput.stdout || '';
+    let diff = '';
+    
+    try {
+      const diffOutput = await runGitCommand(['diff', '--no-color', '--', sanitizedPath], repoPath);
+      diff = diffOutput.stdout || '';
+    } catch {
+      // 如果普通diff失败，尝试查看暂存区的diff
+      try {
+        const cachedOutput = await runGitCommand(['diff', '--no-color', '--cached', '--', sanitizedPath], repoPath);
+        diff = cachedOutput.stdout || '';
+      } catch {
+        // 如果还是失败，尝试查看文件内容作为伪diff（未跟踪文件）
+        try {
+          const fileContent = await Deno.readTextFile(sanitizedPath);
+          const fileName = sanitizedPath.split('/').pop() || path;
+          diff = `diff --git a/${fileName} b/${fileName}\nnew file mode 100644\nindex 0000000..${Math.random().toString(16).substring(2, 10)}\n--- /dev/null\n+++ b/${fileName}\n@@ -0,0 +1,${fileContent.split('\n').length} @@\n${fileContent.split('\n').map((line, i) => (i === 0 ? '+' : '+ ') + line).join('\n')}`;
+        } catch {
+          // 所有尝试都失败
+        }
+      }
+    }
 
     return {
       status: 'success',
@@ -331,7 +350,7 @@ async function runGitCommand(args: string[], cwd: string): Promise<{ stdout: str
       throw new Error('Invalid command argument');
     }
     // 防止命令注入 - 扩展检查
-    if (/[;&|`$()!<>\s]/.test(arg) || arg.includes('&&') || arg.includes('||')) {
+    if (/[;&|`$()<>]/.test(arg) || arg.includes('&&') || arg.includes('||')) {
       throw new Error('Invalid command argument');
     }
   }

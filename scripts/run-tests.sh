@@ -18,8 +18,79 @@ log_error() {
 BACKEND_PID=""
 PORT="${PORT:-3000}"
 
+cleanup_port() {
+    local port=$1
+    log_info "清理端口 ${port} 上的进程..."
+    local pids=$(lsof -ti:$port 2>/dev/null || ss -tlnp | grep ":$port" | awk '{print $NF}' | sed 's/.*\///' 2>/dev/null)
+    if [ -n "$pids" ]; then
+        kill -9 $pids 2>/dev/null || true
+        sleep 1
+        log_info "端口 ${port} 已清理"
+    else
+        log_info "端口 ${port} 未被占用"
+    fi
+}
+
+prepare_git_repo() {
+    local workspace_dir="${WORKSPACE_PATH:-$(pwd)/workspace}"
+    log_info "准备 Git 测试仓库: ${workspace_dir}"
+    
+    mkdir -p "${workspace_dir}"
+    
+    if [ ! -d "${workspace_dir}/.git" ]; then
+        log_info "初始化 Git 仓库..."
+        cd "${workspace_dir}"
+        git init
+        git config user.email "test@lapdev.local"
+        git config user.name "Test User"
+        echo "# Test Project" > README.md
+        git add README.md
+        git commit -m "Initial commit"
+        cd - > /dev/null
+        log_success "Git 仓库已初始化"
+    else
+        log_info "Git 仓库已存在"
+    fi
+    
+    # 确保有多个分支用于测试
+    local current_branch=$(git -C "${workspace_dir}" branch --show-current)
+    if [ -z "$current_branch" ]; then
+        current_branch="master"
+    fi
+    
+    if ! git -C "${workspace_dir}" branch | grep -q "develop"; then
+        log_info "创建 develop 分支..."
+        git -C "${workspace_dir}" checkout -b develop
+        git -C "${workspace_dir}" checkout "$current_branch"
+    fi
+    
+    if ! git -C "${workspace_dir}" branch | grep -q "feature-branch"; then
+        log_info "创建 feature-branch 分支..."
+        git -C "${workspace_dir}" branch feature-branch
+    fi
+    
+    # 确保有一些文件和目录用于文件树测试
+    if [ ! -d "${workspace_dir}/test-folder" ]; then
+        log_info "创建测试文件夹..."
+        mkdir -p "${workspace_dir}/test-folder"
+        echo "Folder file" > "${workspace_dir}/test-folder/nested.txt"
+        git -C "${workspace_dir}" add .
+        git -C "${workspace_dir}" commit -m "Add test folder" 2>/dev/null || true
+        log_success "测试文件夹已创建"
+    else
+        log_info "测试文件夹已存在"
+    fi
+    
+    # 创建一个未提交的变更用于 Git 提交测试
+    echo "Uncommitted change" > "${workspace_dir}/uncommitted.txt"
+    git -C "${workspace_dir}" add uncommitted.txt
+}
+
 start_backend() {
     log_info "启动后端服务..."
+    cleanup_port $PORT
+    prepare_git_repo
+    
     cd backend
     WORKSPACE_PATH="${WORKSPACE_PATH:-$(pwd)/../workspace}" \
     NO_PROXY=localhost,127.0.0.1 no_proxy=localhost,127.0.0.1 \
