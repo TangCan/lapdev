@@ -12,6 +12,7 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
   const [fileTree, setFileTree] = useState<FileInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const [contextMenu, setContextMenu] = useState<{
     file: FileInfo;
     position: { x: number; y: number };
@@ -52,6 +53,18 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
     if (file.type === 'file') {
       onFileOpen(file);
     }
+  };
+
+  const handleToggleExpand = (path: string) => {
+    setExpandedPaths(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(path)) {
+        newSet.delete(path);
+      } else {
+        newSet.add(path);
+      }
+      return newSet;
+    });
   };
 
   const handleContextMenu = (file: FileInfo, event: React.MouseEvent) => {
@@ -105,6 +118,8 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
             depth={0}
             onFileClick={handleFileClick}
             onContextMenu={handleContextMenu}
+            expandedPaths={expandedPaths}
+            onToggleExpand={handleToggleExpand}
           />
         )}
       </div>

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import type { FileInfo } from '../../types/file';
 import { useGit } from '../../context/GitContext';
 
@@ -7,11 +7,14 @@ interface FileTreeNodeProps {
   depth: number;
   onFileClick: (file: FileInfo) => void;
   onContextMenu: (file: FileInfo, event: React.MouseEvent) => void;
+  expandedPaths: Set<string>;
+  onToggleExpand: (path: string) => void;
 }
 
-export function FileTreeNode({ file, depth, onFileClick, onContextMenu }: FileTreeNodeProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+export function FileTreeNode({ file, depth, onFileClick, onContextMenu, expandedPaths, onToggleExpand }: FileTreeNodeProps) {
   const { status } = useGit();
+
+  const isExpanded = expandedPaths.has(file.path);
 
   const gitStatus = useMemo(() => {
     if (!status) return null;
@@ -27,7 +30,7 @@ export function FileTreeNode({ file, depth, onFileClick, onContextMenu }: FileTr
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (file.type === 'directory') {
-      setIsExpanded(!isExpanded);
+      onToggleExpand(file.path);
     } else {
       onFileClick(file);
     }
@@ -97,6 +100,8 @@ export function FileTreeNode({ file, depth, onFileClick, onContextMenu }: FileTr
               depth={depth + 1}
               onFileClick={onFileClick}
               onContextMenu={onContextMenu}
+              expandedPaths={expandedPaths}
+              onToggleExpand={onToggleExpand}
             />
           ))}
         </div>
