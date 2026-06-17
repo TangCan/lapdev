@@ -2,6 +2,10 @@
 
 set -e
 
+# 设置 NO_PROXY 环境变量，防止测试请求被代理拦截
+export NO_PROXY=localhost,127.0.0.1
+export no_proxy=localhost,127.0.0.1
+
 log_info() {
     echo -e "\033[1;34m[INFO]\033[0m $1"
 }
@@ -93,7 +97,6 @@ start_backend() {
     
     cd backend
     WORKSPACE_PATH="${WORKSPACE_PATH:-$(pwd)/../workspace}" \
-    NO_PROXY=localhost,127.0.0.1 no_proxy=localhost,127.0.0.1 \
     deno run --allow-all src/main.ts &
     BACKEND_PID=$!
     cd ..
@@ -101,7 +104,7 @@ start_backend() {
     log_info "等待后端服务启动..."
     local max_wait=30
     local wait_count=0
-    while ! NO_PROXY=localhost,127.0.0.1 no_proxy=localhost,127.0.0.1 curl -s "http://localhost:${PORT}/health" > /dev/null 2>&1; do
+    while ! curl -s "http://localhost:${PORT}/health" > /dev/null 2>&1; do
         sleep 1
         wait_count=$((wait_count + 1))
         if [ $wait_count -ge $max_wait ]; then
@@ -135,23 +138,23 @@ cd ..
 log_info ""
 log_info "2. 后端单元测试"
 log_info "----------------------------------------"
-(cd backend && NO_PROXY=localhost,127.0.0.1 no_proxy=localhost,127.0.0.1 deno test --allow-all) || log_error "后端测试失败"
+(cd backend && deno test --allow-all) || log_error "后端测试失败"
 
 log_info ""
 log_info "3. 通用单元测试"
 log_info "----------------------------------------"
-NO_PROXY=localhost,127.0.0.1 no_proxy=localhost,127.0.0.1 deno test --allow-all tests/unit/ || log_error "通用单元测试失败"
+deno test --allow-all tests/unit/ || log_error "通用单元测试失败"
 
 log_info ""
 log_info "4. API 集成测试"
 log_info "----------------------------------------"
 start_backend
-NO_PROXY=localhost,127.0.0.1 no_proxy=localhost,127.0.0.1 deno test --allow-all tests/api/ai.test.ts || log_error "API 测试失败"
+deno test --allow-all tests/api/ai.test.ts || log_error "API 测试失败"
 
 log_info ""
 log_info "5. E2E 测试"
 log_info "----------------------------------------"
-NO_PROXY=localhost,127.0.0.1 no_proxy=localhost,127.0.0.1 playwright test tests/e2e/ || log_error "E2E 测试失败"
+playwright test tests/e2e/ || log_error "E2E 测试失败"
 
 log_info ""
 log_info "========================================"

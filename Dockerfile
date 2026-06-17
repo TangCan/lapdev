@@ -89,7 +89,7 @@ USER lapdev
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:3000/health || exit 1
+    CMD NO_PROXY=localhost,127.0.0.1 curl -f http://localhost:3000/health || exit 1
 
 CMD ["deno", "run", "--no-lock", "-A", "backend/src/main.ts"]
 
