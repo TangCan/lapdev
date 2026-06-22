@@ -8,8 +8,8 @@ services:
     image: lapdev:latest
     container_name: lapdev
     ports:
-      - "3333:3333"
-      - "3333:3333"
+      - "${HOST_FRONTEND_PORT:-8080}:${FRONTEND_PROD_PORT:-8080}"
+      - "${HOST_BACKEND_PORT:-3333}:${CONTAINER_PORT:-3333}"
     volumes:
       - ./workspace:/workspace
       - ./backend:/app/backend
@@ -17,8 +17,8 @@ services:
     environment:
       - NODE_ENV=production
       - WORKSPACE_PATH=/workspace
-      - PORT=8080
-      - API_PORT=3333
+      - PORT=${BACKEND_PORT:-3333}
+      - DENO_PORT=${BACKEND_PORT:-3333}
     networks:
       - lapdev-network
     restart: unless-stopped
