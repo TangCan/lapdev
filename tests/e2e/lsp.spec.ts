@@ -19,7 +19,13 @@ async function openTestFile(page: any) {
   
   const editor = page.locator('.monaco-editor');
   await editor.click({ timeout: 10000 });
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(300);
+  
+  // 清空编辑器内容
+  await page.keyboard.press('Control+A');
+  await page.waitForTimeout(100);
+  await page.keyboard.press('Backspace');
+  await page.waitForTimeout(500);
 }
 
 test.describe('[E2E] LSP Code Intelligence', () => {
@@ -40,8 +46,10 @@ test.describe('[E2E] LSP Code Intelligence', () => {
       await page.keyboard.type('console.log(');
       await page.waitForTimeout(1000);
       
-      const editorContent = await page.locator('.monaco-editor').textContent();
-      expect(editorContent).toContain('console');
+      // 检查编辑器是否包含输入的内容
+      const editor = page.locator('.monaco-editor');
+      const textContent = await editor.textContent();
+      expect(textContent).toContain('console');
     });
 
     test('[P1] should show auto-import suggestions', async ({ page }) => {
@@ -62,8 +70,10 @@ test.describe('[E2E] LSP Code Intelligence', () => {
       await page.keyboard.type('const myVar = 1;\nconsole.log(myVar);');
       await page.waitForTimeout(500);
       
-      const editorContent = await page.locator('.monaco-editor').textContent();
-      expect(editorContent).toContain('myVar');
+      // 检查编辑器是否包含输入的内容
+      const editor = page.locator('.monaco-editor');
+      const textContent = await editor.textContent();
+      expect(textContent).toContain('myVar');
     });
 
     test('[P0] should show references count', async ({ page }) => {
@@ -72,8 +82,10 @@ test.describe('[E2E] LSP Code Intelligence', () => {
       await page.keyboard.type('const x = 1;\nconsole.log(x);\nconst y = x;');
       await page.waitForTimeout(500);
       
-      const editorContent = await page.locator('.monaco-editor').textContent();
-      expect(editorContent).toContain('x');
+      // 检查编辑器是否包含输入的内容
+      const editor = page.locator('.monaco-editor');
+      const textContent = await editor.textContent();
+      expect(textContent).toContain('x');
     });
   });
 
@@ -84,8 +96,10 @@ test.describe('[E2E] LSP Code Intelligence', () => {
       await page.keyboard.type('const oldName = 1;\nconsole.log(oldName);');
       await page.waitForTimeout(500);
       
-      const editorContent = await page.locator('.monaco-editor').textContent();
-      expect(editorContent).toContain('oldName');
+      // 检查编辑器是否包含输入的内容
+      const editor = page.locator('.monaco-editor');
+      const textContent = await editor.textContent();
+      expect(textContent).toContain('oldName');
     });
 
     test('[P0] should format code on shortcut', async ({ page }) => {
@@ -95,8 +109,10 @@ test.describe('[E2E] LSP Code Intelligence', () => {
       await page.keyboard.press('Control+Shift+I');
       await page.waitForTimeout(500);
       
-      const editorContent = await page.locator('.monaco-editor').textContent();
-      expect(editorContent).toContain('x');
+      // 检查编辑器是否包含输入的内容
+      const editor = page.locator('.monaco-editor');
+      const textContent = await editor.textContent();
+      expect(textContent).toContain('x');
     });
 
     test('[P1] should show quick fix suggestions', async ({ page }) => {
@@ -105,8 +121,10 @@ test.describe('[E2E] LSP Code Intelligence', () => {
       await page.keyboard.type('const x: number = "string";');
       await page.waitForTimeout(1000);
       
-      const editorContent = await page.locator('.monaco-editor').textContent();
-      expect(editorContent).toContain('x');
+      // 检查编辑器是否包含输入的内容
+      const editor = page.locator('.monaco-editor');
+      const textContent = await editor.textContent();
+      expect(textContent).toContain('x');
     });
   });
 
@@ -117,8 +135,10 @@ test.describe('[E2E] LSP Code Intelligence', () => {
       await page.keyboard.type('const x: number = "string";');
       await page.waitForTimeout(1000);
       
-      const editorContent = await page.locator('.monaco-editor').textContent();
-      expect(editorContent).toContain('x');
+      // 检查编辑器是否包含输入的内容
+      const editor = page.locator('.monaco-editor');
+      const textContent = await editor.textContent();
+      expect(textContent).toContain('x');
     });
 
     test('[P0] should show problems panel', async ({ page }) => {
@@ -127,8 +147,10 @@ test.describe('[E2E] LSP Code Intelligence', () => {
       await page.keyboard.type('const x: number = "string";\nconst unused = 1;');
       await page.waitForTimeout(1000);
       
-      const editorContent = await page.locator('.monaco-editor').textContent();
-      expect(editorContent).toContain('x');
+      // 检查编辑器是否包含输入的内容
+      const editor = page.locator('.monaco-editor');
+      const textContent = await editor.textContent();
+      expect(textContent).toContain('x');
     });
 
     test('[P1] should jump to problem location', async ({ page }) => {
@@ -137,8 +159,10 @@ test.describe('[E2E] LSP Code Intelligence', () => {
       await page.keyboard.type('const x: number = "string";');
       await page.waitForTimeout(1000);
       
-      const editorContent = await page.locator('.monaco-editor').textContent();
-      expect(editorContent).toContain('x');
+      // 检查编辑器是否包含输入的内容
+      const editor = page.locator('.monaco-editor');
+      const textContent = await editor.textContent();
+      expect(textContent).toContain('x');
     });
   });
 });

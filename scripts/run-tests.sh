@@ -41,53 +41,34 @@ prepare_git_repo() {
     
     mkdir -p "${workspace_dir}"
     
-    if [ ! -d "${workspace_dir}/.git" ]; then
-        log_info "初始化 Git 仓库..."
-        cd "${workspace_dir}"
-        git init
-        git config user.email "test@lapdev.local"
-        git config user.name "Test User"
-        echo "# Test Project" > README.md
-        git add README.md
-        git commit -m "Initial commit"
-        cd - > /dev/null
-        log_success "Git 仓库已初始化"
-    else
-        log_info "Git 仓库已存在"
-    fi
+    # 重新初始化 Git 仓库以确保状态一致
+    log_info "重新初始化 Git 仓库..."
+    cd "${workspace_dir}"
+    rm -rf .git
+    git init
+    git config user.email "test@lapdev.local"
+    git config user.name "Test User"
+    echo "# Test Project" > README.md
+    mkdir -p test-folder
+    echo "Folder file" > test-folder/nested.txt
+    git add README.md test-folder
+    git commit -m "Initial commit"
+    git checkout -b develop
+    git checkout master
+    git branch feature-branch
+    cd - > /dev/null
+    log_success "Git 仓库已初始化"
     
-    # 确保有多个分支用于测试
-    local current_branch=$(git -C "${workspace_dir}" branch --show-current)
-    if [ -z "$current_branch" ]; then
-        current_branch="master"
-    fi
-    
-    if ! git -C "${workspace_dir}" branch | grep -q "develop"; then
-        log_info "创建 develop 分支..."
-        git -C "${workspace_dir}" checkout -b develop
-        git -C "${workspace_dir}" checkout "$current_branch"
-    fi
-    
-    if ! git -C "${workspace_dir}" branch | grep -q "feature-branch"; then
-        log_info "创建 feature-branch 分支..."
-        git -C "${workspace_dir}" branch feature-branch
-    fi
-    
-    # 确保有一些文件和目录用于文件树测试
-    if [ ! -d "${workspace_dir}/test-folder" ]; then
-        log_info "创建测试文件夹..."
-        mkdir -p "${workspace_dir}/test-folder"
-        echo "Folder file" > "${workspace_dir}/test-folder/nested.txt"
-        git -C "${workspace_dir}" add .
-        git -C "${workspace_dir}" commit -m "Add test folder" 2>/dev/null || true
-        log_success "测试文件夹已创建"
-    else
-        log_info "测试文件夹已存在"
-    fi
-    
-    # 创建一个未提交的变更用于 Git 提交测试
-    echo "Uncommitted change" > "${workspace_dir}/uncommitted.txt"
+    # 创建已暂存文件用于 Git 提交测试
+    log_info "创建已暂存文件..."
+    rm -f "${workspace_dir}/uncommitted.txt"
+    echo "Staged change $(date +%s)" > "${workspace_dir}/uncommitted.txt"
     git -C "${workspace_dir}" add uncommitted.txt
+    
+    # 创建未暂存修改
+    echo "Unstaged change $(date +%s)" > "${workspace_dir}/README.md"
+    
+    log_success "Git 仓库准备完成"
 }
 
 start_backend() {
