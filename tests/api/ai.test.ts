@@ -3,8 +3,9 @@
 
 import { assertEquals, assertExists } from 'https://deno.land/std@0.224.0/testing/asserts.ts';
 import { describe, it } from 'https://deno.land/std@0.224.0/testing/bdd.ts';
+import { API_BASE_URL } from '../config/index.ts';
 
-const API_BASE = process.env.API_BASE_URL ? `${process.env.API_BASE_URL}/api/v1/ai` : 'http://localhost:3333/api/v1/ai';
+const API_BASE = `${API_BASE_URL}/api/v1/ai`;
 
 async function clearAllConfigs() {
   const response = await fetch(`${API_BASE}/config`);

@@ -236,7 +236,7 @@ trivy image lapdev:v1.0.0
 
 ```bash
 # 1. 启动容器
-docker run -d -p 8080:8080 -p 3000:3000 \
+docker run -d -p 8080:8080 -p 3333:3333 \
   -v $(pwd)/workspace:/workspace \
   lapdev:v1.0.0
 
@@ -263,7 +263,7 @@ docker stop lapdev
 docker rm lapdev
 
 # 3. 启动旧版本
-docker run -d -p 8080:8080 -p 3000:3000 \
+docker run -d -p 8080:8080 -p 3333:3333 \
   -v $(pwd)/workspace:/workspace \
   lapdev:previous-version
 ```

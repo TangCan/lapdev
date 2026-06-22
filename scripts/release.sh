@@ -7,9 +7,13 @@
 
 set -e
 
+# 加载共享配置
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/config.sh"
+
 # 配置
-IMAGE_NAME="lapdev"
-VERSION="1.1.0"
+IMAGE_NAME="${IMAGE_NAME:-lapdev}"
+VERSION="${VERSION:-1.1.0}"
 REGISTRY="registry.gitee.com"
 REGISTRY_USER="${DOCKER_REGISTRY_USER:-}"
 REGISTRY_PASSWORD="${DOCKER_REGISTRY_PASSWORD:-}"
@@ -256,11 +260,11 @@ test_image() {
     
     # 启动容器（映射前端和后端端口）
     if [ "$CONTAINER_TOOL" = "docker" ]; then
-        CONTAINER_ID=$(docker run -d --rm -p 8080:8080 -p 3333:3333 ${run_image})
+        CONTAINER_ID=$(docker run -d --rm -p ${HOST_FRONTEND_PORT}:${FRONTEND_PROD_PORT} -p ${HOST_BACKEND_PORT}:${CONTAINER_PORT} ${run_image})
     else
         # Podman 使用 --pull never 强制使用本地镜像，避免尝试从远程拉取
         # 使用 --cgroup-manager=cgroupfs 避免 systemd D-Bus 权限问题
-        CONTAINER_ID=$(podman run --pull never --cgroup-manager=cgroupfs -d --rm -p 8080:8080 -p 3333:3333 ${run_image})
+        CONTAINER_ID=$(podman run --pull never --cgroup-manager=cgroupfs -d --rm -p ${HOST_FRONTEND_PORT}:${FRONTEND_PROD_PORT} -p ${HOST_BACKEND_PORT}:${CONTAINER_PORT} ${run_image})
     fi
     
     log_info "容器 ID: ${CONTAINER_ID}"
@@ -292,12 +296,12 @@ test_image() {
         return
     fi
     
-    # 测试 HTTP 端点（先尝试 8080，再尝试 3000）
+    # 测试 HTTP 端点
     log_info "测试 HTTP 健康端点..."
-    if curl --noproxy '*' -f http://localhost:8080/health > /dev/null 2>&1; then
-        log_info "HTTP 健康检查通过（端口 8080）"
-    elif curl --noproxy '*' -f http://localhost:3333/health > /dev/null 2>&1; then
-        log_info "HTTP 健康检查通过（端口 3333）"
+    if curl --noproxy '*' -f http://localhost:${HOST_FRONTEND_PORT}/health > /dev/null 2>&1; then
+        log_info "HTTP 健康检查通过（端口 ${HOST_FRONTEND_PORT}）"
+    elif curl --noproxy '*' -f http://localhost:${HOST_BACKEND_PORT}/health > /dev/null 2>&1; then
+        log_info "HTTP 健康检查通过（端口 ${HOST_BACKEND_PORT}）"
     else
         log_warn "HTTP 健康检查失败（服务可能尚未完全启动）"
     fi
@@ -395,7 +399,7 @@ $(date '+%Y-%m-%d')
 
 ### Docker 运行
 \`\`\`bash
-docker run -d -p 8080:8080 -p 3000:3000 \\
+docker run -d -p ${HOST_FRONTEND_PORT}:${FRONTEND_PROD_PORT} -p ${HOST_BACKEND_PORT}:${CONTAINER_PORT} \\
   -v \$(pwd)/workspace:/workspace \\
   ${IMAGE_NAME}:${version}
 \`\`\`
@@ -407,7 +411,7 @@ docker-compose up -d
 
 ### Podman 运行
 \`\`\`bash
-podman run -d -p 8080:8080 -p 3000:3000 \\
+podman run -d -p ${HOST_FRONTEND_PORT}:${FRONTEND_PROD_PORT} -p ${HOST_BACKEND_PORT}:${CONTAINER_PORT} \\
   -v \$(pwd)/workspace:/workspace \\
   ${IMAGE_NAME}:${version}
 \`\`\`

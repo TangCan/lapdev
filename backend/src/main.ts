@@ -52,19 +52,16 @@ import {
 import { handleBMADInstall, handleBMADStatus, handleBMADUpgrade } from './handlers/bmadHandler.ts';
 import { handleSkillLoad, handleSkillMatch, handleSkillRegister, handleSkillList } from './handlers/skillHandler.ts';
 import { join, extname } from 'https://deno.land/std@0.224.0/path/mod.ts';
+import { PORT, ALLOWED_ORIGINS } from './config/index.ts';
 
-const PORT = parseInt(Deno.env.get('PORT') || '3333');
-
-// 验证和解析ALLOWED_ORIGINS环境变量
 function parseAllowedOrigins(): string[] {
   const envValue = Deno.env.get('ALLOWED_ORIGINS');
   if (!envValue) {
-    return ['http://localhost:3333', 'http://localhost:5173', 'http://127.0.0.1:3333', 'http://127.0.0.1:5173'];
+    return ALLOWED_ORIGINS;
   }
   
   const origins = envValue.split(',').map(o => o.trim()).filter(o => o.length > 0);
   
-  // 验证每个origin格式
   const validOrigins: string[] = [];
   for (const origin of origins) {
     try {
@@ -77,10 +74,10 @@ function parseAllowedOrigins(): string[] {
     }
   }
   
-  return validOrigins.length > 0 ? validOrigins : ['http://localhost:3333', 'http://localhost:5173'];
+  return validOrigins.length > 0 ? validOrigins : ALLOWED_ORIGINS;
 }
 
-const ALLOWED_ORIGINS = parseAllowedOrigins();
+const allowedOrigins = parseAllowedOrigins();
 
 // Helper to build CORS headers based on origin
 function getCorsHeaders(origin: string | null): Headers {
@@ -90,7 +87,7 @@ function getCorsHeaders(origin: string | null): Headers {
   });
   
   // Only allow specified origins
-  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+  if (origin && allowedOrigins.includes(origin)) {
     headers.set('Access-Control-Allow-Origin', origin);
   }
   

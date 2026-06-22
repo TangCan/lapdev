@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { BASE_URL, PORTS } from '../config/index.ts';
 
 test.describe('文件系统 API', () => {
-  const baseURL = process.env.BASE_URL || 'http://localhost:3333';
+  const baseURL = BASE_URL;
+  const ORIGIN = `http://localhost:${PORTS.BACKEND}`;
   const testPrefix = `/workspace/test-${Date.now()}`;
 
   // 在所有测试前设置
@@ -345,7 +347,7 @@ test.describe('文件系统 API', () => {
     const response = await request.fetch(`${baseURL}/api/v1/files/tree`, {
       method: 'OPTIONS',
       headers: {
-        'Origin': 'http://localhost:3333',
+        'Origin': ORIGIN,
         'Access-Control-Request-Method': 'GET'
       }
     });

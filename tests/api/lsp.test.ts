@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { BASE_URL } from '../config/index.ts';
 
-const baseURL = process.env.BASE_URL || 'http://localhost:3333';
+const baseURL = BASE_URL;
 
 test.describe('[API] LSP Code Intelligence API', () => {
   test.describe('AC-1: 代码补全功能', () => {

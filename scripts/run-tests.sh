@@ -2,6 +2,10 @@
 
 set -e
 
+# 加载共享配置
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/config.sh"
+
 # 设置 NO_PROXY 环境变量，防止测试请求被代理拦截
 export NO_PROXY=localhost,127.0.0.1
 export no_proxy=localhost,127.0.0.1
@@ -20,7 +24,7 @@ log_error() {
 }
 
 BACKEND_PID=""
-PORT="${PORT:-3333}"
+PORT="${PORT:-${BACKEND_PORT}}"
 
 cleanup_port() {
     local port=$1
@@ -76,8 +80,8 @@ start_backend() {
     cleanup_port $PORT
     prepare_git_repo
     
-    cd backend
-    WORKSPACE_PATH="${WORKSPACE_PATH:-$(pwd)/../workspace}" \
+    cd ${BACKEND_DIR}
+    WORKSPACE_PATH="${WORKSPACE_PATH}" \
     deno run --allow-all src/main.ts &
     BACKEND_PID=$!
     cd ..

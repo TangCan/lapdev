@@ -11,7 +11,7 @@
 docker pull registry.gitee.com/lapdev/lapdev:latest
 
 # 运行容器
-docker run -d -p 8080:8080 -p 3000:3000 \
+docker run -d -p 8080:8080 -p 3333:3333 \
   -v $(pwd)/workspace:/workspace \
   registry.gitee.com/lapdev/lapdev:latest
 ```
@@ -36,7 +36,7 @@ docker-compose down
 podman pull registry.gitee.com/lapdev/lapdev:latest
 
 # 运行容器
-podman run -d -p 8080:8080 -p 3000:3000 \
+podman run -d -p 8080:8080 -p 3333:3333 \
   -v $(pwd)/workspace:/workspace \
   registry.gitee.com/lapdev/lapdev:latest
 ```
@@ -50,7 +50,7 @@ podman run -d -p 8080:8080 -p 3000:3000 \
 | `NODE_ENV` | 运行环境 | `production` |
 | `WORKSPACE_PATH` | 工作区路径 | `/workspace` |
 | `PORT` | HTTP 端口 | `8080` |
-| `DENO_PORT` | Deno 端口 | `3000` |
+| `DENO_PORT | Deno 端口 | 3333` |
 | `OPENAI_API_KEY` | OpenAI API 密钥 | - |
 | `DEEPSEEK_API_KEY` | DeepSeek API 密钥 | - |
 | `ANTHROPIC_API_KEY` | Anthropic API 密钥 | - |

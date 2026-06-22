@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { BASE_URL } from '../config/index.ts';
 
 test.describe('[Story 1.1] 文件树 API 测试 (ATDD)', () => {
-  const baseURL = process.env.BASE_URL || 'http://localhost:3333';
+  const baseURL = BASE_URL;
   const testPrefix = `/workspace/test-${Date.now()}`;
 
   test.skip('[P0] GET /api/v1/files/tree should return directory structure', async ({ request }) => {

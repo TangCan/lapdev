@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { VITE_API_URL } from '../config/index.ts';
 
 /**
  * Story 2.1: Git版本控制可视化
@@ -9,7 +10,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Git API Tests', () => {
-  const baseUrl = process.env.VITE_API_URL || 'http://localhost:3333';
+  const baseUrl = VITE_API_URL;
 
   test('AC-1: 获取Git仓库状态', async ({ request }) => {
     const response = await request.get(`${baseUrl}/api/v1/git/status`);

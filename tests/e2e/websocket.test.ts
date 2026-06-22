@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { BASE_URL, WS_URL } from '../config/index.ts';
 
 test.describe('WebSocket Tests', () => {
-  const baseURL = process.env.BASE_URL || 'http://localhost:3333';
-  const wsURL = baseURL.replace('http://', 'ws://').replace('https://', 'wss://');
+  const baseURL = BASE_URL;
+  const wsURL = WS_URL;
 
   test('[P0] should establish WebSocket connection', async ({ page }) => {
     await page.goto('/');

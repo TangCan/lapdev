@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import { fetchGitStatus, fetchBranches, stageFiles, commitChanges, checkoutBranch, fetchGitDiff } from '../services/gitService';
 import type { GitStatus, GitBranch, GitChange } from '../services/gitService';
+import { WS_URL } from '../config';
 
 interface GitContextType {
   status: GitStatus | null;
@@ -20,8 +21,6 @@ interface GitContextType {
 
 const GitContext = createContext<GitContextType | null>(null);
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
-const WS_URL = API_URL.replace('http://', 'ws://').replace('https://', 'wss://');
 const MAX_RECONNECT_ATTEMPTS = 10;
 
 export function GitProvider({ children }: { children: ReactNode }) {

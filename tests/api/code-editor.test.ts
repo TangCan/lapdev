@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { BASE_URL } from '../config/index.ts';
 
-const baseURL = process.env.BASE_URL || 'http://localhost:3333';
+const baseURL = BASE_URL;
 const testPrefix = '/workspace';
 
 test.describe('[API] Code Editor API', () => {

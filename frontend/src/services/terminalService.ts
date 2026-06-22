@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
+import { API_URL } from '../config';
 
 interface CreateTerminalResponse {
   status: 'success' | 'error';
@@ -13,7 +13,7 @@ interface CommandResponse {
 }
 
 export async function createTerminal(): Promise<CreateTerminalResponse> {
-  const response = await fetch(`${BASE_URL}/api/v1/terminal/create`, {
+  const response = await fetch(`${API_URL}/api/v1/terminal/create`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -23,7 +23,7 @@ export async function createTerminal(): Promise<CreateTerminalResponse> {
 }
 
 export async function sendCommand(sessionId: string, command: string): Promise<CommandResponse> {
-  const response = await fetch(`${BASE_URL}/api/v1/terminal/command`, {
+  const response = await fetch(`${API_URL}/api/v1/terminal/command`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -34,7 +34,7 @@ export async function sendCommand(sessionId: string, command: string): Promise<C
 }
 
 export async function resizeTerminal(sessionId: string, cols: number, rows: number): Promise<CommandResponse> {
-  const response = await fetch(`${BASE_URL}/api/v1/terminal/resize`, {
+  const response = await fetch(`${API_URL}/api/v1/terminal/resize`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -45,7 +45,7 @@ export async function resizeTerminal(sessionId: string, cols: number, rows: numb
 }
 
 export async function closeTerminal(sessionId: string): Promise<CommandResponse> {
-  const response = await fetch(`${BASE_URL}/api/v1/terminal/close`, {
+  const response = await fetch(`${API_URL}/api/v1/terminal/close`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

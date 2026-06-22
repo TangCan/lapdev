@@ -191,7 +191,7 @@ export DOCKER_REGISTRY_PASSWORD=your-password
 ### Docker 运行
 
 ```bash
-docker run -d -p 8080:8080 -p 3000:3000 \
+docker run -d -p 8080:8080 -p 3333:3333 \
   -v $(pwd)/workspace:/workspace \
   lapdev:latest
 ```
@@ -205,7 +205,7 @@ docker-compose up -d
 ### Podman
 
 ```bash
-podman run -d -p 8080:8080 -p 3000:3000 \
+podman run -d -p 8080:8080 -p 3333:3333 \
   -v $(pwd)/workspace:/workspace \
   lapdev:latest
 ```

@@ -1,9 +1,13 @@
 #!/bin/bash
 # Lapdev E2E 测试脚本（容器模式）
 
+# 加载共享配置
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/config.sh"
+
 # 配置
-IMAGE_NAME="lapdev"
-VERSION="1.1.0"
+IMAGE_NAME="${IMAGE_NAME:-lapdev}"
+VERSION="${VERSION:-1.1.0}"
 CONTAINER_TOOL=""
 
 # 颜色定义
@@ -127,17 +131,13 @@ if [ "$CONTAINER_TOOL" = "podman" ]; then
     mkdir -p "$XDG_RUNTIME_DIR/libpod" 2>/dev/null || true
 fi
 
-# 服务端口
-PORT=${PORT:-3000}
-
-# 获取项目根目录
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-WORKSPACE_DIR="${PROJECT_ROOT}/workspace"
+# 服务端口（使用配置文件中的后端端口）
+PORT=${PORT:-${BACKEND_PORT}}
 
 # 创建测试文件
-mkdir -p "${WORKSPACE_DIR}/test-project"
-echo "Hello World" > "${WORKSPACE_DIR}/test-project/readme.txt"
-log_info "创建测试文件: ${WORKSPACE_DIR}/test-project/readme.txt"
+mkdir -p "${WORKSPACE_PATH}/test-project"
+echo "Hello World" > "${WORKSPACE_PATH}/test-project/readme.txt"
+log_info "创建测试文件: ${WORKSPACE_PATH}/test-project/readme.txt"
 
 # ========================================
 # 启动容器
@@ -156,16 +156,16 @@ fi
 log_info "使用镜像: ${RUN_IMAGE}"
 log_info "工作空间: ${WORKSPACE_DIR}"
 
-# 启动容器（容器内服务运行在 3000 端口）
+# 启动容器（容器内服务运行在 CONTAINER_PORT 端口）
 if [ "$CONTAINER_TOOL" = "docker" ]; then
     CONTAINER_ID=$(docker run -d --rm \
-        -p "${PORT}:3000" \
-        -v "${WORKSPACE_DIR}:/workspace" \
+        -p "${PORT}:${CONTAINER_PORT}" \
+        -v "${WORKSPACE_PATH}:/workspace" \
         "${RUN_IMAGE}")
 else
     CONTAINER_ID=$(podman run --pull never --cgroup-manager=cgroupfs -d --rm \
-        -p "${PORT}:3000" \
-        -v "${WORKSPACE_DIR}:/workspace" \
+        -p "${PORT}:${CONTAINER_PORT}" \
+        -v "${WORKSPACE_PATH}:/workspace" \
         "${RUN_IMAGE}" 2>/dev/null)
 fi
 

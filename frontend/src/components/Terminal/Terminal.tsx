@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { createTerminal, closeTerminal, sendCommand } from '../../services/terminalService';
+import { WS_URL } from '../../config';
 
 interface TerminalProps {
   onClose: () => void;
@@ -26,10 +27,7 @@ export function Terminal({ onClose, onResize }: TerminalProps) {
     }
   }, []);
 
-  const wsUrl = useMemo(() => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3333';
-    return baseUrl.replace('http://', 'ws://').replace('https://', 'wss://');
-  }, []);
+  const wsUrl = WS_URL;
 
   useEffect(() => {
     const initTerminal = async () => {

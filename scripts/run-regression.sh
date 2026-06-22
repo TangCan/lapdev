@@ -3,6 +3,10 @@
 # 完整回归测试脚本
 # 自动启动后端服务，运行所有测试，然后停止服务
 
+# 加载共享配置
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/config.sh"
+
 # 颜色输出
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -15,18 +19,10 @@ export NO_PROXY="localhost,127.0.0.1"
 unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY
 
 # 后端服务配置
-BACKEND_DIR="backend"
 BACKEND_ENTRY="src/main.ts"
-BACKEND_PORT="3333"
-BACKEND_URL="http://localhost:${BACKEND_PORT}"
-
-# 工作区目录配置 - 使用后端期望的 WORKSPACE_PATH 环境变量
-WORKSPACE_PATH="${PWD}/workspace"
 
 # 前端服务配置
-FRONTEND_DIR="frontend"
-FRONTEND_BASE_PORT="5173"
-FRONTEND_URL=""  # 动态获取
+FRONTEND_BASE_PORT="${FRONTEND_PORT}"
 
 # 测试结果
 TEST_RESULTS=()
@@ -125,7 +121,7 @@ start_backend() {
   
   # 设置正确的环境变量：WORKSPACE_PATH 和 ALLOWED_ORIGINS
   export WORKSPACE_PATH="${WORKSPACE_PATH}"
-  export ALLOWED_ORIGINS="http://localhost:3333,http://localhost:5173,http://localhost:5174,http://localhost:5175"
+  export ALLOWED_ORIGINS="${ALLOWED_ORIGINS}"
   
   # 使用 nohup 启动服务，确保在后台持续运行
   nohup deno run --allow-all "${BACKEND_ENTRY}" > /tmp/backend.log 2>&1 &
