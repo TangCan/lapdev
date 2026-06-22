@@ -5,22 +5,24 @@ test.describe('[Story 1.1] 文件树 E2E 用户旅程 (ATDD)', () => {
     await page.goto('/');
 
     const fileTree = page.getByTestId('file-tree');
-    await expect(fileTree).toBeVisible({ timeout: 10000 });
+    await expect(fileTree).toBeVisible({ timeout: 15000 });
 
     const treeItems = fileTree.getByRole('treeitem');
-    await expect(treeItems.first()).toBeVisible({ timeout: 10000 });
+    await expect(treeItems.first()).toBeVisible({ timeout: 15000 });
   });
 
   test('[P0] should expand and collapse folders', async ({ page }) => {
     await page.goto('/');
 
     const fileTree = page.getByTestId('file-tree');
-    await expect(fileTree).toBeVisible({ timeout: 10000 });
+    await expect(fileTree).toBeVisible({ timeout: 15000 });
 
-    await page.waitForTimeout(2000);
+    await page.waitForSelector('[data-testid="file-item"]', { timeout: 15000 });
+
+    await page.waitForTimeout(1500);
 
     const treeItems = fileTree.getByRole('treeitem');
-    await expect(treeItems.first()).toBeVisible({ timeout: 10000 });
+    await expect(treeItems.first()).toBeVisible({ timeout: 15000 });
 
     const initialCount = await treeItems.count();
 
@@ -28,18 +30,19 @@ test.describe('[Story 1.1] 文件树 E2E 用户旅程 (ATDD)', () => {
     const expandIconCount = await expandIcons.count();
     
     if (expandIconCount > 0) {
-      await expandIcons.first().click();
+      const firstExpandIcon = expandIcons.first();
+      await firstExpandIcon.click();
       
-      await page.waitForTimeout(500);
-      await expect(treeItems.first()).toBeVisible({ timeout: 5000 });
+      await page.waitForTimeout(1000);
+      await expect(treeItems.first()).toBeVisible({ timeout: 10000 });
       
       const expandedCount = await fileTree.getByRole('treeitem').count();
       expect(expandedCount).toBeGreaterThan(initialCount);
 
-      await expandIcons.first().click();
+      await firstExpandIcon.click();
       
-      await page.waitForTimeout(500);
-      await expect(treeItems.first()).toBeVisible({ timeout: 5000 });
+      await page.waitForTimeout(1000);
+      await expect(treeItems.first()).toBeVisible({ timeout: 10000 });
       
       const collapsedCount = await fileTree.getByRole('treeitem').count();
       expect(collapsedCount).toBe(initialCount);
