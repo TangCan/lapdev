@@ -1,4 +1,4 @@
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import type { Skill, SkillTrigger, SkillLoadResult } from '../types/skill.ts';
 
 const PATH_TRAVERSAL_PATTERN = /\.\.[\/\\]/;

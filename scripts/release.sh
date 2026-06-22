@@ -254,13 +254,13 @@ test_image() {
         chmod +t "$XDG_RUNTIME_DIR/libpod" 2>/dev/null || true
     fi
     
-    # 启动容器（映射两个端口）
+    # 启动容器（映射前端和后端端口）
     if [ "$CONTAINER_TOOL" = "docker" ]; then
-        CONTAINER_ID=$(docker run -d --rm -p 8080:8080 -p 3000:3000 ${run_image})
+        CONTAINER_ID=$(docker run -d --rm -p 8080:8080 -p 3333:3333 ${run_image})
     else
         # Podman 使用 --pull never 强制使用本地镜像，避免尝试从远程拉取
         # 使用 --cgroup-manager=cgroupfs 避免 systemd D-Bus 权限问题
-        CONTAINER_ID=$(podman run --pull never --cgroup-manager=cgroupfs -d --rm -p 8080:8080 -p 3000:3000 ${run_image})
+        CONTAINER_ID=$(podman run --pull never --cgroup-manager=cgroupfs -d --rm -p 8080:8080 -p 3333:3333 ${run_image})
     fi
     
     log_info "容器 ID: ${CONTAINER_ID}"
