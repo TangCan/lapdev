@@ -17,7 +17,7 @@ unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY
 # 后端服务配置
 BACKEND_DIR="backend"
 BACKEND_ENTRY="src/main.ts"
-BACKEND_PORT="3000"
+BACKEND_PORT="3333"
 BACKEND_URL="http://localhost:${BACKEND_PORT}"
 
 # 工作区目录配置 - 使用后端期望的 WORKSPACE_PATH 环境变量
@@ -61,9 +61,59 @@ wait_for_service() {
   return 1
 }
 
+# 函数：准备 Git 测试仓库
+prepare_git_repo() {
+  echo -e "${YELLOW}准备 Git 测试仓库...${NC}"
+  
+  mkdir -p "${WORKSPACE_PATH}"
+  
+  if [ ! -d "${WORKSPACE_PATH}/.git" ]; then
+    echo "   初始化 Git 仓库..."
+    cd "${WORKSPACE_PATH}"
+    git init
+    git config user.email "test@lapdev.local"
+    git config user.name "Test User"
+    echo "# Test Project" > README.md
+    git add README.md
+    git commit -m "Initial commit"
+    cd - > /dev/null
+  fi
+  
+  local current_branch=$(git -C "${WORKSPACE_PATH}" branch --show-current)
+  if [ -z "$current_branch" ]; then
+    current_branch="master"
+  fi
+  
+  if ! git -C "${WORKSPACE_PATH}" branch | grep -q "develop"; then
+    git -C "${WORKSPACE_PATH}" checkout -b develop
+    git -C "${WORKSPACE_PATH}" checkout "$current_branch"
+  fi
+  
+  if ! git -C "${WORKSPACE_PATH}" branch | grep -q "feature-branch"; then
+    git -C "${WORKSPACE_PATH}" branch feature-branch
+  fi
+  
+  if [ ! -d "${WORKSPACE_PATH}/test-folder" ]; then
+    mkdir -p "${WORKSPACE_PATH}/test-folder"
+    echo "Folder file" > "${WORKSPACE_PATH}/test-folder/nested.txt"
+    git -C "${WORKSPACE_PATH}" add .
+    git -C "${WORKSPACE_PATH}" commit -m "Add test folder" 2>/dev/null || true
+  fi
+  
+  rm -f "${WORKSPACE_PATH}/uncommitted.txt" 2>/dev/null || true
+  echo "Uncommitted change $(date +%s)" > "${WORKSPACE_PATH}/uncommitted.txt"
+  git -C "${WORKSPACE_PATH}" add uncommitted.txt
+  
+  echo "Modified content $(date +%s)" > "${WORKSPACE_PATH}/README.md"
+  
+  echo -e "   ${GREEN}Git 仓库准备完成${NC}"
+}
+
 # 函数：启动后端服务
 start_backend() {
   echo -e "${YELLOW}1. 启动后端服务...${NC}"
+  
+  prepare_git_repo
   
   # 确保端口未被占用
   if check_port ${BACKEND_PORT}; then
@@ -75,7 +125,7 @@ start_backend() {
   
   # 设置正确的环境变量：WORKSPACE_PATH 和 ALLOWED_ORIGINS
   export WORKSPACE_PATH="${WORKSPACE_PATH}"
-  export ALLOWED_ORIGINS="http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:5175"
+  export ALLOWED_ORIGINS="http://localhost:3333,http://localhost:5173,http://localhost:5174,http://localhost:5175"
   
   # 使用 nohup 启动服务，确保在后台持续运行
   nohup deno run --allow-all "${BACKEND_ENTRY}" > /tmp/backend.log 2>&1 &

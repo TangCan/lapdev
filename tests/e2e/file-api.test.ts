@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('文件系统 API', () => {
-  const baseURL = process.env.BASE_URL || 'http://localhost:3000';
+  const baseURL = process.env.BASE_URL || 'http://localhost:3333';
   const testPrefix = `/workspace/test-${Date.now()}`;
 
   // 在所有测试前设置
@@ -345,7 +345,7 @@ test.describe('文件系统 API', () => {
     const response = await request.fetch(`${baseURL}/api/v1/files/tree`, {
       method: 'OPTIONS',
       headers: {
-        'Origin': 'http://localhost:3000',
+        'Origin': 'http://localhost:3333',
         'Access-Control-Request-Method': 'GET'
       }
     });

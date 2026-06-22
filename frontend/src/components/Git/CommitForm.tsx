@@ -30,7 +30,7 @@ const CommitForm: React.FC = () => {
 
   if (!status) return null;
 
-  const stagedCount = status.changes.filter(c => c.staged).length;
+  const stagedCount = status.staged.length;
 
   return (
     <div className="commit-form">

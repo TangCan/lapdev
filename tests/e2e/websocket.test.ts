@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('WebSocket Tests', () => {
-  const baseURL = process.env.BASE_URL || 'http://localhost:3000';
+  const baseURL = process.env.BASE_URL || 'http://localhost:3333';
   const wsURL = baseURL.replace('http://', 'ws://').replace('https://', 'wss://');
 
   test('[P0] should establish WebSocket connection', async ({ page }) => {

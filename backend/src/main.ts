@@ -53,13 +53,13 @@ import { handleBMADInstall, handleBMADStatus, handleBMADUpgrade } from './handle
 import { handleSkillLoad, handleSkillMatch, handleSkillRegister, handleSkillList } from './handlers/skillHandler.ts';
 import { join, extname } from 'https://deno.land/std@0.224.0/path/mod.ts';
 
-const PORT = parseInt(Deno.env.get('PORT') || '3000');
+const PORT = parseInt(Deno.env.get('PORT') || '3333');
 
 // 验证和解析ALLOWED_ORIGINS环境变量
 function parseAllowedOrigins(): string[] {
   const envValue = Deno.env.get('ALLOWED_ORIGINS');
   if (!envValue) {
-    return ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173'];
+    return ['http://localhost:3333', 'http://localhost:5173', 'http://127.0.0.1:3333', 'http://127.0.0.1:5173'];
   }
   
   const origins = envValue.split(',').map(o => o.trim()).filter(o => o.length > 0);
@@ -77,7 +77,7 @@ function parseAllowedOrigins(): string[] {
     }
   }
   
-  return validOrigins.length > 0 ? validOrigins : ['http://localhost:3000', 'http://localhost:5173'];
+  return validOrigins.length > 0 ? validOrigins : ['http://localhost:3333', 'http://localhost:5173'];
 }
 
 const ALLOWED_ORIGINS = parseAllowedOrigins();

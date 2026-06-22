@@ -1,6 +1,6 @@
 import type { FileTreeResult, FileContentResult, OperationResult, CreateFileRequest, RenameRequest, DeleteRequest } from '../types/file';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const BASE_URL = '';
 
 export async function fetchFileTree(path: string = '/workspace', depth: number = 3): Promise<FileTreeResult> {
   const response = await fetch(`${BASE_URL}/api/v1/files/tree?path=${encodeURIComponent(path)}&depth=${depth}`);

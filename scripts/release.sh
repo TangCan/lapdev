@@ -296,8 +296,8 @@ test_image() {
     log_info "测试 HTTP 健康端点..."
     if curl --noproxy '*' -f http://localhost:8080/health > /dev/null 2>&1; then
         log_info "HTTP 健康检查通过（端口 8080）"
-    elif curl --noproxy '*' -f http://localhost:3000/health > /dev/null 2>&1; then
-        log_info "HTTP 健康检查通过（端口 3000）"
+    elif curl --noproxy '*' -f http://localhost:3333/health > /dev/null 2>&1; then
+        log_info "HTTP 健康检查通过（端口 3333）"
     else
         log_warn "HTTP 健康检查失败（服务可能尚未完全启动）"
     fi

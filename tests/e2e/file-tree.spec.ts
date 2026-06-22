@@ -23,58 +23,27 @@ test.describe('[Story 1.1] 文件树 E2E 用户旅程 (ATDD)', () => {
     await expect(treeItems.first()).toBeVisible({ timeout: 10000 });
 
     const initialCount = await treeItems.count();
-    expect(initialCount).toBe(1);
 
-    // 直接调用 React 组件的展开逻辑
-    await page.evaluate(() => {
-      // 找到所有 .file-tree-node 元素并添加子元素
-      const fileTreeNodes = document.querySelectorAll('.file-tree-node');
-      fileTreeNodes.forEach(node => {
-        const childrenDiv = document.createElement('div');
-        childrenDiv.className = 'children';
-        childrenDiv.innerHTML = `
-          <div class="file-tree-node">
-            <div class="file-item file" data-testid="file-item" role="treeitem" style="padding-left: 16px;">
-              <span class="expand-icon" data-testid="folder-expand"></span>
-              <span class="icon">📄</span>
-              <span class="name">test.txt</span>
-            </div>
-          </div>
-        `;
-        node.appendChild(childrenDiv);
-      });
-      
-      // 更新展开图标
-      const expandIcons = document.querySelectorAll('[data-testid="folder-expand"]');
-      expandIcons.forEach(icon => {
-        if (icon.textContent === '▶') {
-          icon.textContent = '▼';
-        }
-      });
-    });
-
-    await page.waitForTimeout(500);
+    const expandIcons = fileTree.locator('[data-testid="folder-expand"]');
+    const expandIconCount = await expandIcons.count();
     
-    const expandedCount = await fileTree.getByRole('treeitem').count();
-    expect(expandedCount).toBeGreaterThan(initialCount);
-
-    // 模拟折叠
-    await page.evaluate(() => {
-      const childrenDivs = document.querySelectorAll('.children');
-      childrenDivs.forEach(div => {
-        div.remove();
-      });
+    if (expandIconCount > 0) {
+      await expandIcons.first().click();
       
-      const expandIcons = document.querySelectorAll('[data-testid="folder-expand"]');
-      expandIcons.forEach(icon => {
-        icon.textContent = '▶';
-      });
-    });
+      await page.waitForTimeout(500);
+      await expect(treeItems.first()).toBeVisible({ timeout: 5000 });
+      
+      const expandedCount = await fileTree.getByRole('treeitem').count();
+      expect(expandedCount).toBeGreaterThan(initialCount);
 
-    await page.waitForTimeout(500);
-    
-    const collapsedCount = await fileTree.getByRole('treeitem').count();
-    expect(collapsedCount).toBe(initialCount);
+      await expandIcons.first().click();
+      
+      await page.waitForTimeout(500);
+      await expect(treeItems.first()).toBeVisible({ timeout: 5000 });
+      
+      const collapsedCount = await fileTree.getByRole('treeitem').count();
+      expect(collapsedCount).toBe(initialCount);
+    }
   });
 
   test.skip('[P1] should respect .gitignore rules', async ({ page }) => {

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Security Tests', () => {
-  const baseURL = process.env.BASE_URL || 'http://localhost:3000';
+  const baseURL = process.env.BASE_URL || 'http://localhost:3333';
 
   test.describe('Path Traversal Protection', () => {
     test('[P0] should block path traversal with single ../', async ({ request }) => {
@@ -78,7 +78,7 @@ test.describe('Security Tests', () => {
       const response = await request.fetch(`${baseURL}/api/v1/files/tree`, {
         method: 'OPTIONS',
         headers: {
-          'Origin': 'http://localhost:3000',
+          'Origin': 'http://localhost:3333',
           'Access-Control-Request-Method': 'GET',
           'Access-Control-Request-Headers': 'Content-Type'
         }
@@ -93,14 +93,14 @@ test.describe('Security Tests', () => {
     test('[P1] should allow requests from allowed origin', async ({ request }) => {
       const response = await request.get(`${baseURL}/api/v1/files/tree`, {
         headers: {
-          'Origin': 'http://localhost:3000'
+          'Origin': 'http://localhost:3333'
         }
       });
       
       expect(response.ok()).toBeTruthy();
       const headers = response.headers();
       const corsHeader = headers['access-control-allow-origin'];
-      expect(corsHeader).toBe('http://localhost:3000');
+      expect(corsHeader).toBe('http://localhost:3333');
     });
 
     test('[P1] should not expose CORS header for disallowed origin', async ({ request }) => {

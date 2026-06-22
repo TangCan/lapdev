@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('[Story 1.1] 文件树 API 测试 (ATDD)', () => {
-  const baseURL = process.env.BASE_URL || 'http://localhost:3000';
+  const baseURL = process.env.BASE_URL || 'http://localhost:3333';
   const testPrefix = `/workspace/test-${Date.now()}`;
 
   test.skip('[P0] GET /api/v1/files/tree should return directory structure', async ({ request }) => {

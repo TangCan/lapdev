@@ -144,19 +144,17 @@ async function readDirRecursive(
   depth: number,
   rootPath: string
 ): Promise<FileInfo> {
-  // Prevent excessive recursion
-  if (depth <= 0) {
-    return {
-      name: path.split('/').pop() || '/',
-      path: toWorkspacePath(path),
-      type: 'directory',
-      children: []
-    };
-  }
-  
   const stat = await Deno.stat(path);
   
   if (stat.isDirectory) {
+    if (depth <= 0) {
+      return {
+        name: path.split('/').pop() || '/',
+        path: toWorkspacePath(path),
+        type: 'directory',
+        children: []
+      };
+    }
     const entries: FileInfo[] = [];
     const ignorePatterns = await parseGitignore(path);
     

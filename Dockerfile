@@ -82,14 +82,14 @@ RUN groupadd -g 1001 lapdev && \
 # 设置环境变量
 ENV NODE_ENV=production \
     WORKSPACE_PATH=/workspace \
-    PORT=3000 \
-    DENO_PORT=3000
+    PORT=3333 \
+    DENO_PORT=3333
 
 USER lapdev
-EXPOSE 3000
+EXPOSE 3333
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD NO_PROXY=localhost,127.0.0.1 curl -f http://localhost:3000/health || exit 1
+    CMD NO_PROXY=localhost,127.0.0.1 curl -f http://localhost:3333/health || exit 1
 
 CMD ["deno", "run", "--no-lock", "-A", "backend/src/main.ts"]
 

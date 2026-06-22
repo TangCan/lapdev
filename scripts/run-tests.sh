@@ -20,7 +20,7 @@ log_error() {
 }
 
 BACKEND_PID=""
-PORT="${PORT:-3000}"
+PORT="${PORT:-3333}"
 
 cleanup_port() {
     local port=$1

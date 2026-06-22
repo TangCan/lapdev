@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Git API Tests', () => {
-  const baseUrl = process.env.VITE_API_URL || 'http://localhost:3000';
+  const baseUrl = process.env.VITE_API_URL || 'http://localhost:3333';
 
   test('AC-1: 获取Git仓库状态', async ({ request }) => {
     const response = await request.get(`${baseUrl}/api/v1/git/status`);

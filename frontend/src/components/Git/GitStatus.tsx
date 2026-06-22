@@ -71,6 +71,19 @@ const GitStatusList: React.FC = () => {
           </button>
         </div>
       ))}
+
+      {status.staged.map((change, index) => (
+        <div
+          key={`staged-${change.path}-${index}`}
+          className={`git-change-item ${change.staged ? 'staged' : ''}`}
+          data-testid="git-change-item"
+          onClick={() => handleFileClick(change.path)}
+        >
+          {renderChangeIcon(change.status)}
+          <span className="file-path">{change.path}</span>
+          <span className="staged-badge">✓</span>
+        </div>
+      ))}
     </div>
   );
 };

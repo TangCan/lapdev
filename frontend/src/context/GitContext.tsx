@@ -20,7 +20,7 @@ interface GitContextType {
 
 const GitContext = createContext<GitContextType | null>(null);
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
 const WS_URL = API_URL.replace('http://', 'ws://').replace('https://', 'wss://');
 const MAX_RECONNECT_ATTEMPTS = 10;
 
