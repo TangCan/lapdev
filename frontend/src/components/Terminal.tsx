@@ -72,34 +72,60 @@ export const Terminal: React.FC<TerminalProps> = ({ sessionId }) => {
     };
   }, []);
 
-  const connectTerminal = () => {
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${window.location.host}/ws/terminal/${sessionId || 'default'}`;
-    
-    const ws = new WebSocket(wsUrl);
-    
-    ws.onopen = () => {
-      console.log('Terminal connected');
-    };
-    
-    ws.onmessage = (event) => {
-      terminalRef.current?.write(event.data);
-    };
-    
-    ws.onerror = (error) => {
-      console.error('Terminal error:', error);
-    };
-    
-    ws.onclose = () => {
-      console.log('Terminal disconnected');
-    };
-    
-    // Send input to terminal
-    terminalRef.current?.onData((data) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(data);
-      }
-    });
+  const connectTerminal = async () => {
+    try {
+      const response = await fetch('/api/v1/terminal/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await response.json();
+      const sessionId = data.sessionId;
+
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+      
+      const ws = new WebSocket(wsUrl);
+      
+      ws.onopen = () => {
+        console.log('Terminal connected');
+        ws.send(JSON.stringify({
+          type: 'terminalRegister',
+          sessionId,
+        }));
+      };
+      
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          if (message.type === 'terminalOutput' && message.output) {
+            terminalRef.current?.write(message.output);
+          }
+        } catch {
+          terminalRef.current?.write(event.data);
+        }
+      };
+      
+      ws.onerror = (error) => {
+        console.error('Terminal error:', error);
+      };
+      
+      ws.onclose = () => {
+        console.log('Terminal disconnected');
+      };
+      
+      terminalRef.current?.onData((data) => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: 'terminalInput',
+            sessionId,
+            input: data,
+          }));
+        }
+      });
+    } catch (error) {
+      console.error('Failed to connect terminal:', error);
+      terminalRef.current?.write('Failed to connect to terminal.\r\n');
+    }
   };
 
   return (

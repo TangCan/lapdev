@@ -143,6 +143,13 @@ export function handleWebSocket(ws: WebSocket): void {
             }));
           }
           break;
+        case 'terminalInput':
+          // Forward terminal input to the backend process
+          if (message.sessionId && message.input) {
+            const { forwardTerminalInput } = await import('../handlers/terminalHandler.ts');
+            await forwardTerminalInput(message.sessionId, message.input);
+          }
+          break;
         case 'terminalUnregister':
           // Unregister WebSocket connection
           if (message.sessionId) {

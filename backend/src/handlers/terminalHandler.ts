@@ -183,6 +183,18 @@ export async function handleTerminalResize(req: Request): Promise<Response> {
   }
 }
 
+export async function forwardTerminalInput(sessionId: string, input: string): Promise<void> {
+  const session = sessions.get(sessionId);
+  if (!session) {
+    return;
+  }
+
+  const encoder = new TextEncoder();
+  if (session.stdinWriter) {
+    await session.stdinWriter.write(encoder.encode(input));
+  }
+}
+
 export async function handleCloseTerminal(req: Request): Promise<Response> {
   try {
     const body = await req.json();
