@@ -15,9 +15,10 @@ export function FileTreeContextMenu({ file, position, onClose, onRefresh }: File
 
   const handleCreateFile = async () => {
     const newFileName = 'new-file.txt';
-    const newFilePath = file.type === 'directory' 
-      ? `${file.path}/${newFileName}`
-      : `${file.path}/../${newFileName}`;
+    const parentPath = file.type === 'directory' 
+      ? file.path
+      : file.path.substring(0, file.path.lastIndexOf('/'));
+    const newFilePath = `${parentPath}/${newFileName}`;
     
     await createFile({ path: newFilePath, type: 'file' });
     onRefresh();
@@ -26,9 +27,10 @@ export function FileTreeContextMenu({ file, position, onClose, onRefresh }: File
 
   const handleCreateFolder = async () => {
     const newFolderName = 'new-folder';
-    const newFolderPath = file.type === 'directory' 
-      ? `${file.path}/${newFolderName}`
-      : `${file.path}/../${newFolderName}`;
+    const parentPath = file.type === 'directory' 
+      ? file.path
+      : file.path.substring(0, file.path.lastIndexOf('/'));
+    const newFolderPath = `${parentPath}/${newFolderName}`;
     
     await createFile({ path: newFolderPath, type: 'directory' });
     onRefresh();
