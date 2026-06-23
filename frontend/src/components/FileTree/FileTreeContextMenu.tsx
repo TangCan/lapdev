@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { FileInfo } from '../../types/file';
 import { createFile, renameFile, deleteFile } from '../../services/fileService';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface FileTreeContextMenuProps {
   file: FileInfo;
@@ -12,6 +13,11 @@ interface FileTreeContextMenuProps {
 export function FileTreeContextMenu({ file, position, onClose, onRefresh }: FileTreeContextMenuProps) {
   const [renameInput, setRenameInput] = useState(file.name);
   const [isRenaming, setIsRenaming] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const isNonEmptyDirectory = file.type === 'directory' && 
+    file.children && 
+    file.children.length > 0;
 
   const handleCreateFile = async () => {
     const baseName = 'new-file';
@@ -86,6 +92,23 @@ export function FileTreeContextMenu({ file, position, onClose, onRefresh }: File
   };
 
   const handleDelete = async () => {
+    if (isNonEmptyDirectory) {
+      setShowDeleteConfirm(true);
+      return;
+    }
+    
+    const result = await deleteFile({ path: file.path });
+    
+    if (result.status === 'success') {
+      onRefresh();
+      onClose();
+    } else {
+      console.error('删除失败:', result.message);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    setShowDeleteConfirm(false);
     const result = await deleteFile({ path: file.path });
     
     if (result.status === 'success') {
@@ -97,71 +120,84 @@ export function FileTreeContextMenu({ file, position, onClose, onRefresh }: File
   };
 
   return (
-    <div
-      className="context-menu"
-      style={{
-        position: 'fixed',
-        left: position.x,
-        top: position.y,
-        zIndex: 1000
-      }}
-      onClick={(e) => e.stopPropagation()}
-      data-testid="context-menu"
-    >
-      {isRenaming ? (
-        <div className="rename-input-container">
-          <input
-            type="text"
-            value={renameInput}
-            onChange={(e) => setRenameInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleRename();
-              if (e.key === 'Escape') setIsRenaming(false);
-            }}
-            autoFocus
-            className="rename-input"
-            data-testid="rename-input"
-          />
-          <button onClick={handleRename} className="context-menu-item">
-            确认
-          </button>
-          <button onClick={() => setIsRenaming(false)} className="context-menu-item">
-            取消
-          </button>
-        </div>
-      ) : (
-        <>
-          <button 
-            className="context-menu-item" 
-            onClick={handleCreateFile}
-            data-testid="context-menu-item"
-          >
-            📄 新建文件
-          </button>
-          <button 
-            className="context-menu-item" 
-            onClick={handleCreateFolder}
-            data-testid="context-menu-item"
-          >
-            📁 新建文件夹
-          </button>
-          <hr className="context-menu-divider" />
-          <button 
-            className="context-menu-item" 
-            onClick={() => setIsRenaming(true)}
-            data-testid="context-menu-item"
-          >
-            ✏️ 重命名
-          </button>
-          <button 
-            className="context-menu-item danger" 
-            onClick={handleDelete}
-            data-testid="context-menu-item"
-          >
-            🗑️ 删除
-          </button>
-        </>
-      )}
-    </div>
+    <>
+      <div
+        className="context-menu"
+        style={{
+          position: 'fixed',
+          left: position.x,
+          top: position.y,
+          zIndex: 1000
+        }}
+        onClick={(e) => e.stopPropagation()}
+        data-testid="context-menu"
+      >
+        {isRenaming ? (
+          <div className="rename-input-container">
+            <input
+              type="text"
+              value={renameInput}
+              onChange={(e) => setRenameInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleRename();
+                if (e.key === 'Escape') setIsRenaming(false);
+              }}
+              autoFocus
+              className="rename-input"
+              data-testid="rename-input"
+            />
+            <button onClick={handleRename} className="context-menu-item">
+              确认
+            </button>
+            <button onClick={() => setIsRenaming(false)} className="context-menu-item">
+              取消
+            </button>
+          </div>
+        ) : (
+          <>
+            <button 
+              className="context-menu-item" 
+              onClick={handleCreateFile}
+              data-testid="context-menu-item"
+            >
+              📄 新建文件
+            </button>
+            <button 
+              className="context-menu-item" 
+              onClick={handleCreateFolder}
+              data-testid="context-menu-item"
+            >
+              📁 新建文件夹
+            </button>
+            <hr className="context-menu-divider" />
+            <button 
+              className="context-menu-item" 
+              onClick={() => setIsRenaming(true)}
+              data-testid="context-menu-item"
+            >
+              ✏️ 重命名
+            </button>
+            <button 
+              className="context-menu-item danger" 
+              onClick={handleDelete}
+              data-testid="context-menu-item"
+            >
+              🗑️ 删除
+            </button>
+          </>
+        )}
+      </div>
+      
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="确认删除"
+        message={`确定要删除文件夹 "${file.name}" 及其所有内容吗？此操作不可撤销。`}
+        confirmText="删除"
+        cancelText="取消"
+        isDanger={true}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
+    </>
   );
 }
