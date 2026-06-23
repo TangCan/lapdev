@@ -14,6 +14,7 @@ export function FileTreeContextMenu({ file, position, onClose, onRefresh }: File
   const [renameInput, setRenameInput] = useState(file.name);
   const [isRenaming, setIsRenaming] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [renameError, setRenameError] = useState<string | null>(null);
 
   const isNonEmptyDirectory = file.type === 'directory' && 
     file.children && 
@@ -77,6 +78,7 @@ export function FileTreeContextMenu({ file, position, onClose, onRefresh }: File
   };
 
   const handleRename = async () => {
+    setRenameError(null);
     const parentPath = file.path.substring(0, file.path.lastIndexOf('/'));
     const newPath = `${parentPath}/${renameInput}`;
     
@@ -87,7 +89,7 @@ export function FileTreeContextMenu({ file, position, onClose, onRefresh }: File
       onRefresh();
       onClose();
     } else {
-      console.error('重命名失败:', result.message);
+      setRenameError(result.message || '重命名失败');
     }
   };
 
@@ -137,7 +139,10 @@ export function FileTreeContextMenu({ file, position, onClose, onRefresh }: File
             <input
               type="text"
               value={renameInput}
-              onChange={(e) => setRenameInput(e.target.value)}
+              onChange={(e) => {
+                setRenameInput(e.target.value);
+                setRenameError(null);
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleRename();
                 if (e.key === 'Escape') setIsRenaming(false);
@@ -146,6 +151,11 @@ export function FileTreeContextMenu({ file, position, onClose, onRefresh }: File
               className="rename-input"
               data-testid="rename-input"
             />
+            {renameError && (
+              <div className="rename-error">
+                {renameError}
+              </div>
+            )}
             <button onClick={handleRename} className="context-menu-item">
               确认
             </button>

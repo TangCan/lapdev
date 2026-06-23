@@ -420,6 +420,15 @@ body {
   border-color: #007acc;
 }
 
+.rename-error {
+  color: #f14c4c;
+  font-size: 12px;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  background-color: rgba(241, 76, 76, 0.1);
+  border-radius: 4px;
+}
+
 /* Loading and Error */
 .loading,
 .error {

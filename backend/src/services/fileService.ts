@@ -324,6 +324,13 @@ export async function renameFile(oldPath: string, newPath: string): Promise<Oper
       };
     }
     
+    if (await exists(sanitizedNewPath)) {
+      return {
+        status: 'error',
+        message: 'Target file already exists'
+      };
+    }
+    
     await Deno.rename(sanitizedOldPath, sanitizedNewPath);
     
     return {
