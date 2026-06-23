@@ -386,6 +386,7 @@ function IDE() {
                   <div className="loading-editor">Loading...</div>
                 ) : (
                   <LspCodeEditor
+                    key={activeTab.file.path}
                     value={activeTab.content}
                     language={activeTab.language}
                     onChange={(value) => handleContentChange(activeTab.id, value)}
