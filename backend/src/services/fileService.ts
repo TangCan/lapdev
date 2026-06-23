@@ -291,6 +291,13 @@ export async function createDirectory(path: string): Promise<OperationResult> {
   try {
     const sanitizedPath = sanitizePath(path);
     
+    if (await exists(sanitizedPath)) {
+      return {
+        status: 'error',
+        message: 'Directory already exists'
+      };
+    }
+    
     await Deno.mkdir(sanitizedPath, { recursive: true });
     
     return {

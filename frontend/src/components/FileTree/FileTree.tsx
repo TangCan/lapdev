@@ -17,8 +17,13 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
     file: FileInfo;
     position: { x: number; y: number };
   } | null>(null);
+  const [isPaused, setIsPaused] = useState(false);
 
   const loadFileTree = useCallback(async () => {
+    if (isPaused) {
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     
@@ -36,7 +41,7 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isPaused]);
 
   useEffect(() => {
     loadFileTree();
@@ -72,10 +77,13 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
       file,
       position: { x: event.clientX, y: event.clientY }
     });
+    setIsPaused(true);
   };
 
   const handleCloseContextMenu = () => {
     setContextMenu(null);
+    setIsPaused(false);
+    loadFileTree();
   };
 
   useEffect(() => {
