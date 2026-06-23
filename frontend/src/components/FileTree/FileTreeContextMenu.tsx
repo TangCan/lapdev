@@ -14,25 +14,58 @@ export function FileTreeContextMenu({ file, position, onClose, onRefresh }: File
   const [isRenaming, setIsRenaming] = useState(false);
 
   const handleCreateFile = async () => {
-    const newFileName = 'new-file.txt';
+    const baseName = 'new-file';
+    const ext = '.txt';
     const parentPath = file.type === 'directory' 
       ? file.path
       : file.path.substring(0, file.path.lastIndexOf('/'));
-    const newFilePath = `${parentPath}/${newFileName}`;
     
-    await createFile({ path: newFilePath, type: 'file' });
+    let newFileName = `${baseName}${ext}`;
+    let newFilePath = `${parentPath}/${newFileName}`;
+    
+    const result = await createFile({ path: newFilePath, type: 'file' });
+    
+    if (result.status === 'error' && result.message.includes('already exists')) {
+      let counter = 2;
+      while (counter <= 100) {
+        newFileName = `${baseName} (${counter})${ext}`;
+        newFilePath = `${parentPath}/${newFileName}`;
+        const retryResult = await createFile({ path: newFilePath, type: 'file' });
+        if (retryResult.status === 'success') {
+          break;
+        }
+        counter++;
+      }
+    }
+    
     onRefresh();
     onClose();
   };
 
   const handleCreateFolder = async () => {
-    const newFolderName = 'new-folder';
+    const baseName = 'new-folder';
     const parentPath = file.type === 'directory' 
       ? file.path
       : file.path.substring(0, file.path.lastIndexOf('/'));
-    const newFolderPath = `${parentPath}/${newFolderName}`;
     
-    await createFile({ path: newFolderPath, type: 'directory' });
+    let newFolderName = baseName;
+    let newFolderPath = `${parentPath}/${newFolderName}`;
+    
+    const result = await createFile({ path: newFolderPath, type: 'directory' });
+    
+    if (result.status === 'error' && result.message.includes('already exists')) {
+      let counter = 2;
+      while (counter <= 100) {
+        newFolderName = `${baseName} (${counter})`;
+        newFolderPath = `${parentPath}/${newFolderName}`;
+        const retryResult = await createFile({ path: newFolderPath, type: 'directory' });
+        if (retryResult.status === 'success') {
+          break;
+        }
+        counter++;
+      }
+    }
+    
     onRefresh();
     onClose();
   };
@@ -41,17 +74,25 @@ export function FileTreeContextMenu({ file, position, onClose, onRefresh }: File
     const parentPath = file.path.substring(0, file.path.lastIndexOf('/'));
     const newPath = `${parentPath}/${renameInput}`;
     
-    await renameFile({ oldPath: file.path, newPath });
-    setIsRenaming(false);
-    onRefresh();
-    onClose();
+    const result = await renameFile({ oldPath: file.path, newPath });
+    
+    if (result.status === 'success') {
+      setIsRenaming(false);
+      onRefresh();
+      onClose();
+    } else {
+      console.error('重命名失败:', result.message);
+    }
   };
 
   const handleDelete = async () => {
-    if (confirm(`确定要删除 "${file.name}" 吗？`)) {
-      await deleteFile({ path: file.path });
+    const result = await deleteFile({ path: file.path });
+    
+    if (result.status === 'success') {
       onRefresh();
       onClose();
+    } else {
+      console.error('删除失败:', result.message);
     }
   };
 
