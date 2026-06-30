@@ -1,6 +1,6 @@
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
+export const API_URL = import.meta.env.VITE_API_URL || '/api';
 
-export const WS_URL = API_URL.replace('http://', 'ws://').replace('https://', 'wss://');
+export const WS_URL = import.meta.env.VITE_WS_URL || '/ws';
 
 export const BACKEND_PORT = parseInt(import.meta.env.VITE_BACKEND_PORT || '3333');
 

@@ -219,7 +219,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAbortController(controller);
 
     try {
-    const response = await fetch(`${API_URL}/api/v1/ai/chat/stream`, {
+    const response = await fetch(`${API_URL}/v1/ai/chat/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

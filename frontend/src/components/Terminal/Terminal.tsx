@@ -1,6 +1,41 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { createTerminal, closeTerminal, sendCommand } from '../../services/terminalService';
+import { Terminal as XTerm } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
+import { WebLinksAddon } from '@xterm/addon-web-links';
+import { createTerminal, closeTerminal } from '../../services/terminalService';
 import { WS_URL } from '../../config';
+import '@xterm/xterm/css/xterm.css';
+
+const terminalLogs: string[] = [];
+if (typeof window !== 'undefined') {
+  (window as any).terminalLogs = terminalLogs;
+}
+
+function logTerminal(message: string) {
+  console.log(`[Terminal] ${message}`);
+  terminalLogs.push(message);
+  if (terminalLogs.length > 100) {
+    terminalLogs.shift();
+  }
+}
+
+let wsRefGlobal: WebSocket | null = null;
+let sessionIdRefGlobal: string | null = null;
+
+if (typeof window !== 'undefined') {
+  (window as any).__terminalInput = (data: string) => {
+    if (wsRefGlobal && wsRefGlobal.readyState === WebSocket.OPEN && sessionIdRefGlobal) {
+      console.log(`[Terminal] Direct input: ${data} (sessionId: ${sessionIdRefGlobal})`);
+      wsRefGlobal.send(JSON.stringify({
+        type: 'terminalInput',
+        sessionId: sessionIdRefGlobal,
+        input: data,
+      }));
+    } else {
+      console.log(`[Terminal] Direct input skipped: ws=${!!wsRefGlobal}, readyState=${wsRefGlobal?.readyState}, sessionId=${sessionIdRefGlobal}`);
+    }
+  };
+}
 
 interface TerminalProps {
   onClose: () => void;
@@ -9,177 +44,302 @@ interface TerminalProps {
 
 export function Terminal({ onClose, onResize }: TerminalProps) {
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [output, setOutput] = useState('');
-  const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
-  const outputRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [isProcessExited, setIsProcessExited] = useState(false);
+  
+  const terminalContainer = useRef<HTMLDivElement>(null);
+  const terminalRef = useRef<XTerm | null>(null);
+  const fitAddon = useRef<FitAddon | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectAttemptsRef = useRef(0);
+  
   const heartbeatTimerRef = useRef<number | null>(null);
   const lastPongRef = useRef<number>(Date.now());
+  const reconnectAttemptRef = useRef(0);
   const reconnectTimerRef = useRef<number | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
 
-  const scrollToBottom = useCallback(() => {
-    if (outputRef.current) {
-      outputRef.current.scrollTop = outputRef.current.scrollHeight;
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+    sessionIdRefGlobal = sessionId;
+  }, [sessionId]);
+
+  useEffect(() => {
+    const initXTerm = () => {
+      if (!terminalContainer.current) return;
+      
+      terminalContainer.current.innerHTML = '';
+      
+      try {
+      fitAddon.current = new FitAddon();
+      
+      terminalRef.current = new XTerm({
+        cursorBlink: true,
+        fontSize: 14,
+        fontFamily: 'JetBrains Mono, Fira Code, Consolas, monospace',
+        allowProposedApi: true,
+        theme: {
+          background: '#1e1e1e',
+          foreground: '#d4d4d4',
+          cursor: '#aeafad',
+          black: '#000000',
+          red: '#f14c4c',
+          green: '#6a9955',
+          yellow: '#dcdcaa',
+          blue: '#569cd6',
+          magenta: '#c586c0',
+          cyan: '#4ec9b0',
+          white: '#d4d4d4',
+          brightBlack: '#666666',
+          brightRed: '#f14c4c',
+          brightGreen: '#6a9955',
+          brightYellow: '#dcdcaa',
+          brightBlue: '#569cd6',
+          brightMagenta: '#c586c0',
+          brightCyan: '#4ec9b0',
+          brightWhite: '#ffffff'
+        }
+      });
+
+      terminalRef.current.loadAddon(fitAddon.current);
+      terminalRef.current.loadAddon(new WebLinksAddon());
+      terminalRef.current.open(terminalContainer.current);
+      
+      console.log('[Terminal] XTerm opened, container size:', {
+        clientWidth: terminalContainer.current.clientWidth,
+        clientHeight: terminalContainer.current.clientHeight,
+        offsetWidth: terminalContainer.current.offsetWidth,
+        offsetHeight: terminalContainer.current.offsetHeight
+      });
+      
+      fitAddon.current.fit();
+      
+      console.log('[Terminal] After fit, terminal size:', {
+        cols: terminalRef.current.cols,
+        rows: terminalRef.current.rows
+      });
+      
+      terminalRef.current.write('Welcome to LapDev Terminal\r\n');
+      
+      const handleData = (data: string) => {
+        console.log('[Terminal] onData fired:', JSON.stringify(data));
+        const currentSessionId = sessionIdRef.current;
+        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN || !currentSessionId) {
+          console.log('[Terminal] handleData skipped: ws=' + !!wsRef.current + ', readyState=' + wsRef.current?.readyState + ', sessionId=' + currentSessionId);
+          return;
+        }
+
+        console.log('[Terminal] Sending input:', data, 'sessionId:', currentSessionId);
+        wsRef.current.send(JSON.stringify({
+          type: 'terminalInput',
+          sessionId: currentSessionId,
+          input: data,
+        }));
+      };
+      
+      terminalRef.current.onData(handleData);
+      
+      console.log('[Terminal] onData handler bound');
+      
+      setTimeout(() => {
+        if (terminalRef.current) {
+          console.log('[Terminal] Focusing terminal');
+          terminalRef.current.focus();
+          console.log('[Terminal] Terminal focus requested');
+        }
+      }, 200);
+    } catch (error) {
+      console.error('[Terminal] XTerm initialization error:', error);
+    }
+    };
+
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        initXTerm();
+      }, 100);
+    });
+
+    const handleResize = () => {
+      fitAddon.current.fit();
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      terminalRef.current?.dispose();
+      terminalRef.current = null;
+      fitAddon.current = null;
+      if (terminalContainer.current) {
+        terminalContainer.current.innerHTML = '';
+      }
+    };
+  }, []);
+
+  const initTerminalSession = useCallback(async (ws: WebSocket) => {
+    try {
+      const currentSession = sessionIdRef.current;
+      
+      if (currentSession) {
+        ws.send(JSON.stringify({
+          type: 'terminalRegister',
+          sessionId: currentSession,
+        }));
+        setIsLoading(false);
+        setIsProcessExited(false);
+        return;
+      }
+      
+      const result = await createTerminal();
+      if (result.status === 'success' && result.sessionId) {
+        const newSessionId = result.sessionId;
+        sessionIdRef.current = newSessionId;
+        setSessionId(newSessionId);
+        setIsLoading(false);
+        setIsProcessExited(false);
+        
+        ws.send(JSON.stringify({
+          type: 'terminalRegister',
+          sessionId: newSessionId,
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to create terminal:', error);
+      terminalRef.current?.write('Failed to connect to terminal.\r\n');
+      setIsLoading(false);
     }
   }, []);
 
-  const wsUrl = WS_URL;
-
   useEffect(() => {
-    const initTerminal = async () => {
-      try {
-        const result = await createTerminal();
-        if (result.status === 'success' && result.sessionId) {
-          setSessionId(result.sessionId);
-          setOutput('');
-          setIsLoading(false);
-          
-          // Initialize WebSocket connection for real-time output
-          connectWebSocket(result.sessionId);
-        }
-      } catch (error) {
-        console.error('Failed to create terminal:', error);
-        setOutput('Failed to connect to terminal');
-        setIsLoading(false);
+    const connectWebSocket = async () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
       }
-    };
 
-    const connectWebSocket = (sid: string) => {
-      const ws = new WebSocket(wsUrl);
+      logTerminal(`Connecting to WebSocket: ${WS_URL}`);
+      const ws = new WebSocket(`${WS_URL}`);
+      ws.binaryType = 'arraybuffer';
       wsRef.current = ws;
+      wsRefGlobal = ws;
 
-      ws.onopen = () => {
-        console.log('WebSocket connected for terminal');
+      ws.onopen = async () => {
+        logTerminal('WebSocket connected');
         setIsConnected(true);
-        reconnectAttemptsRef.current = 0;
+        reconnectAttemptRef.current = 0;
         
-        // Clear any existing heartbeat timer
-        if (heartbeatTimerRef.current) {
-          clearInterval(heartbeatTimerRef.current);
-        }
-        
-        // Start heartbeat - send ping every 30 seconds
         heartbeatTimerRef.current = setInterval(() => {
           if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
-            
-            // Check if we received a pong recently (within 45 seconds)
             const timeSinceLastPong = Date.now() - lastPongRef.current;
             if (timeSinceLastPong > 45000) {
-              console.log('Heartbeat timeout, reconnecting...');
               ws.close();
             }
           }
         }, 30000) as unknown as number;
 
-        ws.send(JSON.stringify({
-          type: 'terminalRegister',
-          sessionId: sid,
-        }));
+        await initTerminalSession(ws);
       };
 
       ws.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data);
+        if (event.data instanceof ArrayBuffer) {
+          const decoder = new TextDecoder('utf-8');
+          const output = decoder.decode(event.data);
           
-          if (message.type === 'pong') {
-            // Update last pong timestamp
-            lastPongRef.current = Date.now();
-          } else if (message.type === 'terminalOutput' && message.output) {
-            setOutput(prev => prev + message.output);
+          console.log(`[Terminal] Received output: ${output.length} bytes`);
+          
+          if (output.includes('[Process exited with code')) {
+            setIsProcessExited(true);
           }
-        } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
+          
+          terminalRef.current?.write(output);
+        } else if (typeof event.data === 'string') {
+          try {
+            const message = JSON.parse(event.data);
+            if (message.type === 'pong') {
+              lastPongRef.current = Date.now();
+            } else if (message.type === 'ping') {
+              ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
+            } else if (message.type === 'terminalRegistered') {
+              console.log(`[Terminal] Terminal registered with session: ${message.sessionId}`);
+            }
+          } catch {
+            terminalRef.current?.write(event.data);
+          }
         }
       };
 
       ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        logTerminal(`WebSocket error: ${error}`);
         setIsConnected(false);
       };
 
-      ws.onclose = () => {
-        console.log('WebSocket disconnected');
+      ws.onclose = (event) => {
+        logTerminal(`WebSocket closed: code=${event.code}, reason=${event.reason}`);
         setIsConnected(false);
         wsRef.current = null;
-        
-        // Clear heartbeat timer
         if (heartbeatTimerRef.current) {
           clearInterval(heartbeatTimerRef.current);
           heartbeatTimerRef.current = null;
         }
         
-        // Attempt to reconnect with exponential backoff
-        if (reconnectAttemptsRef.current < 5) {
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
-          console.log(`Attempting to reconnect in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1})`);
-          
+        if (reconnectAttemptRef.current < 10) {
+          reconnectAttemptRef.current++;
+          const delay = Math.min(1000 * reconnectAttemptRef.current, 10000);
+          logTerminal(`Reconnecting in ${delay}ms (attempt ${reconnectAttemptRef.current})`);
           reconnectTimerRef.current = setTimeout(() => {
-            reconnectAttemptsRef.current++;
-            if (sessionId) {
-              connectWebSocket(sessionId);
-            }
+            connectWebSocket();
           }, delay) as unknown as number;
-        } else {
-          console.log('Max reconnection attempts reached');
-          setOutput(prev => prev + '\nConnection lost. Please refresh the page to reconnect.');
         }
       };
     };
 
-    initTerminal();
+    connectWebSocket();
 
     return () => {
-      // Clear heartbeat and reconnect timers
-      if (heartbeatTimerRef.current) {
-        clearInterval(heartbeatTimerRef.current);
-      }
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
       }
-      
       if (wsRef.current) {
-        wsRef.current.send(JSON.stringify({
-          type: 'terminalUnregister',
-          sessionId,
-        }));
+        const currentSessionId = sessionIdRef.current;
+        if (currentSessionId) {
+          wsRef.current.send(JSON.stringify({
+            type: 'terminalUnregister',
+            sessionId: currentSessionId,
+          }));
+        }
         wsRef.current.close();
+        wsRef.current = null;
       }
-      if (sessionId) {
-        closeTerminal(sessionId);
+      if (heartbeatTimerRef.current) {
+        clearInterval(heartbeatTimerRef.current);
+        heartbeatTimerRef.current = null;
       }
+      const currentSessionId = sessionIdRef.current;
+      if (currentSessionId) {
+        closeTerminal(currentSessionId);
+      }
+      reconnectAttemptRef.current = 0;
     };
-  }, [wsUrl]);
+  }, [initTerminalSession]);
+
+  const handleRestart = useCallback(() => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      initTerminalSession(wsRef.current);
+    }
+  }, [initTerminalSession]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [output, scrollToBottom]);
+    const focusInterval = setInterval(() => {
+      if (terminalRef.current) {
+        terminalRef.current.focus();
+      }
+    }, 500);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || !sessionId) return;
-
-    const command = input;
-    setInput('');
-    setOutput(prev => prev + `\n$ ${command}`);
-
-    try {
-      await sendCommand(sessionId, command);
-    } catch (error) {
-      setOutput(prev => prev + `\nError: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(e);
-    }
-  };
+    return () => {
+      clearInterval(focusInterval);
+    };
+  }, []);
 
   return (
     <div className="terminal" data-testid="terminal-panel">
@@ -215,33 +375,18 @@ export function Terminal({ onClose, onResize }: TerminalProps) {
       </div>
       
       <div className="terminal-body">
-        <div className="terminal-output" ref={outputRef} data-testid="terminal-output">
-          {isLoading ? (
-            <span className="loading">Connecting to terminal...</span>
-          ) : output || (
-            <span className="prompt">$ </span>
-          )}
-          {!isLoading && !output && (
-            <span className="prompt">$ </span>
-          )}
-        </div>
+        <div ref={terminalContainer} className="terminal-xterm" data-testid="terminal-output" />
         
-        <form onSubmit={handleSubmit} className="terminal-input-form">
-          <span className="input-prompt">$</span>
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={isLoading || !sessionId}
-            className="terminal-input"
-            data-testid="terminal-input"
-            placeholder="Type a command..."
-            autoComplete="off"
-            spellCheck={false}
-          />
-        </form>
+        {isProcessExited && (
+          <div className="terminal-restart-overlay">
+            <div className="terminal-restart-message">
+              <p>Terminal session has ended</p>
+              <button className="terminal-restart-btn" onClick={handleRestart}>
+                Restart Terminal
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

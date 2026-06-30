@@ -13,12 +13,17 @@ interface CommandResponse {
 }
 
 export async function createTerminal(): Promise<CreateTerminalResponse> {
-  const response = await fetch(`${API_URL}/api/v1/terminal/create`, {
+  const url = `${API_URL}/api/v1/terminal/create`;
+  console.log('[terminalService] createTerminal URL:', url);
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
   });
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
   return await response.json();
 }
 

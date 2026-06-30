@@ -11,6 +11,16 @@ import { InlineCompletionProvider } from './context/InlineCompletionContext';
 import { SkillProvider } from './context/SkillContext';
 import { LSPProvider } from './context/LSPContext';
 
+window.addEventListener('error', (e) => {
+  console.error('[Global Error]', e.error, e.message, e.filename, e.lineno);
+});
+
+window.addEventListener('unhandledrejection', (e) => {
+  console.error('[Global Unhandled Rejection]', e.reason);
+});
+
+console.log('[App] Starting...');
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>

@@ -139,7 +139,7 @@ deno test --allow-all tests/api/ai.test.ts || log_error "API 测试失败"
 log_info ""
 log_info "5. E2E 测试"
 log_info "----------------------------------------"
-playwright test tests/e2e/ || log_error "E2E 测试失败"
+npx playwright test tests/e2e/ || log_error "E2E 测试失败"
 
 log_info ""
 log_info "========================================"

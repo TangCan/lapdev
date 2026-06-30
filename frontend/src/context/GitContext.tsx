@@ -82,7 +82,7 @@ export function GitProvider({ children }: { children: ReactNode }) {
         wsRef.current.close();
       }
 
-      const ws = new WebSocket(`${WS_URL}/ws`);
+      const ws = new WebSocket(`${WS_URL}`);
       wsRef.current = ws;
 
       ws.onopen = () => {

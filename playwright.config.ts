@@ -26,7 +26,7 @@ export default defineConfig({
     command: 'cd frontend && npm run dev -- --host 0.0.0.0 --port 5173 --strictPort',
     url: 'http://localhost:5173',
     timeout: 120000,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true,
     stdout: 'pipe',
     stderr: 'pipe',
   },

@@ -13,7 +13,8 @@ import {
   handleCreateTerminal,
   handleTerminalCommand,
   handleTerminalResize,
-  handleCloseTerminal
+  handleCloseTerminal,
+  handleTerminalOutput
 } from './handlers/terminalHandler.ts';
 import {
   handleGitStatus,
@@ -112,7 +113,7 @@ async function handleRequest(req: Request): Promise<Response> {
   const origin = req.headers.get('Origin');
   
   // WebSocket upgrade
-  if (req.headers.get('upgrade') === 'websocket') {
+  if (req.headers.get('upgrade') === 'websocket' && url.pathname === '/ws') {
     const { socket, response } = Deno.upgradeWebSocket(req);
     handleWebSocket(socket as unknown as WebSocket);
     return response;
@@ -218,6 +219,13 @@ async function handleRequest(req: Request): Promise<Response> {
     case '/api/v1/terminal/close':
       if (req.method === 'POST') {
         response = await handleCloseTerminal(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/terminal/output':
+      if (req.method === 'GET') {
+        response = await handleTerminalOutput(req);
       } else {
         response = new Response('Method Not Allowed', { status: 405 });
       }
@@ -461,7 +469,9 @@ async function handleRequest(req: Request): Promise<Response> {
 }
 
 // Static file serving for frontend
-const FRONTEND_DIST = './frontend/dist';
+// Use absolute path based on current file location to work from any directory
+const __dirname = new URL('.', import.meta.url).pathname;
+const FRONTEND_DIST = join(__dirname, '../../frontend/dist');
 
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html',
@@ -497,7 +507,9 @@ async function serveStaticFiles(pathname: string): Promise<Response> {
         const ext = extname(indexPath);
         const contentType = MIME_TYPES[ext] || 'text/html';
         return new Response(content, {
-          headers: { 'Content-Type': contentType }
+          headers: { 
+            'Content-Type': contentType
+          }
         });
       } catch {
         // Directory without index.html - serve 404
@@ -509,8 +521,12 @@ async function serveStaticFiles(pathname: string): Promise<Response> {
     const ext = extname(fullPath);
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
     
+    const headers: Record<string, string> = { 
+      'Content-Type': contentType
+    };
+    
     return new Response(content, {
-      headers: { 'Content-Type': contentType }
+      headers
     });
   } catch {
     // File not found - try index.html for SPA routing
@@ -518,7 +534,9 @@ async function serveStaticFiles(pathname: string): Promise<Response> {
       const indexPath = join(FRONTEND_DIST, 'index.html');
       const content = await Deno.readFile(indexPath);
       return new Response(content, {
-        headers: { 'Content-Type': 'text/html' }
+        headers: { 
+          'Content-Type': 'text/html'
+        }
       });
     } catch {
       return new Response('Not Found', { status: 404 });

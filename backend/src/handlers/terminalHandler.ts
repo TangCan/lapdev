@@ -5,14 +5,17 @@ interface TerminalSession {
   process: Deno.ChildProcess;
   outputBuffer: string;
   stdinWriter?: WritableStreamDefaultWriter<Uint8Array>;
+  pendingOutput: string[];
 }
 
 const sessions = new Map<string, TerminalSession>();
 
 export async function handleCreateTerminal(_req: Request): Promise<Response> {
+  console.log('[handleCreateTerminal] Received request');
   const sessionId = crypto.randomUUID();
-  
-  const command = new Deno.Command('bash', {
+
+  const command = new Deno.Command('script', {
+    args: ['-q', '-c', 'bash', '/dev/null'],
     stdin: 'piped',
     stdout: 'piped',
     stderr: 'piped',
@@ -20,6 +23,7 @@ export async function handleCreateTerminal(_req: Request): Promise<Response> {
     env: {
       ...Deno.env.toObject(),
       TERM: 'xterm-256color',
+      PS1: '\\u@\\h:\\w\\$ ',
     },
   });
 
@@ -30,37 +34,33 @@ export async function handleCreateTerminal(_req: Request): Promise<Response> {
     process,
     outputBuffer: '',
     stdinWriter: process.stdin.getWriter(),
+    pendingOutput: [],
   };
 
   sessions.set(sessionId, session);
 
-  // Read stdout and send to WebSocket
   (async () => {
-    const decoder = new TextDecoder();
+    const decoder = new TextDecoder('utf-8');
     const reader = process.stdout.getReader();
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
-      const output = decoder.decode(value);
-      session.outputBuffer += output;
-      await sendTerminalOutput(sessionId, output);
+      const output = decoder.decode(value, { stream: true });
+      await sendOrBufferOutput(sessionId, output);
     }
   })();
 
-  // Read stderr and send to WebSocket
   (async () => {
-    const decoder = new TextDecoder();
+    const decoder = new TextDecoder('utf-8');
     const reader = process.stderr.getReader();
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
-      const output = decoder.decode(value);
-      session.outputBuffer += output;
-      await sendTerminalOutput(sessionId, output);
+      const output = decoder.decode(value, { stream: true });
+      await sendOrBufferOutput(sessionId, output);
     }
   })();
 
-  // Handle process exit
   process.status.then(async (status) => {
     sessions.delete(sessionId);
     await sendTerminalOutput(sessionId, `\n[Process exited with code ${status.code}]`);
@@ -73,6 +73,40 @@ export async function handleCreateTerminal(_req: Request): Promise<Response> {
   }), {
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+async function sendOrBufferOutput(sessionId: string, output: string): Promise<void> {
+  const session = sessions.get(sessionId);
+  if (!session) return;
+
+  session.outputBuffer += output;
+
+  const ws = await import('../websocket/fileWatcher.ts').then(m => m.getTerminalClient(sessionId));
+  if (ws) {
+    if (session.pendingOutput.length > 0) {
+      for (const pending of session.pendingOutput) {
+        await sendTerminalOutput(sessionId, pending);
+      }
+      session.pendingOutput = [];
+    }
+    await sendTerminalOutput(sessionId, output);
+  } else {
+    session.pendingOutput.push(output);
+    console.log(`[sendOrBufferOutput] Buffered ${output.length} bytes for session ${sessionId}`);
+  }
+}
+
+export async function flushPendingOutput(sessionId: string): Promise<void> {
+  const session = sessions.get(sessionId);
+  if (!session) return;
+
+  if (session.pendingOutput.length > 0) {
+    for (const output of session.pendingOutput) {
+      await sendTerminalOutput(sessionId, output);
+    }
+    console.log(`[flushPendingOutput] Flushed ${session.pendingOutput.length} pending messages for session ${sessionId}`);
+    session.pendingOutput = [];
+  }
 }
 
 export async function handleTerminalCommand(req: Request): Promise<Response> {
@@ -158,8 +192,6 @@ export async function handleTerminalResize(req: Request): Promise<Response> {
     }
 
     try {
-      // Send SIGWINCH signal to notify terminal of window size change
-      // Deno.kill requires --allow-run permission
       Deno.kill(session.process.pid, "SIGWINCH");
       console.log(`Resized terminal ${sessionId} to ${cols}x${rows}`);
     } catch (error) {
@@ -221,13 +253,66 @@ export async function handleCloseTerminal(req: Request): Promise<Response> {
       });
     }
 
-    session.process.stdin?.close();
+    try {
+      if (session.stdinWriter) {
+        session.stdinWriter.releaseLock();
+      }
+      session.process.stdin?.close();
+    } catch {
+      // Ignore - stream may already be closed or locked
+    }
     session.process.kill('SIGTERM');
     sessions.delete(sessionId);
 
     return new Response(JSON.stringify({
       status: 'success',
       message: 'Terminal session closed',
+    }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    }), {
+      headers: { 'Content-Type': 'application/json' },
+      status: 500,
+    });
+  }
+}
+
+export async function handleTerminalOutput(req: Request): Promise<Response> {
+  try {
+    const url = new URL(req.url);
+    const sessionId = url.searchParams.get('sessionId');
+
+    if (!sessionId) {
+      return new Response(JSON.stringify({
+        status: 'error',
+        message: 'sessionId is required',
+      }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 400,
+      });
+    }
+
+    const session = sessions.get(sessionId);
+    if (!session) {
+      return new Response(JSON.stringify({
+        status: 'error',
+        message: 'Session not found',
+      }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 400,
+      });
+    }
+
+    const output = session.outputBuffer;
+    session.outputBuffer = '';
+
+    return new Response(JSON.stringify({
+      status: 'success',
+      output,
     }), {
       headers: { 'Content-Type': 'application/json' },
     });

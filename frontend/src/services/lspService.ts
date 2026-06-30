@@ -32,7 +32,7 @@ export interface LspCompletionItem {
   sortText?: string;
 }
 
-const API_BASE_URL = `${API_URL}/api/v1/lsp`;
+const API_BASE_URL = `${API_URL}/v1/lsp`;
 
 class LspService {
   private diagnostics: Map<string, LspDiagnostic[]> = new Map();

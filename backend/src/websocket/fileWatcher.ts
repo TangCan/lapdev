@@ -64,16 +64,18 @@ export function unregisterTerminalClient(sessionId: string): void {
 
 export async function sendTerminalOutput(sessionId: string, output: string): Promise<void> {
   const ws = terminalClients.get(sessionId);
+  console.log(`[sendTerminalOutput] sessionId: ${sessionId}, ws exists: ${!!ws}, output length: ${output.length}`);
   if (ws) {
     try {
-      await ws.send(JSON.stringify({
-        type: 'terminalOutput',
-        sessionId,
-        output,
-      }));
-    } catch {
+      const encoder = new TextEncoder();
+      await ws.send(encoder.encode(output));
+      console.log(`[sendTerminalOutput] Sent ${output.length} bytes`);
+    } catch (e) {
+      console.error(`[sendTerminalOutput] Send error: ${e instanceof Error ? e.message : e}`);
       terminalClients.delete(sessionId);
     }
+  } else {
+    console.log(`[sendTerminalOutput] No WebSocket for session ${sessionId}`);
   }
 }
 
@@ -136,11 +138,15 @@ export function handleWebSocket(ws: WebSocket): void {
         case 'terminalRegister':
           // Register WebSocket connection for terminal output
           if (message.sessionId) {
+            console.log(`[terminalRegister] Received for session ${message.sessionId}`);
             registerTerminalClient(message.sessionId, ws);
+            const { flushPendingOutput } = await import('../handlers/terminalHandler.ts');
+            flushPendingOutput(message.sessionId);
             await ws.send(JSON.stringify({
               type: 'terminalRegistered',
               sessionId: message.sessionId,
             }));
+            console.log(`[terminalRegister] Completed for session ${message.sessionId}`);
           }
           break;
         case 'terminalInput':
