@@ -14,8 +14,8 @@ export async function handleCreateTerminal(_req: Request): Promise<Response> {
   console.log('[handleCreateTerminal] Received request');
   const sessionId = crypto.randomUUID();
 
-  const command = new Deno.Command('script', {
-    args: ['-q', '-c', 'bash', '/dev/null'],
+  const command = new Deno.Command('/usr/bin/script', {
+    args: ['-qc', '/bin/bash -i', '/dev/null'],
     stdin: 'piped',
     stdout: 'piped',
     stderr: 'piped',
@@ -23,7 +23,9 @@ export async function handleCreateTerminal(_req: Request): Promise<Response> {
     env: {
       ...Deno.env.toObject(),
       TERM: 'xterm-256color',
-      PS1: '\\u@\\h:\\w\\$ ',
+      PS1: '\\[\\033[01;32m\\]\\u@\\h\\[\\033[00m\\]:\\[\\033[01;34m\\]\\w\\[\\033[00m\\]\\$ ',
+      COLUMNS: '120',
+      LINES: '24',
     },
   });
 
@@ -38,6 +40,8 @@ export async function handleCreateTerminal(_req: Request): Promise<Response> {
   };
 
   sessions.set(sessionId, session);
+
+  
 
   (async () => {
     const decoder = new TextDecoder('utf-8');

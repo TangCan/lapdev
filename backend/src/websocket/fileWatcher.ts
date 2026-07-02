@@ -136,12 +136,11 @@ export function handleWebSocket(ws: WebSocket): void {
           }));
           break;
         case 'terminalRegister':
-          // Register WebSocket connection for terminal output
           if (message.sessionId) {
             console.log(`[terminalRegister] Received for session ${message.sessionId}`);
             registerTerminalClient(message.sessionId, ws);
             const { flushPendingOutput } = await import('../handlers/terminalHandler.ts');
-            flushPendingOutput(message.sessionId);
+            await flushPendingOutput(message.sessionId);
             await ws.send(JSON.stringify({
               type: 'terminalRegistered',
               sessionId: message.sessionId,

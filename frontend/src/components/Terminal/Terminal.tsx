@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
-import { createTerminal, closeTerminal } from '../../services/terminalService';
+import { createTerminal, closeTerminal, resizeTerminal } from '../../services/terminalService';
 import { WS_URL } from '../../config';
 import '@xterm/xterm/css/xterm.css';
 
@@ -119,8 +119,6 @@ export function Terminal({ onClose, onResize }: TerminalProps) {
         rows: terminalRef.current.rows
       });
       
-      terminalRef.current.write('Welcome to LapDev Terminal\r\n');
-      
       const handleData = (data: string) => {
         console.log('[Terminal] onData fired:', JSON.stringify(data));
         const currentSessionId = sessionIdRef.current;
@@ -142,12 +140,22 @@ export function Terminal({ onClose, onResize }: TerminalProps) {
       console.log('[Terminal] onData handler bound');
       
       setTimeout(() => {
+        if (terminalRef.current && fitAddon.current) {
+          fitAddon.current.fit();
+          console.log('[Terminal] After fit:', {
+            cols: terminalRef.current.cols,
+            rows: terminalRef.current.rows
+          });
+        }
+      }, 500);
+      
+      setTimeout(() => {
         if (terminalRef.current) {
           console.log('[Terminal] Focusing terminal');
           terminalRef.current.focus();
           console.log('[Terminal] Terminal focus requested');
         }
-      }, 200);
+      }, 700);
     } catch (error) {
       console.error('[Terminal] XTerm initialization error:', error);
     }
@@ -261,6 +269,24 @@ export function Terminal({ onClose, onResize }: TerminalProps) {
               ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
             } else if (message.type === 'terminalRegistered') {
               console.log(`[Terminal] Terminal registered with session: ${message.sessionId}`);
+              setTimeout(async () => {
+                if (fitAddon.current) {
+                  fitAddon.current.fit();
+                  console.log('[Terminal] fit() called after registration');
+                }
+                if (terminalRef.current) {
+                  const cols = terminalRef.current.cols;
+                  const rows = terminalRef.current.rows;
+                  console.log(`[Terminal] Resizing terminal to ${cols}x${rows}`);
+                  await resizeTerminal(message.sessionId, cols, rows);
+                }
+                terminalRef.current?.write('\x1b[32mWelcome to LapDev Terminal\x1b[0m\r\n');
+                ws.send(JSON.stringify({
+                  type: 'terminalInput',
+                  sessionId: message.sessionId,
+                  input: '\r\n',
+                }));
+              }, 300);
             }
           } catch {
             terminalRef.current?.write(event.data);
