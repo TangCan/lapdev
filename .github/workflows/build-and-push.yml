@@ -99,12 +99,12 @@ jobs:
 
       - name: Run container
         run: |
-          docker run -d --name lapdev-test -p 8080:8080 -p 3000:3000 \
+          docker run -d --name lapdev-test -p 3333:3333 \
             ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
           sleep 30
 
       - name: Health check
         run: |
-          curl -f http://localhost:8080/health || curl -f http://localhost:3000/health
+          curl -f http://localhost:3333/health
           docker stop lapdev-test
           docker rm lapdev-test
