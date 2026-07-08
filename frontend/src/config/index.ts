@@ -1,8 +1,8 @@
+export const BACKEND_PORT = parseInt(import.meta.env.VITE_BACKEND_PORT || '3333');
+
 export const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export const WS_URL = import.meta.env.VITE_WS_URL || '/ws';
-
-export const BACKEND_PORT = parseInt(import.meta.env.VITE_BACKEND_PORT || '3333');
 
 export const FRONTEND_PORT = parseInt(import.meta.env.VITE_PORT || '5173');
 

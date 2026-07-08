@@ -477,17 +477,63 @@ body {
 }
 
 .terminal-tab {
-  padding: 4px 12px;
+  padding: 4px 8px;
   background-color: #21262d;
   border-radius: 4px 4px 0 0;
   font-size: 12px;
   color: #8b949e;
   cursor: pointer;
   transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.terminal-tab:hover {
+  background-color: #30363d;
 }
 
 .terminal-tab.active {
   background-color: #0d1117;
+  color: #c9d1d9;
+}
+
+.terminal-tab-close {
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: transparent;
+  color: #8b949e;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.terminal-tab-close:hover {
+  background-color: #30363d;
+  color: #c9d1d9;
+}
+
+.terminal-tab-add {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background-color: #21262d;
+  color: #8b949e;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 4px 4px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.terminal-tab-add:hover {
+  background-color: #30363d;
   color: #c9d1d9;
 }
 
@@ -640,6 +686,72 @@ body {
 
 .terminal-restart-btn:hover {
   background-color: #2ea043;
+}
+
+.terminal-tab-content {
+  display: none;
+  flex: 1;
+  overflow: hidden;
+}
+
+.terminal-tab-content.active {
+  display: flex;
+}
+
+.terminal-context-menu {
+  position: absolute;
+  background-color: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 4px;
+  min-width: 160px;
+  z-index: 1000;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.terminal-context-menu-item {
+  padding: 6px 12px;
+  font-size: 13px;
+  color: #c9d1d9;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.terminal-context-menu-item:hover {
+  background-color: #30363d;
+}
+
+.terminal-context-menu-item.disabled {
+  color: #6e7681;
+  cursor: not-allowed;
+}
+
+.terminal-context-menu-item.disabled:hover {
+  background-color: transparent;
+}
+
+.terminal-context-menu-divider {
+  height: 1px;
+  background-color: #30363d;
+  margin: 4px 0;
+}
+
+.terminal-rename-input {
+  padding: 4px 8px;
+  background-color: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  color: #c9d1d9;
+  font-size: 13px;
+  width: 100%;
+  outline: none;
+}
+
+.terminal-rename-input:focus {
+  border-color: #58a6ff;
 }
 
 /* Git Styles */

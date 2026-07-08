@@ -29,27 +29,7 @@ function IDE() {
   const [isFormatting, setIsFormatting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showTerminal, setShowTerminal] = useState(false);
-  const [buttonClicked, setButtonClicked] = useState(false);
   
-  useEffect(() => {
-    console.log('[IDE] Component mounted, showTerminal:', showTerminal);
-    const btn = document.querySelector('[data-testid="terminal-button"]');
-    if (btn) {
-      console.log('[IDE] Terminal button found:', btn);
-    } else {
-      console.log('[IDE] Terminal button NOT found');
-    }
-  }, []);
-  
-  useEffect(() => {
-    console.log('[IDE] showTerminal state changed:', showTerminal);
-    const panel = document.querySelector('[data-testid="terminal-panel"]');
-    if (panel) {
-      console.log('[IDE] Terminal panel found, hidden:', panel.classList.contains('hidden'));
-    } else {
-      console.log('[IDE] Terminal panel NOT found');
-    }
-  }, [showTerminal]);
   const [showGitPanel, setShowGitPanel] = useState(false);
   const [showProblemsPanel, setShowProblemsPanel] = useState(false);
   const [terminalHeight, setTerminalHeight] = useState(300);
@@ -324,18 +304,15 @@ function IDE() {
             ⚠️ 问题
           </button>
           <button 
-        className={`action-button ${showTerminal ? 'active' : ''} ${buttonClicked ? 'clicked' : ''}`}
-        onClick={(e) => {
-          console.log('[IDE] Terminal button clicked, showTerminal:', showTerminal);
-          e.stopPropagation();
-          setButtonClicked(true);
-          setShowTerminal(!showTerminal);
-          setTimeout(() => setButtonClicked(false), 200);
-        }}
-        data-testid="terminal-button"
-      >
-        🖥️ 终端
-      </button>
+            className={`action-button ${showTerminal ? 'active' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowTerminal(!showTerminal);
+            }}
+            data-testid="terminal-button"
+          >
+            🖥️ 终端
+          </button>
           <Link 
             to="/settings" 
             className="action-button"

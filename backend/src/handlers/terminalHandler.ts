@@ -19,7 +19,7 @@ export async function handleCreateTerminal(_req: Request): Promise<Response> {
     stdin: 'piped',
     stdout: 'piped',
     stderr: 'piped',
-    cwd: Deno.env.get('WORKSPACE_DIR') || Deno.cwd(),
+    cwd: Deno.env.get('WORKSPACE_PATH') || Deno.cwd(),
     env: {
       ...Deno.env.toObject(),
       TERM: 'xterm-256color',
@@ -83,7 +83,8 @@ async function sendOrBufferOutput(sessionId: string, output: string): Promise<vo
   const session = sessions.get(sessionId);
   if (!session) return;
 
-  session.outputBuffer += output;
+  const displayOutput = output.replace(/[\x00-\x1F\x7F-\xFF]/g, c => `\\x${c.charCodeAt(0).toString(16).padStart(2, '0')}`);
+  console.log(`[sendOrBufferOutput] sessionId: ${sessionId}, raw output length: ${output.length}, display: "${displayOutput.substring(0, 80)}${displayOutput.length > 80 ? '...' : ''}"`);
 
   const ws = await import('../websocket/fileWatcher.ts').then(m => m.getTerminalClient(sessionId));
   if (ws) {
@@ -93,10 +94,14 @@ async function sendOrBufferOutput(sessionId: string, output: string): Promise<vo
       }
       session.pendingOutput = [];
     }
+    if (session.outputBuffer.length > 0) {
+      await sendTerminalOutput(sessionId, session.outputBuffer);
+      session.outputBuffer = '';
+    }
     await sendTerminalOutput(sessionId, output);
   } else {
-    session.pendingOutput.push(output);
-    console.log(`[sendOrBufferOutput] Buffered ${output.length} bytes for session ${sessionId}`);
+    session.outputBuffer += output;
+    console.log(`[sendOrBufferOutput] Buffered ${output.length} bytes for session ${sessionId}, total buffer: ${session.outputBuffer.length}`);
   }
 }
 
@@ -110,6 +115,12 @@ export async function flushPendingOutput(sessionId: string): Promise<void> {
     }
     console.log(`[flushPendingOutput] Flushed ${session.pendingOutput.length} pending messages for session ${sessionId}`);
     session.pendingOutput = [];
+  }
+
+  if (session.outputBuffer.length > 0) {
+    await sendTerminalOutput(sessionId, session.outputBuffer);
+    console.log(`[flushPendingOutput] Flushed ${session.outputBuffer.length} bytes from outputBuffer for session ${sessionId}`);
+    session.outputBuffer = '';
   }
 }
 
