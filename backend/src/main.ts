@@ -53,6 +53,7 @@ import {
 } from './handlers/aiHandler.ts';
 import { handleBMADInstall, handleBMADStatus, handleBMADUpgrade } from './handlers/bmadHandler.ts';
 import { handleSkillLoad, handleSkillMatch, handleSkillRegister, handleSkillList } from './handlers/skillHandler.ts';
+import { handleAgentReadFile, handleAgentListFiles, handleAgentSearchCode } from './handlers/agentHandler.ts';
 import { join, extname } from 'https://deno.land/std@0.224.0/path/mod.ts';
 import { PORT, ALLOWED_ORIGINS } from './config/index.ts';
 
@@ -464,6 +465,27 @@ async function handleRequest(req: Request): Promise<Response> {
     case '/api/v1/skills/register':
       if (req.method === 'POST') {
         response = await handleSkillRegister(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/agent/read-file':
+      if (req.method === 'POST') {
+        response = await handleAgentReadFile(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/agent/list-files':
+      if (req.method === 'POST') {
+        response = await handleAgentListFiles(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/agent/search-code':
+      if (req.method === 'POST') {
+        response = await handleAgentSearchCode(req);
       } else {
         response = new Response('Method Not Allowed', { status: 405 });
       }

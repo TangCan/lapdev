@@ -6,6 +6,8 @@ import { useSkillMatch } from '../../hooks/useSkillMatch';
 import { AgentModeToggle } from './AgentModeToggle';
 import { parseContextReferences } from '../../utils/chatContextParser';
 import { SkillPanel } from '../SkillPanel/SkillPanel';
+import { useAgent } from '../../context/AgentContext';
+import { agentService } from '../../services/agentService';
 import './AIChatPanel.css';
 
 interface MessageBubbleProps {
@@ -58,7 +60,14 @@ const AIChatPanel: React.FC = () => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showActivationNotification, setShowActivationNotification] = useState(false);
   const [activatedSkills, setActivatedSkills] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Array<{ filePath: string; lineNumber: number; snippet: string }>>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showAgentWarning, setShowAgentWarning] = useState(false);
+  const [lastReadFiles, setLastReadFiles] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const { isAgentMode, addLogEntry } = useAgent();
 
   const MAX_INPUT_LENGTH = 10000;
 
@@ -82,21 +91,60 @@ const AIChatPanel: React.FC = () => {
       return;
     }
 
-    // 技能匹配和激活
+    if (!isAgentMode && inputValue.toLowerCase().includes('read') && inputValue.toLowerCase().includes('file')) {
+      setShowAgentWarning(true);
+      setTimeout(() => setShowAgentWarning(false), 3000);
+      return;
+    }
+
+    const fileContexts: Array<{ type: string; path: string; content?: string }> = [];
+
+    if (isAgentMode) {
+      try {
+        const activeEditor = document.querySelector('[data-testid="code-editor"]');
+        if (activeEditor) {
+          const fileTabs = document.querySelectorAll('[data-testid^="file-tab-item-"]');
+          fileTabs.forEach(tab => {
+            const tabTitle = tab.textContent?.trim();
+            if (tabTitle && tabTitle !== '+' && tab.classList.contains('active')) {
+              fileContexts.push({ type: 'file', path: tabTitle });
+            }
+          });
+        }
+
+        for (const ctx of fileContexts) {
+          try {
+            const content = await agentService.readFile(ctx.path);
+            ctx.content = content;
+            addLogEntry({
+              operationType: 'read',
+              filePath: ctx.path,
+              result: 'success',
+              details: '读取文件成功',
+            });
+            setLastReadFiles(prev => [...new Set([...prev, ctx.path])]);
+          } catch {
+            addLogEntry({
+              operationType: 'read',
+              filePath: ctx.path,
+              result: 'failed',
+              details: '读取文件失败',
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Agent file reading error:', err);
+      }
+    }
+
     try {
-      console.log('Starting skill matching for:', inputValue);
       const matchingSkills = matchAndActivate({ text: inputValue });
-      console.log('Matching skills found:', matchingSkills);
       const matchedSkillIds = matchingSkills.map(s => s.id).filter(Boolean) as string[];
-      console.log('Matched skill IDs:', matchedSkillIds);
       
       if (matchedSkillIds.length > 0) {
         setActivatedSkills(matchedSkillIds);
         setShowActivationNotification(true);
-        console.log('Showing activation notification');
         setTimeout(() => setShowActivationNotification(false), 5000);
-      } else {
-        console.log('No skills matched');
       }
     } catch (err) {
       console.warn('Skill matching error:', err);
@@ -104,6 +152,7 @@ const AIChatPanel: React.FC = () => {
 
     try {
       const contexts = await parseContextReferences(inputValue);
+      contexts.push(...fileContexts);
       await sendMessage(inputValue, contexts);
       setInputValue('');
     } catch (err) {
@@ -126,6 +175,45 @@ const AIChatPanel: React.FC = () => {
 
   const handleInsertSelection = () => {
     setInputValue(prev => prev + '@selection');
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim() || !isAgentMode) return;
+
+    setIsSearching(true);
+    setShowAgentWarning(false);
+
+    try {
+      const results = await agentService.searchCode(searchQuery);
+      setSearchResults(results);
+      addLogEntry({
+        operationType: 'search',
+        filePath: searchQuery,
+        result: 'success',
+        details: `搜索到 ${results.length} 个匹配项`,
+      });
+    } catch (err) {
+      console.error('Search error:', err);
+      addLogEntry({
+        operationType: 'search',
+        filePath: searchQuery,
+        result: 'failed',
+        details: '搜索失败',
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setSearchResults([]);
   };
 
   const handleClearConfirm = () => {
@@ -186,10 +274,64 @@ const AIChatPanel: React.FC = () => {
           </div>
         )}
 
+        {/* Agent Mode Warning */}
+        {showAgentWarning && (
+          <div className="agent-mode-warning" data-testid="agent-mode-warning">
+            ⚠️ 请先开启Agent模式才能读取文件
+          </div>
+        )}
+
         {/* Skill Activation Notification */}
         {showActivationNotification && (
           <div className="skill-activation-notification" data-testid="skill-activation-notification">
             💡 已自动激活 {activatedSkills.length} 个Skill: {activatedSkills.join(', ')}
+          </div>
+        )}
+
+        {/* Agent Search Bar */}
+        {isAgentMode && (
+          <div className="agent-search-bar">
+            <input
+              type="text"
+              className="search-input"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              placeholder="搜索代码..."
+              disabled={isSearching}
+              data-testid="agent-search-input"
+            />
+            <button
+              className={`search-btn ${isSearching ? 'disabled' : ''}`}
+              onClick={handleSearch}
+              disabled={isSearching || !searchQuery.trim()}
+            >
+              🔍
+            </button>
+            {searchResults.length > 0 && (
+              <button className="clear-search-btn" onClick={handleClearSearch}>
+                ✕
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Search Results */}
+        {searchResults.length > 0 && (
+          <div className="search-results" data-testid="search-results">
+            <div className="search-results-header">
+              <span>搜索结果 ({searchResults.length})</span>
+              <button onClick={handleClearSearch}>关闭</button>
+            </div>
+            <div className="search-results-list">
+              {searchResults.slice(0, 20).map((result, index) => (
+                <div key={index} className="search-result-item">
+                  <span className="result-file">{result.filePath}</span>
+                  <span className="result-line">第 {result.lineNumber} 行</span>
+                  <span className="result-snippet">{result.snippet}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
