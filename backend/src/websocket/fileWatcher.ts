@@ -67,9 +67,13 @@ export async function sendTerminalOutput(sessionId: string, output: string): Pro
   console.log(`[sendTerminalOutput] sessionId: ${sessionId}, ws exists: ${!!ws}, output length: ${output.length}`);
   if (ws) {
     try {
-      const encoder = new TextEncoder();
-      await ws.send(encoder.encode(output));
-      console.log(`[sendTerminalOutput] Sent ${output.length} bytes`);
+      const message = JSON.stringify({
+        type: 'terminalOutput',
+        sessionId,
+        output,
+      });
+      await ws.send(message);
+      console.log(`[sendTerminalOutput] Sent ${output.length} bytes with sessionId: ${sessionId}`);
     } catch (e) {
       console.error(`[sendTerminalOutput] Send error: ${e instanceof Error ? e.message : e}`);
       terminalClients.delete(sessionId);

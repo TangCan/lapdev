@@ -147,6 +147,7 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
     y: number;
     tabId: string;
   } | null>(null);
+  const [lastTabWarning, setLastTabWarning] = useState(false);
   
   const wsRef = useRef<WebSocket | null>(null);
   const heartbeatTimerRef = useRef<number | null>(null);
@@ -278,26 +279,7 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
     };
 
     ws.onmessage = (event) => {
-      if (event.data instanceof ArrayBuffer) {
-        const decoder = new TextDecoder('utf-8');
-        const output = decoder.decode(event.data);
-        
-        let targetTab = tabsRef.current.find(t => t.id === activeTabId);
-        if (!targetTab && tabsRef.current.length > 0) {
-          targetTab = tabsRef.current[0];
-        }
-        
-        if (targetTab) {
-          const terminal = terminalRefs.current[targetTab.id];
-          if (terminal) {
-            terminal.write(output);
-            terminalOutputCache.current[targetTab.id] = (terminalOutputCache.current[targetTab.id] || '') + output;
-            if (output.includes('[Process exited with code')) {
-              dispatch({ type: 'SET_PROCESS_EXITED', tabId: targetTab.id, exited: true });
-            }
-          }
-        }
-      } else if (typeof event.data === 'string') {
+      if (typeof event.data === 'string') {
         try {
           const message = JSON.parse(event.data);
           if (message.type === 'pong') {
@@ -327,6 +309,18 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
                 }));
               }
             }, 300);
+          } else if (message.type === 'terminalOutput') {
+            const tab = tabsRef.current.find(t => t.sessionId === message.sessionId);
+            if (tab) {
+              const terminal = terminalRefs.current[tab.id];
+              if (terminal) {
+                terminal.write(message.output);
+                terminalOutputCache.current[tab.id] = (terminalOutputCache.current[tab.id] || '') + message.output;
+                if (message.output.includes('[Process exited with code')) {
+                  dispatch({ type: 'SET_PROCESS_EXITED', tabId: tab.id, exited: true });
+                }
+              }
+            }
           }
         } catch {
           const activeTab = tabsRef.current.find(t => t.id === activeTabId);
@@ -334,6 +328,26 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
             const terminal = terminalRefs.current[activeTab.id];
             terminal?.write(event.data);
             terminalOutputCache.current[activeTab.id] = (terminalOutputCache.current[activeTab.id] || '') + event.data;
+          }
+        }
+      } else if (event.data instanceof ArrayBuffer) {
+        const decoder = new TextDecoder('utf-8');
+        const output = decoder.decode(event.data);
+        console.warn('[Terminal] Received binary output without sessionId, routing to active tab');
+        
+        let targetTab = tabsRef.current.find(t => t.id === activeTabId);
+        if (!targetTab && tabsRef.current.length > 0) {
+          targetTab = tabsRef.current[0];
+        }
+        
+        if (targetTab) {
+          const terminal = terminalRefs.current[targetTab.id];
+          if (terminal) {
+            terminal.write(output);
+            terminalOutputCache.current[targetTab.id] = (terminalOutputCache.current[targetTab.id] || '') + output;
+            if (output.includes('[Process exited with code')) {
+              dispatch({ type: 'SET_PROCESS_EXITED', tabId: targetTab.id, exited: true });
+            }
           }
         }
       }
@@ -494,6 +508,8 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
 
   const handleCloseTab = useCallback((tabId: string) => {
     if (tabsRef.current.length <= 1) {
+      setLastTabWarning(true);
+      setTimeout(() => setLastTabWarning(false), 2000);
       return;
     }
 
@@ -658,6 +674,12 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
             ✕
           </button>
         </div>
+        
+        {lastTabWarning && (
+          <div className="last-tab-warning">
+            ⚠️ Cannot close the last terminal tab
+          </div>
+        )}
       </div>
 
       <div className="terminal-body">

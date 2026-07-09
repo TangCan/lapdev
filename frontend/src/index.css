@@ -587,6 +587,27 @@ body {
   position: relative;
 }
 
+.last-tab-warning {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 8px 16px;
+  background-color: #d29922;
+  color: #fff;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 100;
+  animation: fadeInOut 2s ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+  10%, 90% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
 .terminal-output {
   flex: 1;
   padding: 12px;

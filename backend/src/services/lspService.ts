@@ -342,10 +342,11 @@ export class LspService {
     if (!word) return [];
 
     const references: any[] = [];
+    const escapedWord = this.escapeRegex(word);
 
     for (let i = 0; i < lines.length; i++) {
       const searchLine = lines[i];
-      const regex = new RegExp(`\\b${word}\\b`, 'g');
+      const regex = new RegExp(`\\b${escapedWord}\\b`, 'g');
       let match;
 
       while ((match = regex.exec(searchLine)) !== null) {
@@ -413,10 +414,11 @@ export class LspService {
 
     const changes: { uri: string; edits: any[] }[] = [];
     const edits: any[] = [];
+    const escapedWord = this.escapeRegex(word);
 
     for (let i = 0; i < lines.length; i++) {
       const searchLine = lines[i];
-      const regex = new RegExp(`\\b${word}\\b`, 'g');
+      const regex = new RegExp(`\\b${escapedWord}\\b`, 'g');
       let match;
 
       while ((match = regex.exec(searchLine)) !== null) {
