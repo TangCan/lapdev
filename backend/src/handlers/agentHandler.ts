@@ -3,6 +3,8 @@ import { WORKSPACE_PATH } from '../config/index.ts';
 
 type SearchResult = { filePath: string; lineNumber: number; snippet: string };
 
+const WORKSPACE_RESOLVED = resolve(WORKSPACE_PATH);
+
 function escapeRegex(pattern: string): string {
   return pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -10,8 +12,7 @@ function escapeRegex(pattern: string): string {
 function getFullPath(relativePath: string): string | null {
   const joined = join(WORKSPACE_PATH, relativePath);
   const resolved = resolve(joined);
-  const workspaceResolved = resolve(WORKSPACE_PATH);
-  if (!resolved.startsWith(workspaceResolved)) {
+  if (!resolved.startsWith(WORKSPACE_RESOLVED)) {
     return null;
   }
   return resolved;
@@ -41,8 +42,9 @@ async function searchInFile(
     const lines = content.split('\n');
     
     for (let i = 0; i < lines.length && results.length < maxResults; i++) {
+      regex.lastIndex = 0;
       if (regex.test(lines[i])) {
-        const relativePath = filePath.replace(resolve(WORKSPACE_PATH) + '/', '');
+        const relativePath = filePath.replace(WORKSPACE_RESOLVED + '/', '');
         results.push({
           filePath: relativePath,
           lineNumber: i + 1,

@@ -64,7 +64,6 @@ const AIChatPanel: React.FC = () => {
   const [searchResults, setSearchResults] = useState<Array<{ filePath: string; lineNumber: number; snippet: string }>>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showAgentWarning, setShowAgentWarning] = useState(false);
-  const [lastReadFiles, setLastReadFiles] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { isAgentMode, addLogEntry } = useAgent();
@@ -122,7 +121,6 @@ const AIChatPanel: React.FC = () => {
               result: 'success',
               details: '读取文件成功',
             });
-            setLastReadFiles(prev => [...new Set([...prev, ctx.path])]);
           } catch {
             addLogEntry({
               operationType: 'read',

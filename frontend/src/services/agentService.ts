@@ -34,25 +34,9 @@ export interface OperationLogEntry {
 }
 
 const API_BASE_URL = '/api/v1/agent';
-const API_TIMEOUT = 30000; // 30秒超时
-
-// 路径验证正则：防止路径遍历攻击
-const PATH_TRAVERSAL_PATTERN = /\.\.[\/\\]/;
-const VALID_PATH_PATTERN = /^[a-zA-Z0-9_\-\.\/\\]+$/;
+const API_TIMEOUT = 30000;
 
 class AgentService {
-  // 验证文件路径安全性
-  private validateFilePath(filePath: string): void {
-    if (!filePath || filePath.trim() === '') {
-      throw new Error('文件路径不能为空');
-    }
-    if (PATH_TRAVERSAL_PATTERN.test(filePath)) {
-      throw new Error('文件路径包含非法的路径遍历字符');
-    }
-    if (!VALID_PATH_PATTERN.test(filePath)) {
-      throw new Error('文件路径包含非法字符');
-    }
-  }
 
   // 添加超时控制的请求方法
   private async fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
@@ -77,7 +61,9 @@ class AgentService {
 
   // 读取文件内容
   async readFile(filePath: string): Promise<string> {
-    this.validateFilePath(filePath);
+    if (!filePath || filePath.trim() === '') {
+      throw new Error('文件路径不能为空');
+    }
     try {
       const response = await this.fetchWithTimeout(`${API_BASE_URL}/read-file`, {
         method: 'POST',
@@ -99,7 +85,9 @@ class AgentService {
 
   // 列出目录内容
   async listFiles(directoryPath: string): Promise<AgentFileInfo[]> {
-    this.validateFilePath(directoryPath);
+    if (!directoryPath || directoryPath.trim() === '') {
+      throw new Error('目录路径不能为空');
+    }
     try {
       const response = await this.fetchWithTimeout(`${API_BASE_URL}/list-files`, {
         method: 'POST',
@@ -121,9 +109,6 @@ class AgentService {
 
   // 搜索代码
   async searchCode(pattern: string, directory?: string): Promise<AgentSearchResult[]> {
-    if (directory) {
-      this.validateFilePath(directory);
-    }
     try {
       const response = await this.fetchWithTimeout(`${API_BASE_URL}/search-code`, {
         method: 'POST',
@@ -141,49 +126,6 @@ class AgentService {
     } catch (error) {
       throw new Error(error instanceof Error ? error.message : '搜索失败');
     }
-  }
-
-  // 执行文件操作
-  async executeOperation(operation: Omit<AgentOperation, 'id' | 'status' | 'timestamp'>): Promise<boolean> {
-    this.validateFilePath(operation.filePath);
-    try {
-      const response = await this.fetchWithTimeout(`${API_BASE_URL}/execute-operation`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(operation),
-      });
-
-      const result = await response.json();
-      
-      return result.status === 'success';
-    } catch (error) {
-      console.error('Execute operation error:', error);
-      return false;
-    }
-  }
-
-  // 生成唯一ID
-  generateId(): string {
-    return crypto.randomUUID();
-  }
-
-  // 创建操作对象
-  createOperation(
-    type: AgentOperation['type'],
-    filePath: string,
-    content?: string,
-    originalContent?: string
-  ): AgentOperation {
-    this.validateFilePath(filePath);
-    return {
-      id: this.generateId(),
-      type,
-      filePath,
-      content,
-      originalContent,
-      status: 'pending',
-      timestamp: Date.now(),
-    };
   }
 }
 
