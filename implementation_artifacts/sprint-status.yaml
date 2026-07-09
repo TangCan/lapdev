@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-07-06
-last_updated: 2026-07-06T10:00:00Z
+last_updated: 2026-07-09T10:00:00Z
 project: lapdev
 project_key: NOKEY
 tracking_system: file-system
@@ -82,14 +82,14 @@ development_status:
   epic-6-retrospective: done
 
   # Epic 7: 终端多Tab支持 (1 story)
-  epic-7: in-progress
+  epic-7: done
   7-1-terminal-tab-management: done
-  epic-7-retrospective: optional
+  epic-7-retrospective: done
 
   # Epic 8: LSP悬停提示 (1 story)
   epic-8: done
   8-1-lsp-hover-provider: done
-  epic-8-retrospective: optional
+  epic-8-retrospective: done
 
   # Epic 9: Agent模式增强 (3 stories)
   epic-9: backlog
