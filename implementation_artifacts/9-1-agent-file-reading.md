@@ -221,5 +221,5 @@
 
 ## ✅ Story Completion Status
 
-**Status:** review  
-**Completion Note:** 所有任务已完成，包含后端 Agent API 和前端文件读取/搜索功能集成。
+**Status:** done  
+**Completion Note:** 所有任务已完成，包含后端 Agent API 和前端文件读取/搜索功能集成。代码审查已通过，所有发现的问题已修复。
