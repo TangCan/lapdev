@@ -253,6 +253,52 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       },
       triggerCharacters: ['(', ','],
     });
+
+    // Setup hover provider
+    Monaco.languages.registerHoverProvider(uri, {
+      provideHover: async (model, position) => {
+        const lspPosition: Position = {
+          line: position.lineNumber - 1,
+          character: position.column - 1,
+        };
+
+        const result = await lspService.getHover(uri, lspPosition);
+        if (!result) return null;
+
+        const contents: string[] = [];
+        
+        if (result.contents) {
+          if (Array.isArray(result.contents)) {
+            result.contents.forEach((content) => {
+              if (typeof content === 'string') {
+                contents.push(content);
+              } else {
+                contents.push(content.value);
+              }
+            });
+          } else if (typeof result.contents === 'string') {
+            contents.push(result.contents);
+          } else {
+            contents.push(result.contents.value);
+          }
+        }
+
+        let range: Monaco.Range | undefined;
+        if (result.range) {
+          range = new Monaco.Range(
+            result.range.start.line + 1,
+            result.range.start.character + 1,
+            result.range.end.line + 1,
+            result.range.end.character + 1
+          );
+        }
+
+        return {
+          contents,
+          range,
+        };
+      },
+    });
   }, []);
 
   const unregisterEditor = useCallback((uri: string) => {

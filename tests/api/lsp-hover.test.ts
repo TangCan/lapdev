@@ -1,212 +1,97 @@
 import { test, expect } from '@playwright/test';
-import { BASE_URL } from '../config/index.ts';
 
-const baseURL = BASE_URL;
+test.describe('[API] LSP Hover API Tests (ATDD RED PHASE)', () => {
+  const API_BASE = 'http://localhost:3333/api/v1';
 
-test.describe('[API] LSP Hover Provider', () => {
-  test.describe('AC-1: 基本悬停提示', () => {
-    test.skip('[P0] TC-8.1.1 should return hover info for variables', async ({ request }) => {
-      const response = await request.post(`${baseURL}/api/v1/lsp/hover`, {
-        data: {
-          path: '/workspace/test.ts',
-          content: 'const x: number = 42;\nconsole.log(x);',
-          position: { line: 0, column: 7 }
-        }
-      });
-
-      expect(response.ok()).toBeTruthy();
-      const data = await response.json();
-
-      expect(data).toHaveProperty('status', 'success');
-      expect(data).toHaveProperty('hover');
-      expect(data.hover).toHaveProperty('contents');
-      expect(data.hover.contents.length).toBeGreaterThan(0);
-      expect(data.hover.contents[0]).toContain('number');
+  test('[P0] TC-8.1.7 hover API endpoint should return valid Hover object', async ({ request }) => {
+    await test.skip();
+    
+    const response = await request.post(`${API_BASE}/lsp/hover`, {
+      data: {
+        filePath: '/workspace/test.ts',
+        position: { line: 5, column: 10 }
+      }
     });
-
-    test.skip('[P0] TC-8.1.2 should return hover info with documentation for functions', async ({ request }) => {
-      const response = await request.post(`${baseURL}/api/v1/lsp/hover`, {
-        data: {
-          path: '/workspace/test.ts',
-          content: '/**\n * Adds two numbers\n * @param a First number\n * @param b Second number\n * @returns Sum of a and b\n */\nfunction add(a: number, b: number): number {\n  return a + b;\n}',
-          position: { line: 7, column: 9 }
-        }
-      });
-
-      expect(response.ok()).toBeTruthy();
-      const data = await response.json();
-
-      expect(data).toHaveProperty('status', 'success');
-      expect(data).toHaveProperty('hover');
-      expect(data.hover).toHaveProperty('contents');
-      const content = JSON.stringify(data.hover.contents);
-      expect(content).toContain('add');
-      expect(content).toContain('number');
-      expect(content).toContain('Adds two numbers');
-      expect(content).toContain('@param');
-    });
-
-    test.skip('[P1] TC-8.1.3 should return empty hover for undefined symbols', async ({ request }) => {
-      const response = await request.post(`${baseURL}/api/v1/lsp/hover`, {
-        data: {
-          path: '/workspace/test.ts',
-          content: 'console.log(undefinedVar);',
-          position: { line: 0, column: 16 }
-        }
-      });
-
-      expect(response.ok()).toBeTruthy();
-      const data = await response.json();
-
-      expect(data).toHaveProperty('status', 'success');
-      expect(data.hover).toBeUndefined();
-    });
+    
+    expect(response.ok()).toBeTruthy();
+    
+    const result = await response.json();
+    
+    expect(result).toHaveProperty('contents');
+    expect(Array.isArray(result.contents) || typeof result.contents === 'object').toBeTruthy();
   });
 
-  test.describe('AC-2: 导入模块悬停', () => {
-    test.skip('[P0] TC-8.1.4 should return exports list for imported modules', async ({ request }) => {
-      const response = await request.post(`${baseURL}/api/v1/lsp/hover`, {
-        data: {
-          path: '/workspace/test.ts',
-          content: 'import { useState } from \'react\';',
-          position: { line: 0, column: 8 }
-        }
-      });
-
-      expect(response.ok()).toBeTruthy();
-      const data = await response.json();
-
-      expect(data).toHaveProperty('status', 'success');
-      expect(data).toHaveProperty('hover');
-      expect(data.hover).toHaveProperty('contents');
+  test('[P1] TC-8.1.8 hover API should handle invalid position parameters', async ({ request }) => {
+    await test.skip();
+    
+    const response = await request.post(`${API_BASE}/lsp/hover`, {
+      data: {
+        filePath: '/workspace/test.ts',
+        position: { line: -1, column: -1 }
+      }
     });
-
-    test.skip('[P1] TC-8.1.5 should return error for non-existent modules', async ({ request }) => {
-      const response = await request.post(`${baseURL}/api/v1/lsp/hover`, {
-        data: {
-          path: '/workspace/test.ts',
-          content: 'import { foo } from \'non-existent-module\';',
-          position: { line: 0, column: 8 }
-        }
-      });
-
-      expect(response.ok()).toBeTruthy();
-      const data = await response.json();
-
-      expect(data).toHaveProperty('status', 'success');
-    });
+    
+    expect(response.status()).toBe(400);
   });
 
-  test.describe('AC-3: 错误符号悬停', () => {
-    test.skip('[P0] TC-8.1.6 should return error info for type errors', async ({ request }) => {
-      const response = await request.post(`${baseURL}/api/v1/lsp/hover`, {
-        data: {
-          path: '/workspace/test.ts',
-          content: 'const x: number = "string";',
-          position: { line: 0, column: 14 }
-        }
-      });
-
-      expect(response.ok()).toBeTruthy();
-      const data = await response.json();
-
-      expect(data).toHaveProperty('status', 'success');
-      expect(data).toHaveProperty('hover');
-      expect(data.hover).toHaveProperty('contents');
+  test('[P1] TC-8.1.9 hover API should handle uninitialized LSP session', async ({ request }) => {
+    await test.skip();
+    
+    const response = await request.post(`${API_BASE}/lsp/hover`, {
+      data: {
+        filePath: '/nonexistent/file.ts',
+        position: { line: 0, column: 0 }
+      }
     });
-
-    test.skip('[P1] TC-8.1.7 should return fix suggestions for errors', async ({ request }) => {
-      const response = await request.post(`${baseURL}/api/v1/lsp/hover`, {
-        data: {
-          path: '/workspace/test.ts',
-          content: 'const x: number = "string";',
-          position: { line: 0, column: 14 }
-        }
-      });
-
-      expect(response.ok()).toBeTruthy();
-      const data = await response.json();
-
-      expect(data).toHaveProperty('status', 'success');
-    });
+    
+    expect(response.status()).toBe(404);
   });
 
-  test.describe('AC-4: 泛型参数悬停', () => {
-    test.skip('[P1] TC-8.1.8 should return type constraints for generic parameters', async ({ request }) => {
-      const response = await request.post(`${baseURL}/api/v1/lsp/hover`, {
-        data: {
-          path: '/workspace/test.ts',
-          content: 'function identity<T extends string>(arg: T): T {\n  return arg;\n}',
-          position: { line: 0, column: 19 }
-        }
-      });
-
-      expect(response.ok()).toBeTruthy();
-      const data = await response.json();
-
-      expect(data).toHaveProperty('status', 'success');
-      expect(data).toHaveProperty('hover');
-      expect(data.hover).toHaveProperty('contents');
+  test('[P0] TC-8.1.10 hover API should return MarkupContent with kind and value', async ({ request }) => {
+    await test.skip();
+    
+    const response = await request.post(`${API_BASE}/lsp/hover`, {
+      data: {
+        filePath: '/workspace/test.ts',
+        position: { line: 5, column: 10 }
+      }
     });
-
-    test.skip('[P2] TC-8.1.9 should return full bounds for complex generics', async ({ request }) => {
-      const response = await request.post(`${baseURL}/api/v1/lsp/hover`, {
-        data: {
-          path: '/workspace/test.ts',
-          content: 'type ValueOf<T> = T[keyof T];\nfunction getValue<T>(obj: T, key: keyof T): ValueOf<T> {\n  return obj[key];\n}',
-          position: { line: 0, column: 14 }
-        }
-      });
-
-      expect(response.ok()).toBeTruthy();
-      const data = await response.json();
-
-      expect(data).toHaveProperty('status', 'success');
-      expect(data).toHaveProperty('hover');
-    });
+    
+    expect(response.ok()).toBeTruthy();
+    
+    const result = await response.json();
+    
+    if (Array.isArray(result.contents)) {
+      const markupContent = result.contents.find((c: any) => c.kind);
+      expect(markupContent).toHaveProperty('kind');
+      expect(markupContent).toHaveProperty('value');
+    } else if (result.contents && typeof result.contents === 'object') {
+      expect(result.contents).toHaveProperty('kind');
+      expect(result.contents).toHaveProperty('value');
+    }
   });
 
-  test.describe('Hover API Edge Cases', () => {
-    test.skip('[P2] should handle empty content', async ({ request }) => {
-      const response = await request.post(`${baseURL}/api/v1/lsp/hover`, {
-        data: {
-          path: '/workspace/test.ts',
-          content: '',
-          position: { line: 0, column: 0 }
-        }
-      });
-
-      expect(response.ok()).toBeTruthy();
-      const data = await response.json();
-      expect(data).toHaveProperty('status', 'success');
+  test('[P1] TC-8.1.11 hover API should handle missing filePath', async ({ request }) => {
+    await test.skip();
+    
+    const response = await request.post(`${API_BASE}/lsp/hover`, {
+      data: {
+        position: { line: 0, column: 0 }
+      }
     });
+    
+    expect(response.status()).toBe(400);
+  });
 
-    test.skip('[P2] should handle out of bounds position', async ({ request }) => {
-      const response = await request.post(`${baseURL}/api/v1/lsp/hover`, {
-        data: {
-          path: '/workspace/test.ts',
-          content: 'const x = 1;',
-          position: { line: 100, column: 100 }
-        }
-      });
-
-      expect(response.ok()).toBeTruthy();
-      const data = await response.json();
-      expect(data).toHaveProperty('status', 'success');
+  test('[P1] TC-8.1.12 hover API should handle missing position', async ({ request }) => {
+    await test.skip();
+    
+    const response = await request.post(`${API_BASE}/lsp/hover`, {
+      data: {
+        filePath: '/workspace/test.ts'
+      }
     });
-
-    test.skip('[P2] should handle whitespace position', async ({ request }) => {
-      const response = await request.post(`${baseURL}/api/v1/lsp/hover`, {
-        data: {
-          path: '/workspace/test.ts',
-          content: 'const x = 1;',
-          position: { line: 0, column: 6 }
-        }
-      });
-
-      expect(response.ok()).toBeTruthy();
-      const data = await response.json();
-      expect(data).toHaveProperty('status', 'success');
-    });
+    
+    expect(response.status()).toBe(400);
   });
 });

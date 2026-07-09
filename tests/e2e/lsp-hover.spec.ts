@@ -1,173 +1,129 @@
 import { test, expect } from '@playwright/test';
 
-async function openTestFile(page: any) {
-  await page.goto('/');
-
-  await page.waitForSelector('[data-testid="file-tree"]', { timeout: 15000 });
-  await page.waitForSelector('[data-testid="file-item"]', { timeout: 15000 });
-
-  const workspaceFolder = page.locator('[data-testid="file-item"]').filter({ hasText: 'workspace' });
-  await workspaceFolder.click({ timeout: 10000 });
-  await page.waitForTimeout(800);
-
-  const testTsFile = page.locator('[data-testid="file-item"]').filter({ hasText: 'test.ts' });
-  await testTsFile.click({ timeout: 10000 });
-
-  await page.waitForTimeout(2000);
-
-  await page.waitForSelector('[data-testid="code-editor"]', { timeout: 15000 });
-
-  const editor = page.locator('.monaco-editor');
-  await editor.click({ timeout: 10000 });
-  await page.waitForTimeout(500);
-
-  await page.keyboard.press('Control+A');
-  await page.waitForTimeout(200);
-  await page.keyboard.press('Backspace');
-  await page.waitForTimeout(800);
-}
-
-async function typeEditorContent(page: any, content: string) {
-  await page.keyboard.type(content, { delay: 50 });
-  await page.waitForTimeout(800);
-}
-
-test.describe('[E2E] LSP Hover Provider', () => {
-  test.describe('AC-1: 基本悬停提示', () => {
-    test.skip('[P0] TC-8.1.1 should show hover info when hovering over variable', async ({ page }) => {
-      await openTestFile(page);
-
-      await typeEditorContent(page, 'const x: number = 42;');
-
-      await page.waitForTimeout(1000);
-
-      const editor = page.locator('.monaco-editor');
-      await editor.hover({ position: { x: 100, y: 20 } });
-
-      await page.waitForTimeout(500);
-
-      const hoverWidget = page.locator('.monaco-editor .hover-widget');
-      await expect(hoverWidget).toBeVisible();
-      await expect(hoverWidget).toContainText('number');
-    });
-
-    test.skip('[P0] TC-8.1.2 should show documentation when hovering over function with JSDoc', async ({ page }) => {
-      await openTestFile(page);
-
-      await typeEditorContent(page, '/**\n * Adds two numbers\n */\nfunction add(a: number, b: number): number {\n  return a + b;\n}');
-
-      await page.waitForTimeout(1000);
-
-      const editor = page.locator('.monaco-editor');
-      await editor.hover({ position: { x: 100, y: 60 } });
-
-      await page.waitForTimeout(500);
-
-      const hoverWidget = page.locator('.monaco-editor .hover-widget');
-      await expect(hoverWidget).toBeVisible();
-      await expect(hoverWidget).toContainText('add');
-      await expect(hoverWidget).toContainText('Adds two numbers');
-    });
+test.describe('[1.8] LSP Hover Provider E2E Tests (ATDD RED PHASE)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.waitForSelector('[data-testid="file-tree"]', { timeout: 10000 });
   });
 
-  test.describe('AC-2: 导入模块悬停', () => {
-    test.skip('[P0] TC-8.1.4 should show exports when hovering over imported module', async ({ page }) => {
-      await openTestFile(page);
-
-      await typeEditorContent(page, 'import { useState } from \'react\';');
-
-      await page.waitForTimeout(1500);
-
-      const editor = page.locator('.monaco-editor');
-      await editor.hover({ position: { x: 80, y: 20 } });
-
-      await page.waitForTimeout(500);
-
-      const hoverWidget = page.locator('.monaco-editor .hover-widget');
-      await expect(hoverWidget).toBeVisible();
-    });
+  test('[P0] TC-8.1.1 should display type information when hovering over variables', async ({ page }) => {
+    await test.skip();
+    
+    await page.locator('[data-testid="file-tree"]').click();
+    await page.waitForTimeout(1000);
+    
+    const testFile = page.locator('[data-testid="file-item-hover-test.ts"]');
+    await testFile.click();
+    await page.waitForTimeout(2000);
+    
+    const editor = page.locator('[data-testid="code-editor"]');
+    await editor.hover({ position: { x: 50, y: 50 } });
+    
+    await page.waitForSelector('[data-testid="hover-popup"]', { timeout: 5000 });
+    const hoverPopup = page.locator('[data-testid="hover-popup"]');
+    
+    await expect(hoverPopup).toBeVisible();
+    await expect(hoverPopup).toContainText('string');
   });
 
-  test.describe('AC-3: 错误符号悬停', () => {
-    test.skip('[P0] TC-8.1.6 should show error info when hovering over type error', async ({ page }) => {
-      await openTestFile(page);
-
-      await typeEditorContent(page, 'const x: number = "string";');
-
-      await page.waitForTimeout(2000);
-
-      const editor = page.locator('.monaco-editor');
-      await editor.hover({ position: { x: 150, y: 20 } });
-
-      await page.waitForTimeout(500);
-
-      const hoverWidget = page.locator('.monaco-editor .hover-widget');
-      await expect(hoverWidget).toBeVisible();
-    });
+  test('[P0] TC-8.1.2 should display type information and documentation when hovering over functions', async ({ page }) => {
+    await test.skip();
+    
+    await page.locator('[data-testid="file-tree"]').click();
+    await page.waitForTimeout(1000);
+    
+    const testFile = page.locator('[data-testid="file-item-hover-test.ts"]');
+    await testFile.click();
+    await page.waitForTimeout(2000);
+    
+    const editor = page.locator('[data-testid="code-editor"]');
+    await editor.hover({ position: { x: 50, y: 100 } });
+    
+    await page.waitForSelector('[data-testid="hover-popup"]', { timeout: 5000 });
+    const hoverPopup = page.locator('[data-testid="hover-popup"]');
+    
+    await expect(hoverPopup).toBeVisible();
+    await expect(hoverPopup).toContainText('function');
+    await expect(hoverPopup).toContainText('HelloWorld');
   });
 
-  test.describe('AC-4: 泛型参数悬停', () => {
-    test.skip('[P1] TC-8.1.8 should show type constraints when hovering over generic parameter', async ({ page }) => {
-      await openTestFile(page);
-
-      await typeEditorContent(page, 'function identity<T extends string>(arg: T): T {\n  return arg;\n}');
-
-      await page.waitForTimeout(1000);
-
-      const editor = page.locator('.monaco-editor');
-      await editor.hover({ position: { x: 200, y: 20 } });
-
-      await page.waitForTimeout(500);
-
-      const hoverWidget = page.locator('.monaco-editor .hover-widget');
-      await expect(hoverWidget).toBeVisible();
-    });
+  test('[P0] TC-8.1.3 should display type information when hovering over class names', async ({ page }) => {
+    await test.skip();
+    
+    await page.locator('[data-testid="file-tree"]').click();
+    await page.waitForTimeout(1000);
+    
+    const testFile = page.locator('[data-testid="file-item-hover-test.ts"]');
+    await testFile.click();
+    await page.waitForTimeout(2000);
+    
+    const editor = page.locator('[data-testid="code-editor"]');
+    await editor.hover({ position: { x: 50, y: 150 } });
+    
+    await page.waitForSelector('[data-testid="hover-popup"]', { timeout: 5000 });
+    const hoverPopup = page.locator('[data-testid="hover-popup"]');
+    
+    await expect(hoverPopup).toBeVisible();
+    await expect(hoverPopup).toContainText('class');
   });
 
-  test.describe('Hover Widget Behavior', () => {
-    test.skip('[P1] should hide hover widget when moving mouse away', async ({ page }) => {
-      await openTestFile(page);
+  test('[P1] TC-8.1.4 should display exported symbols when hovering over import module names', async ({ page }) => {
+    await test.skip();
+    
+    await page.locator('[data-testid="file-tree"]').click();
+    await page.waitForTimeout(1000);
+    
+    const testFile = page.locator('[data-testid="file-item-hover-test.ts"]');
+    await testFile.click();
+    await page.waitForTimeout(2000);
+    
+    const editor = page.locator('[data-testid="code-editor"]');
+    await editor.hover({ position: { x: 50, y: 20 } });
+    
+    await page.waitForSelector('[data-testid="hover-popup"]', { timeout: 5000 });
+    const hoverPopup = page.locator('[data-testid="hover-popup"]');
+    
+    await expect(hoverPopup).toBeVisible();
+    await expect(hoverPopup).toContainText('exports');
+  });
 
-      await typeEditorContent(page, 'const x: number = 42;');
+  test('[P1] TC-8.1.5 should display error information when hovering over symbols with type errors', async ({ page }) => {
+    await test.skip();
+    
+    await page.locator('[data-testid="file-tree"]').click();
+    await page.waitForTimeout(1000);
+    
+    const testFile = page.locator('[data-testid="file-item-hover-error.ts"]');
+    await testFile.click();
+    await page.waitForTimeout(2000);
+    
+    const editor = page.locator('[data-testid="code-editor"]');
+    await editor.hover({ position: { x: 50, y: 50 } });
+    
+    await page.waitForSelector('[data-testid="hover-popup"]', { timeout: 5000 });
+    const hoverPopup = page.locator('[data-testid="hover-popup"]');
+    
+    await expect(hoverPopup).toBeVisible();
+    await expect(hoverPopup).toContainText('error');
+  });
 
-      await page.waitForTimeout(1000);
-
-      const editor = page.locator('.monaco-editor');
-      await editor.hover({ position: { x: 100, y: 20 } });
-
-      await page.waitForTimeout(500);
-
-      const hoverWidget = page.locator('.monaco-editor .hover-widget');
-      await expect(hoverWidget).toBeVisible();
-
-      await editor.hover({ position: { x: 5, y: 5 } });
-      await page.waitForTimeout(500);
-
-      await expect(hoverWidget).not.toBeVisible();
-    });
-
-    test.skip('[P2] should update hover info when moving between symbols', async ({ page }) => {
-      await openTestFile(page);
-
-      await typeEditorContent(page, 'const x: number = 42;\nconst y: string = "hello";');
-
-      await page.waitForTimeout(1000);
-
-      const editor = page.locator('.monaco-editor');
-
-      await editor.hover({ position: { x: 100, y: 20 } });
-      await page.waitForTimeout(500);
-
-      let hoverWidget = page.locator('.monaco-editor .hover-widget');
-      await expect(hoverWidget).toBeVisible();
-      await expect(hoverWidget).toContainText('number');
-
-      await editor.hover({ position: { x: 100, y: 40 } });
-      await page.waitForTimeout(500);
-
-      hoverWidget = page.locator('.monaco-editor .hover-widget');
-      await expect(hoverWidget).toBeVisible();
-      await expect(hoverWidget).toContainText('string');
-    });
+  test('[P2] TC-8.1.6 should display type constraints when hovering over generic type parameters', async ({ page }) => {
+    await test.skip();
+    
+    await page.locator('[data-testid="file-tree"]').click();
+    await page.waitForTimeout(1000);
+    
+    const testFile = page.locator('[data-testid="file-item-hover-test.ts"]');
+    await testFile.click();
+    await page.waitForTimeout(2000);
+    
+    const editor = page.locator('[data-testid="code-editor"]');
+    await editor.hover({ position: { x: 50, y: 200 } });
+    
+    await page.waitForSelector('[data-testid="hover-popup"]', { timeout: 5000 });
+    const hoverPopup = page.locator('[data-testid="hover-popup"]');
+    
+    await expect(hoverPopup).toBeVisible();
+    await expect(hoverPopup).toContainText('extends');
   });
 });

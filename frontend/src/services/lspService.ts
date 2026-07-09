@@ -7,6 +7,8 @@ import {
   Range,
   Location,
   SignatureHelp,
+  Hover,
+  MarkupContent,
 } from 'vscode-languageserver-types';
 import { API_URL } from '../config';
 
@@ -250,6 +252,36 @@ class LspService {
       }
     } catch (error) {
       console.error('Error fetching type definition:', error);
+    }
+
+    return null;
+  }
+
+  async getHover(
+    uri: string,
+    position: Position
+  ): Promise<Hover | null> {
+    const model = Monaco.editor.getModels().find(m => m.uri.toString() === uri);
+    const content = model?.getValue() || '';
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/hover`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          path: this.getFilePathFromUri(uri),
+          content,
+          position,
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (result.status === 'success' && result.hover) {
+        return result.hover;
+      }
+    } catch (error) {
+      console.error('Error fetching hover info:', error);
     }
 
     return null;

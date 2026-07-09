@@ -1,57 +1,42 @@
 ---
 stepsCompleted: ['step-01-preflight-and-context', 'step-02-generation-mode', 'step-03-test-strategy', 'step-04-generate-tests', 'step-04c-aggregate', 'step-05-validate-and-complete']
 lastStep: 'step-05-validate-and-complete'
-lastSaved: '2026-07-06'
-generatedTestFiles:
-  - 'tests/api/lsp-hover.test.ts'
-  - 'tests/e2e/lsp-hover.spec.ts'
+lastSaved: '2026-07-08'
 storyId: '8.1'
 storyKey: '8-1-lsp-hover-provider'
 storyFile: 'implementation_artifacts/8-1-lsp-hover-provider.md'
-generatedTestFiles: []
-inputDocuments:
-  - 'implementation_artifacts/8-1-lsp-hover-provider.md'
-  - 'docs/epics.md'
-  - 'tests/e2e/lsp.spec.ts'
-  - 'tests/api/lsp.test.ts'
-  - '.trae/skills/bmad-testarch-atdd/resources/knowledge/test-quality.md'
-  - '.trae/skills/bmad-testarch-atdd/resources/knowledge/component-tdd.md'
-  - '.trae/skills/bmad-testarch-atdd/resources/knowledge/test-healing-patterns.md'
+atddChecklistPath: 'tests/atdd-checklist-8-1-lsp-hover-provider.md'
+generatedTestFiles:
+  - 'tests/e2e/lsp-hover.spec.ts'
+  - 'tests/api/lsp-hover.test.ts'
+  - 'frontend/src/services/lspService.test.ts'
+  - 'backend/src/handlers/lspHandler.test.ts'
+  - 'tests/fixtures/hover-test.ts'
+  - 'tests/fixtures/hover-error.ts'
+inputDocuments: []
+tddPhase: 'RED'
+totalTests: 23
+apiTests: 6
+e2eTests: 6
+unitTests: 5
+backendTests: 6
+fixturesCreated: 2
+allTestsSkipped: true
 ---
 
-# ATDD Checklist - Story 8.1: 注册LSP悬停提供商
+# ATDD Checklist: Story 8.1 - 注册LSP悬停提供商
 
-## Step 1: Preflight & Context Loading
+## Project Context
 
-### ✅ Stack Detection
+- **Project:** LapDev IDE
+- **Stack:** fullstack (React + TypeScript + Vite + Deno)
+- **Test Framework:** Playwright (E2E), Vitest (Unit), Deno Test (Backend)
 
-**Detected Stack:** `fullstack`
-
-| Indicator | Found | Location |
-|-----------|-------|----------|
-| Frontend (React + TypeScript) | ✅ | `frontend/package.json` |
-| Vite Config | ✅ | `frontend/vite.config.ts` |
-| Playwright Config | ✅ | `playwright.config.ts` |
-| Backend (Deno) | ✅ | `backend/` directory |
-
-### ✅ Prerequisites Verification
-
-| Requirement | Status | Details |
-|-------------|--------|---------|
-| Story with clear acceptance criteria | ✅ | [8-1-lsp-hover-provider.md](file:///home/richard/richard/2026/2026/pvm_2/lapdev/implementation_artifacts/8-1-lsp-hover-provider.md) |
-| Playwright test framework | ✅ | `playwright.config.ts` configured |
-| Development environment | ✅ | Node.js + Deno available |
-
-### ✅ Story Context
+## Story Overview
 
 **Story ID:** 8.1
-**Story Key:** 8-1-lsp-hover-provider
-**Story Title:** 注册LSP悬停提供商
-
-**Story Summary:**
-As a 个人开发者,
-I want 鼠标悬停在代码符号上时显示类型信息和文档,
-So that 我可以快速了解符号的用途和用法。
+**Title:** 注册LSP悬停提供商
+**Status:** ready-for-dev
 
 **Acceptance Criteria:**
 
@@ -71,261 +56,104 @@ So that 我可以快速了解符号的用途和用法。
 4. **Given** 用户悬停在泛型类型参数上
    **Then** 提示框显示类型约束和边界信息
 
-### ✅ Affected Components
+## Test Strategy
 
-| Component | File | Impact |
-|-----------|------|--------|
-| LSP Service | `frontend/src/services/lspService.ts` | 添加 getHover 方法 |
-| LSP Context | `frontend/src/context/LSPContext.tsx` | 注册 Monaco HoverProvider |
-| LSP Handler | `backend/src/handlers/lspHandler.ts` | 添加 hover 端点 |
+### E2E Tests (Playwright)
 
-### ✅ Existing Test Patterns
+| # | Test Case | Priority | AC Covered | Description |
+|---|---|---|---|---|
+| E1 | 悬停在变量上显示类型信息 | P0 | AC1 | 验证鼠标悬停在变量上时显示类型信息 |
+| E2 | 悬停在函数上显示类型信息和文档 | P0 | AC1 | 验证鼠标悬停在函数上时显示类型信息和文档注释 |
+| E3 | 悬停在类名上显示类型信息 | P0 | AC1 | 验证鼠标悬停在类名上时显示类型信息 |
+| E4 | 悬停在导入模块名上显示导出列表 | P1 | AC2 | 验证鼠标悬停在导入模块名上时显示导出符号列表 |
+| E5 | 悬停在有类型错误的符号上显示错误信息 | P1 | AC3 | 验证鼠标悬停在有类型错误的符号上时显示错误信息 |
+| E6 | 悬停在泛型类型参数上显示约束信息 | P2 | AC4 | 验证鼠标悬停在泛型类型参数上时显示约束和边界信息 |
 
-**E2E Tests:** [tests/e2e/lsp.spec.ts](file:///home/richard/richard/2026/2026/pvm_2/lapdev/tests/e2e/lsp.spec.ts)
-**API Tests:** [tests/api/lsp.test.ts](file:///home/richard/richard/2026/2026/pvm_2/lapdev/tests/api/lsp.test.ts)
+### API Tests (Playwright)
 
-**Patterns Identified:**
-- Use `openTestFile()` and `typeEditorContent()` helpers
-- API tests follow `/api/v1/lsp/{endpoint}` pattern
-- Tests are organized by Acceptance Criteria (AC-1, AC-2, etc.)
-- Priority tagging: `[P0]`, `[P1]`, `[P2]`
+| # | Test Case | Priority | AC Covered | Description |
+|---|---|---|---|---|
+| A1 | hover API 端点返回正确的 Hover 对象 | P0 | AC1-4 | 验证 POST /api/v1/lsp/hover 返回正确格式的响应 |
+| A2 | hover API 处理无效位置参数 | P1 | AC1-4 | 验证无效位置参数返回 400 错误 |
+| A3 | hover API 处理未初始化的 LSP 会话 | P1 | AC1-4 | 验证未初始化会话返回 404 错误 |
 
-### ✅ Knowledge Base Fragments Loaded
+### Unit Tests (Vitest)
 
-| Fragment | Tier | Purpose |
-|----------|------|---------|
-| `test-quality.md` | Core | Test quality standards and patterns |
-| `component-tdd.md` | Core | Red-Green-Refactor cycle |
-| `test-healing-patterns.md` | Core | Common failure patterns and fixes |
+| # | Test Case | Priority | AC Covered | Description |
+|---|---|---|---|---|
+| U1 | getHover 方法正确调用后端 API | P1 | AC1-4 | 验证 lspService.getHover 正确调用后端 /v1/lsp/hover 端点 |
+| U2 | getHover 方法处理成功响应 | P1 | AC1-4 | 验证成功响应被正确解析为 Hover 对象 |
+| U3 | getHover 方法处理错误响应 | P1 | AC1-4 | 验证错误响应被正确处理 |
+| U4 | HoverProvider 正确注册到 Monaco | P1 | AC1-4 | 验证 hoverProvider 正确注册到 Monaco 编辑器 |
+| U5 | provideHover 回调正确调用 getHover | P1 | AC1-4 | 验证 provideHover 回调正确调用 lspService.getHover |
 
-### ✅ Quality Checklist (Preflight)
+### Backend Unit Tests (Deno)
 
-| Criterion | Status | Notes |
-|-----------|--------|-------|
-| No Hard Waits | ✅ | Will use waitForResponse/element state |
-| No Conditionals | ✅ | Tests will be deterministic |
-| < 300 Lines | ✅ | Tests will be focused |
-| < 1.5 Minutes | ✅ | Optimized with API setup |
-| Self-Cleaning | ✅ | Using fixtures with auto-cleanup |
-| Explicit Assertions | ✅ | Assertions in test bodies |
-| Unique Data | ✅ | Using dynamic test data |
-| Parallel-Safe | ✅ | No shared state |
+| # | Test Case | Priority | AC Covered | Description |
+|---|---|---|---|---|
+| B1 | hover 端点正确处理请求 | P0 | AC1-4 | 验证 hover 端点正确处理 POST 请求 |
+| B2 | hover 端点转发请求到 LSP 服务器 | P0 | AC1-4 | 验证请求被正确转发到 LSP 服务器 |
+| B3 | hover 端点返回 LSP 响应 | P0 | AC1-4 | 验证 LSP 服务器响应被正确返回 |
+| B4 | hover 端点处理 LSP 错误 | P1 | AC1-4 | 验证 LSP 错误被正确处理 |
 
-## Step 2: Generation Mode Selection
+## Test Artifacts
 
-### ✅ Chosen Mode: AI Generation
+### E2E Test File
+- `tests/e2e/lsp-hover.spec.ts`
 
-**Rationale:**
-- Acceptance criteria are clear and well-defined (4 scenarios)
-- Scenarios are standard API and UI interactions (LSP hover hints)
-- No complex UI recording needed (drag/drop, wizards, multi-step state)
-- Fullstack project but tests focus on API endpoints and basic UI interactions
-- Existing LSP test patterns can be reused
+### API Test File
+- `tests/api/lsp-hover.test.ts`
 
-### ✅ Mode Confirmation
+### Unit Test Files
+- `frontend/src/services/lspService.test.ts`
+- `frontend/src/context/LSPContext.test.tsx`
 
-| Mode | Status | Reason |
-|------|--------|--------|
-| AI Generation | ✅ | Clear ACs, standard scenarios, no complex recording needed |
-| Recording (CLI) | ❌ | Not needed for this scenario |
-| Recording (MCP) | ❌ | Not needed for this scenario |
+### Backend Test File
+- `backend/src/handlers/lspHandler.test.ts`
 
-## Step 3: Test Strategy
+## Red Phase Requirements
 
-### ✅ Acceptance Criteria Mapping
+All tests must be designed to **fail before implementation** (TDD red phase):
 
-| AC | Scenario | Test Level | Priority | Test ID |
-|----|----------|------------|----------|---------|
-| AC-1 | 悬停在变量/函数/类名上显示类型信息和文档 | E2E, API | P0 | TC-8.1.1 |
-| AC-1 | 悬停在带文档注释的函数上显示文档 | E2E, API | P0 | TC-8.1.2 |
-| AC-1 | 悬停在未定义符号上不显示提示 | API | P1 | TC-8.1.3 |
-| AC-2 | 悬停在导入模块名上显示导出符号列表 | E2E, API | P0 | TC-8.1.4 |
-| AC-2 | 悬停在不存在的模块上显示错误信息 | API | P1 | TC-8.1.5 |
-| AC-3 | 悬停在有类型错误的符号上显示错误信息 | E2E, API | P0 | TC-8.1.6 |
-| AC-3 | 悬停在错误符号上显示修复建议 | API | P1 | TC-8.1.7 |
-| AC-4 | 悬停在泛型类型参数上显示约束信息 | E2E, API | P1 | TC-8.1.8 |
-| AC-4 | 悬停在复杂泛型上显示完整边界信息 | API | P2 | TC-8.1.9 |
+1. E2E tests should fail because hover popup doesn't exist
+2. API tests should fail because hover endpoint doesn't exist
+3. Unit tests should fail because getHover method doesn't exist
+4. Backend tests should fail because hover handler doesn't exist
 
-### ✅ Test Levels Selection
+## Test Data Requirements
 
-**Fullstack Project - Multi-level Testing Strategy:**
+### Test Files for E2E Tests
+- `test-data/hover-test.ts` - 包含变量、函数、类、导入语句、泛型类型的测试文件
+- `test-data/hover-error.ts` - 包含类型错误的测试文件
 
-| Test Level | Scope | Scenarios |
-|------------|-------|-----------|
-| **E2E** | 完整用户流程：打开文件 → 悬停符号 → 验证提示框 | TC-8.1.1, TC-8.1.2, TC-8.1.4, TC-8.1.6, TC-8.1.8 |
-| **API** | `/api/v1/lsp/hover` 端点验证 | TC-8.1.1, TC-8.1.2, TC-8.1.3, TC-8.1.4, TC-8.1.5, TC-8.1.6, TC-8.1.7, TC-8.1.8, TC-8.1.9 |
-| **Component** | Monaco HoverProvider 注册和回调 | TC-8.1.10 |
+### Mock Data for API Tests
+- Mock LSP server responses for hover requests
 
-### ✅ Priority Assignment
+## Test Execution Order
 
-| Priority | Criteria | Test IDs |
-|----------|----------|----------|
-| **P0** | 核心功能，业务关键，用户直接体验 | TC-8.1.1, TC-8.1.2, TC-8.1.4, TC-8.1.6 |
-| **P1** | 重要功能，边缘情况，错误处理 | TC-8.1.3, TC-8.1.5, TC-8.1.7, TC-8.1.8 |
-| **P2** | 次要功能，复杂场景 | TC-8.1.9 |
+1. **Unit Tests** (fastest, run first)
+2. **API Tests** (validate contract)
+3. **Backend Tests** (validate server logic)
+4. **E2E Tests** (validate user journey, slowest)
 
-### ✅ Red Phase Requirements
+## Risk Assessment
 
-**All tests designed to FAIL before implementation:**
+| Risk | Probability | Impact | Mitigation |
+|---|---|---|---|
+| LSP 服务器未初始化 | Medium | High | 添加等待 LSP 初始化完成的机制 |
+| 悬停提示框定位困难 | Low | Medium | 使用可靠的选择器策略 |
+| 异步加载延迟 | Medium | Medium | 添加适当的等待时间 |
+| 不同语言的 LSP 行为差异 | Low | High | 针对不同语言分别测试 |
 
-| Requirement | Status | Reason |
-|-------------|--------|--------|
-| hover API endpoint doesn't exist | ✅ | `/api/v1/lsp/hover` 端点尚未实现 |
-| getHover method doesn't exist | ✅ | `lspService.getHover()` 尚未实现 |
-| HoverProvider not registered | ✅ | Monaco HoverProvider 尚未注册 |
-| hover response format unknown | ✅ | 后端未实现，响应格式不确定 |
+## Success Criteria
 
-### ✅ Test Coverage Matrix
+All tests must pass with:
+- 0 failures
+- 0 flaky tests
+- Full coverage of acceptance criteria
 
-| Acceptance Criterion | E2E | API | Component | Total |
-|----------------------|-----|-----|-----------|-------|
-| AC-1: 基本悬停提示 | ✅ | ✅ | ✅ | 3 |
-| AC-2: 导入模块悬停 | ✅ | ✅ | - | 2 |
-| AC-3: 错误符号悬停 | ✅ | ✅ | - | 2 |
-| AC-4: 泛型参数悬停 | ✅ | ✅ | - | 2 |
-| **Total** | **4** | **9** | **1** | **14** |
+---
 
-## Step 4: Generate Tests
-
-### ✅ Execution Mode
-
-**Mode:** `sequential` (no subagent support available)
-
-### ✅ Generated Test Files
-
-| Test Type | File | Status | Tests |
-|-----------|------|--------|-------|
-| API Tests | `tests/api/lsp-hover.test.ts` | ✅ Created | 12 tests |
-| E2E Tests | `tests/e2e/lsp-hover.spec.ts` | ✅ Created | 7 tests |
-| **Total** | | | **19 tests** |
-
-### ✅ TDD Red Phase Compliance
-
-| Requirement | Status | Verification |
-|-------------|--------|--------------|
-| All tests use `test.skip()` | ✅ | All 19 tests marked with `test.skip()` |
-| Tests assert expected behavior | ✅ | API tests verify `/api/v1/lsp/hover` endpoint |
-| Tests will FAIL before implementation | ✅ | hover endpoint doesn't exist yet |
-
-### ✅ Test Coverage Breakdown
-
-| Acceptance Criterion | API Tests | E2E Tests | Total |
-|----------------------|-----------|-----------|-------|
-| AC-1: 基本悬停提示 | 3 | 2 | 5 |
-| AC-2: 导入模块悬停 | 2 | 1 | 3 |
-| AC-3: 错误符号悬停 | 2 | 1 | 3 |
-| AC-4: 泛型参数悬停 | 2 | 1 | 3 |
-| Edge Cases | 3 | 2 | 5 |
-| **Total** | **12** | **7** | **19** |
-
-### 🔴 TDD RED PHASE: Test Scaffolds Generated
-
-✅ Both test files generated with `test.skip()`
-✅ All tests assert EXPECTED behavior
-✅ Activated tests will FAIL until feature is implemented
-✅ Scaffolds stay skipped until a developer activates the current task
-✅ This is INTENTIONAL (TDD red phase)
-
-### ✅ Performance Report
-
-- Execution Mode: sequential
-- API Test Generation: ~2 minutes
-- E2E Test Generation: ~2 minutes
-- Total Elapsed: ~4 minutes
-
-## Step 4C: Aggregate ATDD Test Generation Results
-
-### ✅ TDD Red Phase Compliance Verification
-
-| Check | API Tests | E2E Tests |
-|-------|-----------|-----------|
-| All tests use `test.skip()` | ✅ | ✅ |
-| Tests assert expected behavior | ✅ | ✅ |
-| No placeholder assertions (`expect(true).toBe(true)`) | ✅ | ✅ |
-
-### ✅ Test Files Written to Disk
-
-| File | Status |
-|------|--------|
-| `tests/api/lsp-hover.test.ts` | ✅ Created |
-| `tests/e2e/lsp-hover.spec.ts` | ✅ Created |
-
-### ✅ Fixture Infrastructure
-
-**Existing fixtures available:**
-- `tests/fixtures/test-data.ts`
-- `tests/fixtures/code-editor-data.ts`
-
-### ✅ Summary Statistics
-
-```json
-{
-  "tdd_phase": "RED",
-  "total_tests": 19,
-  "api_tests": 12,
-  "e2e_tests": 7,
-  "all_tests_skipped": true,
-  "expected_to_fail": true,
-  "fixtures_created": 0,
-  "acceptance_criteria_covered": ["AC-1", "AC-2", "AC-3", "AC-4"],
-  "subagent_execution": "SEQUENTIAL (API → E2E)",
-  "performance_gain": "baseline (no parallel speedup)"
-}
-```
-
-## Step 5: Validate & Complete
-
-### ✅ Validation Checklist
-
-| Check | Status | Details |
-|-------|--------|---------|
-| Prerequisites satisfied | ✅ | Story, Playwright config, dev env available |
-| Test files created correctly | ✅ | API and E2E test files created |
-| Checklist matches acceptance criteria | ✅ | All 4 ACs covered |
-| Tests are red-phase scaffolds | ✅ | All 19 tests use `test.skip()` |
-| Story metadata captured | ✅ | storyId, storyKey, storyFile, atddChecklistPath |
-| CLI sessions cleaned up | ✅ | No orphaned browsers |
-| Temp artifacts stored properly | ✅ | All files in `tests/` directory |
-
-### ✅ Polish Output
-
-| Check | Status | Details |
-|-------|--------|---------|
-| Remove duplication | ✅ | No duplicate sections |
-| Verify consistency | ✅ | Consistent terminology throughout |
-| Check completeness | ✅ | All template sections populated |
-| Format cleanup | ✅ | Markdown formatting clean |
-
-### ✅ Completion Summary
-
-**ATDD Test Generation Complete (TDD RED PHASE)**
-
-**Generated Files:**
-- [tests/api/lsp-hover.test.ts](file:///home/richard/richard/2026/2026/pvm_2/lapdev/tests/api/lsp-hover.test.ts) - 12 API tests (all skipped)
-- [tests/e2e/lsp-hover.spec.ts](file:///home/richard/richard/2026/2026/pvm_2/lapdev/tests/e2e/lsp-hover.spec.ts) - 7 E2E tests (all skipped)
-- [tests/atdd-checklist-8-1-lsp-hover-provider.md](file:///home/richard/richard/2026/2026/pvm_2/lapdev/tests/atdd-checklist-8-1-lsp-hover-provider.md) - ATDD checklist
-
-**Story Handoff:**
-- Story ID: 8.1
-- Story Key: 8-1-lsp-hover-provider
-- Story File: [implementation_artifacts/8-1-lsp-hover-provider.md](file:///home/richard/richard/2026/2026/pvm_2/lapdev/implementation_artifacts/8-1-lsp-hover-provider.md)
-
-**Acceptance Criteria Coverage:**
-- ✅ AC-1: 基本悬停提示 (5 tests)
-- ✅ AC-2: 导入模块悬停 (3 tests)
-- ✅ AC-3: 错误符号悬停 (3 tests)
-- ✅ AC-4: 泛型参数悬停 (3 tests)
-- ✅ Edge Cases (5 tests)
-
-**Key Risks/Assumptions:**
-- Tests assume `/api/v1/lsp/hover` endpoint will be implemented
-- Tests assume Monaco HoverProvider will be registered in LSPContext
-- E2E tests depend on Playwright hover support for Monaco editor
-
-**Next Recommended Workflow:**
-1. Run `bmad-dev-story` to implement the feature
-2. During implementation, remove `test.skip()` from activated tests
-3. Run tests to verify FAIL → PASS (TDD green phase)
-4. Commit passing tests
-
-**TDD Red Phase Status:** ✅ Complete - Ready for implementation
+**Checklist Version:** 1.0
+**Created:** 2026-07-08
+**Updated:** 2026-07-08

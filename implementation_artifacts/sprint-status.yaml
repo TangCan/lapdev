@@ -87,8 +87,8 @@ development_status:
   epic-7-retrospective: optional
 
   # Epic 8: LSP悬停提示 (1 story)
-  epic-8: in-progress
-  8-1-lsp-hover-provider: ready-for-dev
+  epic-8: done
+  8-1-lsp-hover-provider: done
   epic-8-retrospective: optional
 
   # Epic 9: Agent模式增强 (3 stories)

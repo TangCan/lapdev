@@ -176,6 +176,16 @@ export class LspService {
     return this.generateDiagnostics(content, language);
   }
 
+  async getHover(
+    path: string,
+    content: string,
+    position: Position
+  ): Promise<any> {
+    const language = this.getLanguageFromPath(path);
+
+    return this.generateHover(content, position, language);
+  }
+
   private getLanguageFromPath(path: string): string {
     const ext = path.split('.').pop();
     const languageMap: Record<string, string> = {
@@ -514,5 +524,295 @@ export class LspService {
     });
 
     return diagnostics;
+  }
+
+  private generateHover(
+    content: string,
+    position: Position,
+    language: string
+  ): any {
+    const lines = content.split('\n');
+    
+    if (position.line < 0 || position.line >= lines.length) return null;
+    
+    const line = lines[position.line];
+    if (!line || line.trim() === '') return null;
+
+    const word = this.extractWord(line, position.character);
+    if (!word) return null;
+
+    const wordStart = line.indexOf(word);
+    const wordEnd = wordStart + word.length;
+    
+    const diagnostics = this.generateDiagnostics(content, language);
+    const overlappingDiagnostic = diagnostics.find(d => {
+      return (
+        d.range.start.line === position.line &&
+        d.range.start.character <= wordStart &&
+        d.range.end.character >= wordEnd
+      );
+    });
+
+    if (overlappingDiagnostic) {
+      return {
+        contents: [{
+          kind: 'markdown',
+          value: `**Error:** ${overlappingDiagnostic.message}\n\nCode: \`${overlappingDiagnostic.code}\``
+        }],
+        range: {
+          start: { line: position.line, character: wordStart },
+          end: { line: position.line, character: wordEnd }
+        }
+      };
+    }
+
+    const hoverInfo = this.getSymbolInfo(content, word, position.line, language);
+    if (!hoverInfo) return null;
+
+    return {
+      contents: [{
+        kind: 'markdown',
+        value: hoverInfo
+      }],
+      range: {
+        start: { line: position.line, character: wordStart },
+        end: { line: position.line, character: wordEnd }
+      }
+    };
+  }
+
+  private escapeRegex(word: string): string {
+    return word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  private getSymbolInfo(
+    content: string,
+    word: string,
+    currentLine: number,
+    language: string
+  ): string | null {
+    const lines = content.split('\n');
+    const escapedWord = this.escapeRegex(word);
+    const results: string[] = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const searchLine = lines[i];
+      
+      const funcPattern = new RegExp(`function\\s+${escapedWord}\\s*(?:<([^>]*)>)?\\s*\\(([^)]*)\\)(?::\\s*([^=]+))?`);
+      const funcMatch = searchLine.match(funcPattern);
+      if (funcMatch) {
+        const genericParams = funcMatch[1] || '';
+        const params = funcMatch[2].split(',').map(p => p.trim()).filter(p => p);
+        const returnType = funcMatch[3]?.trim() || 'void';
+        let docComment = '';
+        
+        if (i > 0 && lines[i-1].startsWith('/**')) {
+          let j = i - 1;
+          while (j >= 0 && (!lines[j].startsWith('*/') || j === i - 1)) {
+            docComment += lines[j] + '\n';
+            j--;
+          }
+          docComment = docComment.split('\n').reverse().join('\n').replace(/\/\*\*|\*\//g, '').trim();
+        }
+        
+        let result = `**function** \`${word}`;
+        if (genericParams) {
+          result += `<${genericParams}>`;
+        }
+        result += `(${params.join(', ')})`;
+        if (returnType) {
+          result += `: ${returnType}`;
+        }
+        result += `\`\n\n`;
+        if (docComment) {
+          result += `${docComment}\n\n`;
+        }
+        result += `Returns: \`${returnType}\``;
+        
+        if (genericParams) {
+          const genericConstraintMatch = genericParams.match(/(\w+)\s+extends\s+(\w+)/);
+          if (genericConstraintMatch) {
+            result += `\n\nGeneric constraint: \`${genericConstraintMatch[1]} extends ${genericConstraintMatch[2]}\``;
+          }
+        }
+        
+        results.push(result);
+      }
+
+      const constPattern = new RegExp(`const\\s+${escapedWord}\\s*(?:<([^>]*)>)?\\s*(?::\\s*([^=]+))?\\s*=`);
+      const constMatch = searchLine.match(constPattern);
+      if (constMatch) {
+        const genericType = constMatch[1] || '';
+        const type = constMatch[2]?.trim() || 'any';
+        let result = `**const** \`${word}`;
+        if (genericType) {
+          result += `<${genericType}>`;
+        }
+        result += `: ${type}\``;
+        
+        if (genericType) {
+          const genericConstraintMatch = genericType.match(/(\w+)\s+extends\s+(\w+)/);
+          if (genericConstraintMatch) {
+            result += `\n\nGeneric constraint: \`${genericConstraintMatch[1]} extends ${genericConstraintMatch[2]}\``;
+          }
+        }
+        
+        results.push(result);
+      }
+
+      const letPattern = new RegExp(`let\\s+${escapedWord}\\s*(?:<([^>]*)>)?\\s*(?::\\s*([^=]+))?\\s*=`);
+      const letMatch = searchLine.match(letPattern);
+      if (letMatch) {
+        const genericType = letMatch[1] || '';
+        const type = letMatch[2]?.trim() || 'any';
+        let result = `**let** \`${word}`;
+        if (genericType) {
+          result += `<${genericType}>`;
+        }
+        result += `: ${type}\``;
+        
+        if (genericType) {
+          const genericConstraintMatch = genericType.match(/(\w+)\s+extends\s+(\w+)/);
+          if (genericConstraintMatch) {
+            result += `\n\nGeneric constraint: \`${genericConstraintMatch[1]} extends ${genericConstraintMatch[2]}\``;
+          }
+        }
+        
+        results.push(result);
+      }
+
+      const classPattern = new RegExp(`class\\s+${escapedWord}\\s*(?:<([^>]*)>)?(?:\\s+extends\\s+(\\w+))?(?:\\s+implements\\s+([^\\{]+))?`);
+      const classMatch = searchLine.match(classPattern);
+      if (classMatch) {
+        const genericParams = classMatch[1] || '';
+        const extendsClass = classMatch[2] || '';
+        const implementsInterfaces = classMatch[3]?.trim() || '';
+        
+        let result = `**class** \`${word}`;
+        if (genericParams) {
+          result += `<${genericParams}>`;
+        }
+        result += `\``;
+        
+        if (extendsClass) {
+          result += `\n\nExtends: \`${extendsClass}\``;
+        }
+        if (implementsInterfaces) {
+          result += `\n\nImplements: \`${implementsInterfaces}\``;
+        }
+        
+        if (genericParams) {
+          const genericConstraintMatch = genericParams.match(/(\w+)\s+extends\s+(\w+)/);
+          if (genericConstraintMatch) {
+            result += `\n\nGeneric constraint: \`${genericConstraintMatch[1]} extends ${genericConstraintMatch[2]}\``;
+          }
+        }
+        
+        results.push(result);
+      }
+
+      const interfacePattern = new RegExp(`interface\\s+${escapedWord}\\s*(?:<([^>]*)>)?(?:\\s+extends\\s+([^\\{]+))?`);
+      const interfaceMatch = searchLine.match(interfacePattern);
+      if (interfaceMatch) {
+        const genericParams = interfaceMatch[1] || '';
+        const extendsInterfaces = interfaceMatch[2]?.trim() || '';
+        
+        let result = `**interface** \`${word}`;
+        if (genericParams) {
+          result += `<${genericParams}>`;
+        }
+        result += `\``;
+        
+        if (extendsInterfaces) {
+          result += `\n\nExtends: \`${extendsInterfaces}\``;
+        }
+        
+        if (genericParams) {
+          const genericConstraintMatch = genericParams.match(/(\w+)\s+extends\s+(\w+)/);
+          if (genericConstraintMatch) {
+            result += `\n\nGeneric constraint: \`${genericConstraintMatch[1]} extends ${genericConstraintMatch[2]}\``;
+          }
+        }
+        
+        results.push(result);
+      }
+
+      const typePattern = new RegExp(`type\\s+${escapedWord}\\s*(?:<([^>]*)>)?\\s*=\\s*(.+)`);
+      const typeMatch = searchLine.match(typePattern);
+      if (typeMatch) {
+        const genericParams = typeMatch[1] || '';
+        const typeDef = typeMatch[2].trim();
+        
+        let result = `**type** \`${word}`;
+        if (genericParams) {
+          result += `<${genericParams}>`;
+        }
+        result += ` = ${typeDef}\``;
+        
+        if (genericParams) {
+          const genericConstraintMatch = genericParams.match(/(\w+)\s+extends\s+(\w+)/);
+          if (genericConstraintMatch) {
+            result += `\n\nGeneric constraint: \`${genericConstraintMatch[1]} extends ${genericConstraintMatch[2]}\``;
+          }
+        }
+        
+        results.push(result);
+      }
+
+      if (searchLine.includes(`import`)) {
+        const importMatch = searchLine.match(/import\s+(?:\{[^}]+\}\s+from\s+)?['"]([^'"]+)['"]/);
+        if (importMatch && searchLine.includes(word)) {
+          const importedSymbols: string[] = [];
+          const namedImportMatch = searchLine.match(/import\s+\{([^}]+)\}\s+from/);
+          const defaultImportMatch = searchLine.match(/import\s+(\w+)\s+from/);
+          
+          if (namedImportMatch) {
+            importedSymbols.push(...namedImportMatch[1].split(',').map(s => s.trim()).filter(s => s));
+          }
+          if (defaultImportMatch && !namedImportMatch) {
+            importedSymbols.push(defaultImportMatch[1]);
+          }
+          
+          let result = `**import** \`${word}\`\n\n`;
+          result += `Source: \`${importMatch[1]}\`\n\n`;
+          if (importedSymbols.length > 0) {
+            result += `Imported symbols:\n`;
+            importedSymbols.forEach(s => {
+              result += `- \`${s}\`\n`;
+            });
+          }
+          
+          results.push(result);
+        }
+      }
+    }
+
+    if (results.length > 0) {
+      return results.join('\n\n---\n\n');
+    }
+
+    const keywords = [
+      'const', 'let', 'var', 'function', 'class', 'interface', 'type',
+      'import', 'export', 'default', 'from', 'async', 'await', 'return',
+      'if', 'else', 'for', 'while', 'switch', 'case', 'break', 'continue',
+      'try', 'catch', 'finally', 'throw', 'new', 'this', 'super',
+      'extends', 'implements', 'public', 'private', 'protected', 'static',
+      'readonly', 'abstract', 'enum', 'namespace', 'module'
+    ];
+
+    if (keywords.includes(word)) {
+      return `**keyword** \`${word}\``;
+    }
+
+    const builtins = [
+      'console', 'document', 'window', 'Array', 'Object', 'String',
+      'Number', 'Boolean', 'Date', 'Math', 'JSON', 'Promise', 'Map', 'Set'
+    ];
+
+    if (builtins.includes(word)) {
+      return `**built-in** \`${word}\``;
+    }
+
+    return null;
   }
 }

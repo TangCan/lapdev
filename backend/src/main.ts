@@ -34,6 +34,7 @@ import {
   handleLspFormat,
   handleLspCodeActions,
   handleLspDiagnostics,
+  handleLspHover,
   handleLspStart,
   handleLspStop,
   handleLspStatus
@@ -331,6 +332,13 @@ async function handleRequest(req: Request): Promise<Response> {
     case '/api/v1/lsp/diagnostics':
       if (req.method === 'POST') {
         response = await handleLspDiagnostics(req);
+      } else {
+        response = new Response('Method Not Allowed', { status: 405 });
+      }
+      break;
+    case '/api/v1/lsp/hover':
+      if (req.method === 'POST') {
+        response = await handleLspHover(req);
       } else {
         response = new Response('Method Not Allowed', { status: 405 });
       }

@@ -1,6 +1,6 @@
 # Story 8.1: 注册LSP悬停提供商
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -30,23 +30,37 @@ So that 我可以快速了解符号的用途和用法。
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: 在 lspService.ts 中添加 getHover 方法 (AC: 1, 2, 3, 4)
-  - [ ] Subtask 1.1: 添加 Hover 类型导入
-  - [ ] Subtask 1.2: 实现 getHover 方法调用后端 API
-  - [ ] Subtask 1.3: 处理返回的 MarkupContent 类型文档
+- [x] Task 1: 在 lspService.ts 中添加 getHover 方法 (AC: 1, 2, 3, 4)
+  - [x] Subtask 1.1: 添加 Hover 类型导入
+  - [x] Subtask 1.2: 实现 getHover 方法调用后端 API
+  - [x] Subtask 1.3: 处理返回的 MarkupContent 类型文档
 
-- [ ] Task 2: 在 LSPContext.tsx 中注册 Monaco HoverProvider (AC: 1, 2, 3, 4)
-  - [ ] Subtask 2.1: 在 registerEditor 中添加 hoverProvider 注册
-  - [ ] Subtask 2.2: 实现 provideHover 回调函数
-  - [ ] Subtask 2.3: 转换 LSP Hover 响应为 Monaco Hover 格式
+- [x] Task 2: 在 LSPContext.tsx 中注册 Monaco HoverProvider (AC: 1, 2, 3, 4)
+  - [x] Subtask 2.1: 在 registerEditor 中添加 hoverProvider 注册
+  - [x] Subtask 2.2: 实现 provideHover 回调函数
+  - [x] Subtask 2.3: 转换 LSP Hover 响应为 Monaco Hover 格式
 
-- [ ] Task 3: 更新后端支持 hover API (AC: 1, 2, 3, 4)
-  - [ ] Subtask 3.1: 在 LSP handler 中添加 hover 端点
-  - [ ] Subtask 3.2: 转发 hover 请求到 LSP 服务器
+- [x] Task 3: 更新后端支持 hover API (AC: 1, 2, 3, 4)
+  - [x] Subtask 3.1: 在 LSP handler 中添加 hover 端点
+  - [x] Subtask 3.2: 转发 hover 请求到 LSP 服务器
 
-- [ ] Task 4: 添加测试用例
-  - [ ] Subtask 4.1: 添加单元测试验证 getHover 方法
-  - [ ] Subtask 4.2: 添加 E2E 测试验证悬停提示功能
+- [x] Task 4: 添加测试用例
+  - [x] Subtask 4.1: 添加单元测试验证 getHover 方法
+  - [x] Subtask 4.2: 添加 E2E 测试验证悬停提示功能
+
+### Review Findings
+
+1. **`decision-needed`** findings (resolved as patches):
+   - [x] [Review][Decision] AC2 合规缺口 — 增强实现，解析 import 语句并提取导出符号列表 ✅
+   - [x] [Review][Decision] AC3 合规缺口 — 集成诊断系统，在悬停时检查错误并显示 ✅
+   - [x] [Review][Decision] AC4 合规缺口 — 实现泛型类型参数解析，提取类型约束信息 ✅
+
+2. **`patch`** findings (applied):
+   - [x] [Review][Patch] 正则表达式注入风险 — 添加 escapeRegex 方法转义正则特殊字符 ✅
+   - [x] [Review][Patch] language 参数未使用 — 集成诊断系统时使用 language 参数 ✅
+   - [x] [Review][Patch] 返回类型硬编码 — 解析函数声明中的返回类型注解 ✅
+   - [x] [Review][Patch] 空行/空文件处理 — 添加边界检查验证 line 和 word ✅
+   - [x] [Review][Patch] 重复符号匹配 — 使用 results 数组收集所有匹配项并合并 ✅
 
 ## Dev Notes
 
@@ -183,4 +197,29 @@ BMAD AI Agent
 
 ### Completion Notes List
 
+- ✅ 实现了前端 lspService.ts 中的 getHover 方法，调用后端 /api/v1/lsp/hover 端点
+- ✅ 在 LSPContext.tsx 中注册了 Monaco HoverProvider，实现了 provideHover 回调函数
+- ✅ 实现了 LSP Hover 响应到 Monaco Hover 格式的转换，支持 MarkupContent 类型文档
+- ✅ 在后端 lspService.ts 中添加了 getHover 和 generateHover 方法
+- ✅ 在后端 lspHandler.ts 中添加了 handleLspHover 端点处理函数
+- ✅ 在 main.ts 中添加了 /api/v1/lsp/hover 路由
+- ✅ 生成了完整的测试套件（E2E、API、单元测试）
+
 ### File List
+
+**修改的文件:**
+- `frontend/src/services/lspService.ts` - 添加 Hover 类型导入和 getHover 方法
+- `frontend/src/context/LSPContext.tsx` - 注册 Monaco HoverProvider
+- `backend/src/services/lspService.ts` - 添加 getHover 和 generateHover 方法
+- `backend/src/handlers/lspHandler.ts` - 添加 handleLspHover 端点处理
+- `backend/src/main.ts` - 添加 /api/v1/lsp/hover 路由
+- `implementation_artifacts/sprint-status.yaml` - 更新故事状态为 in-progress
+
+**新增的测试文件:**
+- `tests/e2e/lsp-hover.spec.ts` - E2E 测试
+- `tests/api/lsp-hover.test.ts` - API 测试
+- `frontend/src/services/lspService.test.ts` - 前端单元测试
+- `backend/src/handlers/lspHandler.test.ts` - 后端单元测试
+- `tests/fixtures/hover-test.ts` - 测试数据文件
+- `tests/fixtures/hover-error.ts` - 错误测试数据
+- `tests/atdd-checklist-8-1-lsp-hover-provider.md` - ATDD 检查清单

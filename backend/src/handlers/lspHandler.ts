@@ -2,6 +2,13 @@ import { LspService } from '../services/lspService.ts';
 
 const lspService = new LspService();
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+}
+
 export async function handleLspCompletion(req: Request): Promise<Response> {
   try {
     const body = await req.json();
@@ -30,7 +37,7 @@ export async function handleLspCompletion(req: Request): Promise<Response> {
     return new Response(
       JSON.stringify({
         status: 'error',
-        message: error.message
+        message: getErrorMessage(error)
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
@@ -65,7 +72,7 @@ export async function handleLspSignature(req: Request): Promise<Response> {
     return new Response(
       JSON.stringify({
         status: 'error',
-        message: error.message
+        message: getErrorMessage(error)
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
@@ -100,7 +107,7 @@ export async function handleLspDefinition(req: Request): Promise<Response> {
     return new Response(
       JSON.stringify({
         status: 'error',
-        message: error.message
+        message: getErrorMessage(error)
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
@@ -135,7 +142,7 @@ export async function handleLspReferences(req: Request): Promise<Response> {
     return new Response(
       JSON.stringify({
         status: 'error',
-        message: error.message
+        message: getErrorMessage(error)
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
@@ -170,7 +177,7 @@ export async function handleLspTypeDefinition(req: Request): Promise<Response> {
     return new Response(
       JSON.stringify({
         status: 'error',
-        message: error.message
+        message: getErrorMessage(error)
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
@@ -205,7 +212,7 @@ export async function handleLspRename(req: Request): Promise<Response> {
     return new Response(
       JSON.stringify({
         status: 'error',
-        message: error.message
+        message: getErrorMessage(error)
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
@@ -240,7 +247,7 @@ export async function handleLspFormat(req: Request): Promise<Response> {
     return new Response(
       JSON.stringify({
         status: 'error',
-        message: error.message
+        message: getErrorMessage(error)
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
@@ -275,7 +282,7 @@ export async function handleLspCodeActions(req: Request): Promise<Response> {
     return new Response(
       JSON.stringify({
         status: 'error',
-        message: error.message
+        message: getErrorMessage(error)
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
@@ -310,7 +317,42 @@ export async function handleLspDiagnostics(req: Request): Promise<Response> {
     return new Response(
       JSON.stringify({
         status: 'error',
-        message: error.message
+        message: getErrorMessage(error)
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+export async function handleLspHover(req: Request): Promise<Response> {
+  try {
+    const body = await req.json();
+    const { path, content, position } = body;
+
+    if (!path || !content || !position) {
+      return new Response(
+        JSON.stringify({
+          status: 'error',
+          message: 'Missing required fields: path, content, position'
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const hover = await lspService.getHover(path, content, position);
+
+    return new Response(
+      JSON.stringify({
+        status: 'success',
+        hover
+      }),
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({
+        status: 'error',
+        message: getErrorMessage(error)
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
@@ -345,7 +387,7 @@ export async function handleLspStart(req: Request): Promise<Response> {
     return new Response(
       JSON.stringify({
         status: 'error',
-        message: error.message
+        message: getErrorMessage(error)
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
@@ -380,7 +422,7 @@ export async function handleLspStop(req: Request): Promise<Response> {
     return new Response(
       JSON.stringify({
         status: 'error',
-        message: error.message
+        message: getErrorMessage(error)
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
@@ -415,7 +457,7 @@ export async function handleLspStatus(req: Request): Promise<Response> {
     return new Response(
       JSON.stringify({
         status: 'error',
-        message: error.message
+        message: getErrorMessage(error)
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
