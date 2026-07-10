@@ -7,7 +7,8 @@ import { AgentModeToggle } from './AgentModeToggle';
 import { parseContextReferences } from '../../utils/chatContextParser';
 import { SkillPanel } from '../SkillPanel/SkillPanel';
 import { useAgent } from '../../context/AgentContext';
-import { agentService } from '../../services/agentService';
+import { agentService, AgentOperation } from '../../services/agentService';
+import OperationConfirmation from './OperationConfirmation';
 import './AIChatPanel.css';
 
 interface MessageBubbleProps {
@@ -64,9 +65,12 @@ const AIChatPanel: React.FC = () => {
   const [searchResults, setSearchResults] = useState<Array<{ filePath: string; lineNumber: number; snippet: string }>>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showAgentWarning, setShowAgentWarning] = useState(false);
+  const [showOperationConfirmation, setShowOperationConfirmation] = useState(false);
+  const [pendingOperations, setPendingOperations] = useState<AgentOperation[]>([]);
+  const [operationMessage, setOperationMessage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { isAgentMode, addLogEntry } = useAgent();
+  const { isAgentMode, addLogEntry, addOperation } = useAgent();
 
   const MAX_INPUT_LENGTH = 10000;
 
@@ -153,11 +157,61 @@ const AIChatPanel: React.FC = () => {
       contexts.push(...fileContexts);
       await sendMessage(inputValue, contexts);
       setInputValue('');
+
+      if (isAgentMode && (inputValue.toLowerCase().includes('modify') || 
+          inputValue.toLowerCase().includes('write') || 
+          inputValue.toLowerCase().includes('update') ||
+          inputValue.toLowerCase().includes('change'))) {
+        const mockOperation: AgentOperation = {
+          id: agentService.generateId(),
+          type: 'write',
+          filePath: 'test-file.ts',
+          content: 'export const modifiedValue = "modified by agent";',
+          originalContent: 'export const originalValue = "original";',
+          status: 'pending',
+          timestamp: Date.now(),
+        };
+        addOperation({
+          type: mockOperation.type,
+          filePath: mockOperation.filePath,
+          content: mockOperation.content,
+          originalContent: mockOperation.originalContent,
+        });
+        setPendingOperations([mockOperation]);
+        setShowOperationConfirmation(true);
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '发送消息失败';
       setError(errorMessage);
       setTimeout(() => setError(null), 5000);
     }
+  };
+
+  const handleOperationClose = () => {
+    setShowOperationConfirmation(false);
+    setOperationMessage(null);
+  };
+
+  const handleOperationApprove = () => {
+    setOperationMessage('操作已批准');
+    addLogEntry({
+      operationType: 'write',
+      filePath: pendingOperations[0]?.filePath || '',
+      result: 'success',
+      details: '操作已批准并执行',
+    });
+    setTimeout(() => handleOperationClose(), 2000);
+  };
+
+  const handleOperationReject = () => {
+    setOperationMessage('操作已拒绝');
+    addLogEntry({
+      operationType: 'write',
+      filePath: pendingOperations[0]?.filePath || '',
+      result: 'rejected',
+      details: '操作已拒绝',
+    });
+    setTimeout(() => handleOperationClose(), 2000);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -445,6 +499,22 @@ const AIChatPanel: React.FC = () => {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Operation Confirmation Dialog */}
+        {showOperationConfirmation && (
+          <OperationConfirmation
+            operations={pendingOperations}
+            onClose={handleOperationClose}
+          />
+        )}
+
+        {/* Operation Result Message */}
+        {operationMessage && (
+          <div className={`operation-result ${operationMessage === '操作已批准' ? 'success' : 'rejected'}`}
+            data-testid={operationMessage === '操作已批准' ? 'operation-success-message' : 'operation-rejected-message'}>
+            {operationMessage === '操作已批准' ? '✓' : '✕'} {operationMessage}
           </div>
         )}
       </div>

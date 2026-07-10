@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-07-06
-last_updated: 2026-07-09T11:00:00Z
+last_updated: 2026-07-10T00:00:00Z
 project: lapdev
 project_key: NOKEY
 tracking_system: file-system
@@ -94,7 +94,7 @@ development_status:
   # Epic 9: Agent模式增强 (3 stories)
   epic-9: in-progress
   9-1-agent-file-reading: done
-  9-2-agent-operation-confirmation: backlog
+  9-2-agent-operation-confirmation: done
   9-3-agent-operation-log: backlog
   epic-9-retrospective: optional
 
@@ -116,7 +116,7 @@ summary:
   stories_ready_for_dev: 0
   stories_in_progress: 0
   stories_in_review: 0
-  stories_completed: 17
+  stories_completed: 18
 
 story_mapping:
   epic-1:

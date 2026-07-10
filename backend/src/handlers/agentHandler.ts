@@ -264,3 +264,88 @@ async function searchInDirectory(
 
   return results;
 }
+
+export async function handleAgentWriteFile(req: Request): Promise<Response> {
+  try {
+    const body = await req.json();
+    const { filePath, content } = body;
+
+    if (!filePath || filePath.trim() === '') {
+      return new Response(JSON.stringify({
+        status: 'error',
+        error: { message: '文件路径不能为空' },
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (content === undefined || content === null) {
+      return new Response(JSON.stringify({
+        status: 'error',
+        error: { message: '文件内容不能为空' },
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    if (typeof content === 'string' && content.length > MAX_FILE_SIZE) {
+      return new Response(JSON.stringify({
+        status: 'error',
+        error: { message: '文件内容超过大小限制（最大 10MB）' },
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const fullPath = getFullPath(filePath);
+    if (!fullPath) {
+      return new Response(JSON.stringify({
+        status: 'error',
+        error: { message: '文件路径无效或超出工作区范围' },
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    try {
+      await Deno.writeTextFile(fullPath, content);
+      console.log(`[handleAgentWriteFile] File written successfully: ${filePath}, size: ${content.length} bytes`);
+      return new Response(JSON.stringify({
+        status: 'success',
+        data: { filePath },
+      }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch (error) {
+      if (error instanceof Deno.errors.NotFound) {
+        return new Response(JSON.stringify({
+          status: 'error',
+          error: { message: '目录不存在或无法访问' },
+        }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({
+        status: 'error',
+        error: { message: '写入文件失败' },
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  } catch {
+    return new Response(JSON.stringify({
+      status: 'error',
+      error: { message: '请求参数格式错误' },
+    }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}

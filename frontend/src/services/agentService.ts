@@ -127,6 +127,85 @@ class AgentService {
       throw new Error(error instanceof Error ? error.message : '搜索失败');
     }
   }
+
+  // 写入文件内容
+  async writeFile(filePath: string, content: string): Promise<void> {
+    if (!filePath || filePath.trim() === '') {
+      throw new Error('文件路径不能为空');
+    }
+    if (content === undefined || content === null) {
+      throw new Error('文件内容不能为空');
+    }
+    try {
+      const response = await this.fetchWithTimeout(`${API_BASE_URL}/write-file`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filePath, content }),
+      });
+
+      const result = await response.json();
+      
+      if (result.status === 'success') {
+        return;
+      } else {
+        throw new Error(result.error?.message || '写入文件失败');
+      }
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : '写入文件失败');
+    }
+  }
+
+  // 执行操作
+  async executeOperation(operation: {
+    type: AgentOperation['type'];
+    filePath: string;
+    content?: string;
+    originalContent?: string;
+  }): Promise<boolean> {
+    try {
+      switch (operation.type) {
+        case 'write':
+          if (!operation.content || operation.content.trim() === '') {
+            throw new Error('文件内容不能为空');
+          }
+          await this.writeFile(operation.filePath, operation.content);
+          return true;
+        case 'read':
+          await this.readFile(operation.filePath);
+          return true;
+        case 'search':
+          await this.searchCode(operation.filePath);
+          return true;
+        default:
+          throw new Error(`不支持的操作类型: ${operation.type}`);
+      }
+    } catch {
+      return false;
+    }
+  }
+
+  // 生成唯一ID
+  generateId(): string {
+    return Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+  }
+
+  // 创建操作对象
+  createOperation(
+    type: AgentOperation['type'],
+    filePath: string,
+    content?: string,
+    originalContent?: string
+  ): AgentOperation {
+    return {
+      id: this.generateId(),
+      type,
+      filePath,
+      content,
+      originalContent,
+      status: 'pending',
+      timestamp: Date.now(),
+    };
+  }
 }
 
 export const agentService = new AgentService();
