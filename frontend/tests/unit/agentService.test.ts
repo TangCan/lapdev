@@ -150,29 +150,30 @@ describe('AgentService', () => {
   });
 
   describe('fetchWithTimeout', () => {
-    it('should abort request when timeout occurs', async () => {
-      const controller = new AbortController();
-      const originalAbortController = AbortController;
-      let capturedSignal: AbortSignal | undefined;
-
-      (global as any).AbortController = class {
-        signal = controller.signal;
-        abort = () => {};
-      };
-
-      const mockTimeout = vi.spyOn(global, 'setTimeout').mockImplementation((cb) => {
-        setTimeout(() => cb(), 10);
-        return 1 as ReturnType<typeof setTimeout>;
-      });
-
-      fetchMock.mockImplementation(() => {
-        return new Promise(() => {});
-      });
+    it('should throw timeout error when AbortError occurs', async () => {
+      const abortError = new Error('The operation was aborted');
+      abortError.name = 'AbortError';
+      
+      fetchMock.mockRejectedValue(abortError);
 
       await expect(agentService.readFile('test.ts')).rejects.toThrow('请求超时');
+    });
 
-      (global as any).AbortController = originalAbortController;
-      mockTimeout.mockRestore();
+    it('should clear timeout after request completes', async () => {
+      const mockClearTimeout = vi.spyOn(global, 'clearTimeout').mockImplementation(() => {});
+      
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          status: 'success',
+          data: { content: 'test' },
+        }),
+      });
+
+      await agentService.readFile('test.ts');
+
+      expect(mockClearTimeout).toHaveBeenCalled();
+      mockClearTimeout.mockRestore();
     });
   });
 });

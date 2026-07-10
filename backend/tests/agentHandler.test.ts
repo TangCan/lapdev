@@ -1,4 +1,11 @@
 import { assert, assertEquals, assertObjectMatch } from 'https://deno.land/std@0.224.0/assert/mod.ts';
+import { join, resolve } from 'https://deno.land/std@0.224.0/path/mod.ts';
+
+const __dirname = import.meta.dirname ? import.meta.dirname.replace('file://', '') : Deno.cwd();
+const TEST_WORKSPACE = resolve(__dirname, '..', '..', 'tests', 'fixtures', 'test-workspace');
+
+Deno.env.set('WORKSPACE_PATH', TEST_WORKSPACE);
+
 import { handleAgentReadFile, handleAgentListFiles, handleAgentSearchCode } from '../src/handlers/agentHandler.ts';
 
 function createMockRequest(body: Record<string, unknown>): Request {
@@ -11,7 +18,7 @@ function createMockRequest(body: Record<string, unknown>): Request {
 
 Deno.test('[9.1] agentHandler unit tests', async (t) => {
   await t.step('[P0] UT-9.1.1 should read file successfully', async () => {
-    const req = createMockRequest({ filePath: 'tests/fixtures/test-workspace/test-file.ts' });
+    const req = createMockRequest({ filePath: 'test-file.ts' });
     const response = await handleAgentReadFile(req);
     const result = await response.json();
 
@@ -44,7 +51,7 @@ Deno.test('[9.1] agentHandler unit tests', async (t) => {
   });
 
   await t.step('[P0] UT-9.1.4 should list directory contents', async () => {
-    const req = createMockRequest({ directoryPath: 'tests/fixtures/test-workspace' });
+    const req = createMockRequest({ directoryPath: '.' });
     const response = await handleAgentListFiles(req);
     const result = await response.json();
 
@@ -69,7 +76,7 @@ Deno.test('[9.1] agentHandler unit tests', async (t) => {
   });
 
   await t.step('[P0] UT-9.1.6 should search code successfully', async () => {
-    const req = createMockRequest({ pattern: 'search', directory: 'tests/fixtures/test-workspace' });
+    const req = createMockRequest({ pattern: 'search', directory: '.' });
     const response = await handleAgentSearchCode(req);
     const result = await response.json();
 
@@ -83,7 +90,7 @@ Deno.test('[9.1] agentHandler unit tests', async (t) => {
   });
 
   await t.step('[P1] UT-9.1.7 should return empty results for non-matching pattern', async () => {
-    const req = createMockRequest({ pattern: 'xyz-nonexistent-pattern-123', directory: 'tests/fixtures/test-workspace' });
+    const req = createMockRequest({ pattern: 'xyz-nonexistent-pattern-123', directory: '.' });
     const response = await handleAgentSearchCode(req);
     const result = await response.json();
 
@@ -93,7 +100,7 @@ Deno.test('[9.1] agentHandler unit tests', async (t) => {
   });
 
   await t.step('[P1] UT-9.1.8 should return error for empty pattern', async () => {
-    const req = createMockRequest({ pattern: '', directory: 'tests/fixtures/test-workspace' });
+    const req = createMockRequest({ pattern: '', directory: '.' });
     const response = await handleAgentSearchCode(req);
     const result = await response.json();
 
@@ -116,7 +123,7 @@ Deno.test('[9.1] agentHandler unit tests', async (t) => {
   });
 
   await t.step('[P1] UT-9.1.10 should search across nested directories', async () => {
-    const req = createMockRequest({ pattern: 'nested', directory: 'tests/fixtures/test-workspace' });
+    const req = createMockRequest({ pattern: 'nested', directory: '.' });
     const response = await handleAgentSearchCode(req);
     const result = await response.json();
 

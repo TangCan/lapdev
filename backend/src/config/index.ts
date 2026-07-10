@@ -14,3 +14,9 @@ export const API_TIMEOUT = 30000;
 export const WS_HEARTBEAT_INTERVAL = 30000;
 
 export const FILE_WATCHER_INTERVAL = 3000;
+
+export function getWorkspacePath(): string {
+  return Deno.env.get('WORKSPACE_PATH') || Deno.cwd();
+}
+
+export const WORKSPACE_PATH = getWorkspacePath();

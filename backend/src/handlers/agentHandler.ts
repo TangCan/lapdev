@@ -1,18 +1,21 @@
 import { join, resolve } from 'https://deno.land/std@0.224.0/path/mod.ts';
-import { WORKSPACE_PATH } from '../config/index.ts';
+import { getWorkspacePath } from '../config/index.ts';
 
 type SearchResult = { filePath: string; lineNumber: number; snippet: string };
 
-const WORKSPACE_RESOLVED = resolve(WORKSPACE_PATH);
+function getWorkspaceResolved(): string {
+  return resolve(getWorkspacePath());
+}
 
 function escapeRegex(pattern: string): string {
   return pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function getFullPath(relativePath: string): string | null {
-  const joined = join(WORKSPACE_PATH, relativePath);
+  const joined = join(getWorkspacePath(), relativePath);
   const resolved = resolve(joined);
-  if (!resolved.startsWith(WORKSPACE_RESOLVED)) {
+  const workspaceResolved = getWorkspaceResolved();
+  if (!resolved.startsWith(workspaceResolved)) {
     return null;
   }
   return resolved;
@@ -44,7 +47,7 @@ async function searchInFile(
     for (let i = 0; i < lines.length && results.length < maxResults; i++) {
       regex.lastIndex = 0;
       if (regex.test(lines[i])) {
-        const relativePath = filePath.replace(WORKSPACE_RESOLVED + '/', '');
+        const relativePath = filePath.replace(getWorkspaceResolved() + '/', '');
         results.push({
           filePath: relativePath,
           lineNumber: i + 1,
