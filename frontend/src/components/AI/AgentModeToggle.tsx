@@ -21,6 +21,7 @@ export const AgentModeToggle: React.FC<AgentModeToggleProps> = ({ className = ''
         ${className}
       `}
       title={isAgentMode ? '关闭Agent模式' : '开启Agent模式'}
+      data-testid="agent-mode-toggle"
     >
       <div className={`
         w-2 h-2 rounded-full transition-all duration-200
