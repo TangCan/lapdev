@@ -205,4 +205,35 @@ Deno.test('[9.1] agentHandler unit tests', async (t) => {
     assertEquals(response.status, 400);
     assertEquals(result.status, 'error');
   });
+
+  await t.step('[P0] UT-9.2.7 should return error for file content exceeding size limit', async () => {
+    const largeContent = 'a'.repeat(11 * 1024 * 1024);
+    const req = createMockRequest({ filePath: 'large-file.ts', content: largeContent });
+    const response = await handleAgentWriteFile(req);
+    const result = await response.json();
+
+    assertEquals(response.status, 400);
+    assertEquals(result.status, 'error');
+    assert(result.error.message.includes('大小限制'));
+  });
+
+  await t.step('[P1] UT-9.2.8 should return error for undefined content', async () => {
+    const req = createMockRequest({ filePath: 'test.ts', content: undefined });
+    const response = await handleAgentWriteFile(req);
+    const result = await response.json();
+
+    assertEquals(response.status, 400);
+    assertEquals(result.status, 'error');
+    assert(result.error.message.includes('不能为空'));
+  });
+
+  await t.step('[P1] UT-9.2.9 should return error for null content', async () => {
+    const req = createMockRequest({ filePath: 'test.ts', content: null });
+    const response = await handleAgentWriteFile(req);
+    const result = await response.json();
+
+    assertEquals(response.status, 400);
+    assertEquals(result.status, 'error');
+    assert(result.error.message.includes('不能为空'));
+  });
 });

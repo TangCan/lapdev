@@ -5,15 +5,15 @@ test.describe('Agent Operation Log E2E', () => {
     await page.addInitScript(() => {
       sessionStorage.setItem('lapdev-ai-models', JSON.stringify({
         models: [{ id: 'test-model', name: 'Test Model', provider: 'openai', apiKey: 'test-key', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o', isActive: true }],
-        activeModelId: 'test-model',
+        currentModelId: 'test-model',
       }));
       localStorage.setItem('lapdev-agent-mode', 'false');
       localStorage.setItem('lapdev-agent-logs', JSON.stringify([
-        { id: 'log-1', type: 'read', filePath: 'src/utils.ts', result: 'success', timestamp: Date.now() - 3600000 },
-        { id: 'log-2', type: 'write', filePath: 'src/components/App.tsx', result: 'success', timestamp: Date.now() - 1800000 },
-        { id: 'log-3', type: 'search', filePath: 'src/', result: 'success', timestamp: Date.now() - 600000 },
-        { id: 'log-4', type: 'write', filePath: 'src/hooks/useAuth.ts', result: 'rejected', timestamp: Date.now() - 300000 },
-        { id: 'log-5', type: 'read', filePath: 'src/config.ts', result: 'failed', timestamp: Date.now() - 60000 },
+        { id: 'log-1', operationType: 'read', filePath: 'src/utils.ts', result: 'success', timestamp: Date.now() - 3600000 },
+        { id: 'log-2', operationType: 'write', filePath: 'src/components/App.tsx', result: 'success', timestamp: Date.now() - 1800000 },
+        { id: 'log-3', operationType: 'search', filePath: 'src/', result: 'success', timestamp: Date.now() - 600000 },
+        { id: 'log-4', operationType: 'write', filePath: 'src/hooks/useAuth.ts', result: 'rejected', timestamp: Date.now() - 300000 },
+        { id: 'log-5', operationType: 'read', filePath: 'src/config.ts', result: 'failed', timestamp: Date.now() - 60000 },
       ]));
     });
     await page.goto('/');
@@ -51,6 +51,9 @@ test.describe('Agent Operation Log E2E', () => {
 
     await page.locator('[data-testid="clear-logs-button"]').click();
     
+    await page.waitForSelector('[data-testid="confirm-clear-logs"]', { timeout: 5000 });
+    await page.locator('[data-testid="confirm-clear-logs"]').click();
+    
     await page.waitForSelector('[data-testid="no-logs-message"]', { timeout: 5000 });
     await expect(logEntries).toHaveCount(0);
   });
@@ -60,6 +63,9 @@ test.describe('Agent Operation Log E2E', () => {
     await page.waitForSelector('[data-testid="operation-log-panel"]', { timeout: 5000 });
     
     await page.locator('[data-testid="clear-logs-button"]').click();
+    
+    await page.waitForSelector('[data-testid="confirm-clear-logs"]', { timeout: 5000 });
+    await page.locator('[data-testid="confirm-clear-logs"]').click();
     
     await page.waitForSelector('[data-testid="no-logs-message"]', { timeout: 5000 });
     expect(page.locator('[data-testid="no-logs-message"]')).toHaveText('暂无操作记录');
@@ -90,9 +96,14 @@ test.describe('Agent Operation Log E2E', () => {
     await page.locator('[data-testid="export-logs-button"]').click();
     
     const download = await downloadPromise;
-    expect(download.suggestedFilename()).toBe('agent-logs.json');
+    const filename = download.suggestedFilename();
+    expect(filename).toMatch(/^agent-logs-\d{4}-\d{2}-\d{2}\.json$/);
     
-    const content = await download.text();
+    const path = await download.path();
+    expect(path).toBeTruthy();
+    
+    const fs = require('fs');
+    const content = fs.readFileSync(path, 'utf-8');
     const logs = JSON.parse(content);
     expect(Array.isArray(logs)).toBe(true);
     expect(logs.length).toBe(5);
