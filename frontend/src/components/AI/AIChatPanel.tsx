@@ -9,6 +9,7 @@ import { SkillPanel } from '../SkillPanel/SkillPanel';
 import { useAgent } from '../../context/AgentContext';
 import { agentService, AgentOperation } from '../../services/agentService';
 import OperationConfirmation from './OperationConfirmation';
+import { OperationLog } from './OperationLog';
 import './AIChatPanel.css';
 
 interface MessageBubbleProps {
@@ -68,6 +69,7 @@ const AIChatPanel: React.FC = () => {
   const [showOperationConfirmation, setShowOperationConfirmation] = useState(false);
   const [pendingOperations, setPendingOperations] = useState<AgentOperation[]>([]);
   const [operationMessage, setOperationMessage] = useState<string | null>(null);
+  const [showOperationLog, setShowOperationLog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { isAgentMode, addLogEntry, addOperation } = useAgent();
@@ -446,6 +448,14 @@ const AIChatPanel: React.FC = () => {
             <button className="action-btn" onClick={handleClearConfirm} title="Clear Session" data-testid="ai-clear-conversation">
               🗑️ 清空
             </button>
+            <button 
+              className={`action-btn ${showOperationLog ? 'active' : ''}`} 
+              onClick={() => setShowOperationLog(!showOperationLog)} 
+              title="操作日志" 
+              data-testid="operation-log-toggle"
+            >
+              📋 日志
+            </button>
           </div>
         )}
 
@@ -515,6 +525,13 @@ const AIChatPanel: React.FC = () => {
           <div className={`operation-result ${operationMessage === '操作已批准' ? 'success' : 'rejected'}`}
             data-testid={operationMessage === '操作已批准' ? 'operation-success-message' : 'operation-rejected-message'}>
             {operationMessage === '操作已批准' ? '✓' : '✕'} {operationMessage}
+          </div>
+        )}
+
+        {/* Operation Log Panel */}
+        {showOperationLog && (
+          <div className="operation-log-container">
+            <OperationLog />
           </div>
         )}
       </div>

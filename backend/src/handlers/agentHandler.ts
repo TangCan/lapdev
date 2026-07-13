@@ -79,6 +79,12 @@ export async function handleAgentReadFile(req: Request): Promise<Response> {
 
     try {
       const content = await Deno.readTextFile(fullPath);
+      await appendLogEntry({
+        operationType: 'read',
+        filePath,
+        result: 'success',
+        details: `读取成功，大小: ${content.length} 字节`,
+      });
       return new Response(JSON.stringify({
         status: 'success',
         data: { content },
@@ -86,6 +92,12 @@ export async function handleAgentReadFile(req: Request): Promise<Response> {
         headers: { 'Content-Type': 'application/json' },
       });
     } catch {
+      await appendLogEntry({
+        operationType: 'read',
+        filePath,
+        result: 'failed',
+        details: '文件不存在或无法读取',
+      });
       return new Response(JSON.stringify({
         status: 'error',
         error: { message: '文件不存在或无法读取' },
@@ -212,6 +224,12 @@ export async function handleAgentSearchCode(req: Request): Promise<Response> {
         }
       }
 
+      await appendLogEntry({
+        operationType: 'search',
+        filePath: directory,
+        result: 'success',
+        details: `搜索 "${pattern}"，找到 ${results.length} 个结果`,
+      });
       return new Response(JSON.stringify({
         status: 'success',
         data: results,
@@ -219,6 +237,12 @@ export async function handleAgentSearchCode(req: Request): Promise<Response> {
         headers: { 'Content-Type': 'application/json' },
       });
     } catch {
+      await appendLogEntry({
+        operationType: 'search',
+        filePath: directory,
+        result: 'failed',
+        details: `搜索 "${pattern}" 失败`,
+      });
       return new Response(JSON.stringify({
         status: 'error',
         error: { message: '搜索失败' },
@@ -315,6 +339,12 @@ export async function handleAgentWriteFile(req: Request): Promise<Response> {
     try {
       await Deno.writeTextFile(fullPath, content);
       console.log(`[handleAgentWriteFile] File written successfully: ${filePath}, size: ${content.length} bytes`);
+      await appendLogEntry({
+        operationType: 'write',
+        filePath,
+        result: 'success',
+        details: `写入成功，大小: ${content.length} 字节`,
+      });
       return new Response(JSON.stringify({
         status: 'success',
         data: { filePath },
@@ -323,6 +353,12 @@ export async function handleAgentWriteFile(req: Request): Promise<Response> {
       });
     } catch (error) {
       if (error instanceof Deno.errors.NotFound) {
+        await appendLogEntry({
+          operationType: 'write',
+          filePath,
+          result: 'failed',
+          details: '目录不存在或无法访问',
+        });
         return new Response(JSON.stringify({
           status: 'error',
           error: { message: '目录不存在或无法访问' },
@@ -331,6 +367,12 @@ export async function handleAgentWriteFile(req: Request): Promise<Response> {
           headers: { 'Content-Type': 'application/json' },
         });
       }
+      await appendLogEntry({
+        operationType: 'write',
+        filePath,
+        result: 'failed',
+        details: '写入文件失败',
+      });
       return new Response(JSON.stringify({
         status: 'error',
         error: { message: '写入文件失败' },
@@ -345,6 +387,111 @@ export async function handleAgentWriteFile(req: Request): Promise<Response> {
       error: { message: '请求参数格式错误' },
     }), {
       status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+const LOG_FILE_PATH = join(Deno.cwd(), 'logs', 'agent-operations.log');
+
+async function ensureLogDirectory(): Promise<void> {
+  const logDir = join(Deno.cwd(), 'logs');
+  try {
+    await Deno.stat(logDir);
+  } catch (error) {
+    console.error(`[ensureLogDirectory] Failed to create log directory: ${error}`);
+    throw error;
+  }
+}
+
+async function appendLogEntry(entry: Omit<OperationLogEntry, 'id' | 'timestamp'>): Promise<void> {
+  try {
+    await ensureLogDirectory();
+    
+    let logs: OperationLogEntry[] = [];
+    try {
+      const content = await Deno.readTextFile(LOG_FILE_PATH);
+      if (content.trim()) {
+        logs = JSON.parse(content);
+      }
+    } catch {
+      logs = [];
+    }
+    
+    const newEntry: OperationLogEntry = {
+      ...entry,
+      id: crypto.randomUUID(),
+      timestamp: Date.now(),
+    };
+    
+    logs.unshift(newEntry);
+    logs = logs.slice(0, 100);
+    
+    await Deno.writeTextFile(LOG_FILE_PATH, JSON.stringify(logs, null, 2));
+  } catch (error) {
+    console.error(`[appendLogEntry] Failed to write log: ${error}`);
+  }
+}
+
+interface OperationLogEntry {
+  id: string;
+  operationType: 'read' | 'write' | 'search' | 'create' | 'delete';
+  filePath: string;
+  result: 'success' | 'failed' | 'rejected';
+  timestamp: number;
+  details?: string;
+}
+
+export async function handleAgentGetLogs(): Promise<Response> {
+  try {
+    await ensureLogDirectory();
+    
+    let logs: OperationLogEntry[] = [];
+    
+    try {
+      const content = await Deno.readTextFile(LOG_FILE_PATH);
+      if (content.trim()) {
+        logs = JSON.parse(content);
+      }
+    } catch {
+      logs = [];
+    }
+    
+    return new Response(JSON.stringify({
+      status: 'success',
+      data: logs,
+    }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch {
+    return new Response(JSON.stringify({
+      status: 'error',
+      error: { message: '获取日志失败' },
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+export async function handleAgentClearLogs(): Promise<Response> {
+  try {
+    await ensureLogDirectory();
+    
+    await Deno.writeTextFile(LOG_FILE_PATH, JSON.stringify([]));
+    
+    return new Response(JSON.stringify({
+      status: 'success',
+      data: {},
+    }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch {
+    return new Response(JSON.stringify({
+      status: 'error',
+      error: { message: '清除日志失败' },
+    }), {
+      status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
   }

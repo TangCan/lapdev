@@ -206,6 +206,44 @@ class AgentService {
       timestamp: Date.now(),
     };
   }
+
+  // 获取服务器端日志
+  async getLogs(): Promise<OperationLogEntry[]> {
+    try {
+      const response = await this.fetchWithTimeout(`${API_BASE_URL}/get-logs`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const result = await response.json();
+      
+      if (result.status === 'success') {
+        return result.data;
+      } else {
+        throw new Error(result.error?.message || '获取日志失败');
+      }
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : '获取日志失败');
+    }
+  }
+
+  // 清除服务器端日志
+  async clearServerLogs(): Promise<void> {
+    try {
+      const response = await this.fetchWithTimeout(`${API_BASE_URL}/clear-logs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const result = await response.json();
+      
+      if (result.status !== 'success') {
+        throw new Error(result.error?.message || '清除日志失败');
+      }
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : '清除日志失败');
+    }
+  }
 }
 
 export const agentService = new AgentService();

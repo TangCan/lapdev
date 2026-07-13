@@ -16,6 +16,8 @@ interface AgentContextType {
   clearPendingOperations: () => void;
   addLogEntry: (entry: Omit<OperationLogEntry, 'id' | 'timestamp'>) => void;
   clearLogs: () => void;
+  filterLogsByType: (type: OperationLogEntry['operationType'] | 'all') => OperationLogEntry[];
+  exportLogs: () => void;
 }
 
 const AgentContext = createContext<AgentContextType | null>(null);
@@ -197,10 +199,41 @@ export const AgentProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [appendLogEntry]);
 
   // 清除日志
-  const clearLogs = useCallback(() => {
+  const clearLogs = useCallback(async () => {
     setOperationLogs([]);
     localStorage.removeItem('lapdev-agent-logs');
+    try {
+      await agentService.clearServerLogs();
+    } catch {
+      console.error('Failed to clear server logs');
+    }
   }, []);
+
+  // 按操作类型筛选日志
+  const filterLogsByType = useCallback((type: OperationLogEntry['operationType'] | 'all'): OperationLogEntry[] => {
+    if (type === 'all') {
+      return operationLogs;
+    }
+    return operationLogs.filter(log => log.operationType === type);
+  }, [operationLogs]);
+
+  // 导出日志为JSON文件
+  const exportLogs = useCallback(() => {
+    try {
+      const dataStr = JSON.stringify(operationLogs, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `agent-logs-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to export logs:', error);
+    }
+  }, [operationLogs]);
 
   return (
     <AgentContext.Provider
@@ -218,6 +251,8 @@ export const AgentProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         clearPendingOperations,
         addLogEntry,
         clearLogs,
+        filterLogsByType,
+        exportLogs,
       }}
     >
       {children}

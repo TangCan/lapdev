@@ -6,7 +6,7 @@ const TEST_WORKSPACE = resolve(__dirname, '..', '..', 'tests', 'fixtures', 'test
 
 Deno.env.set('WORKSPACE_PATH', TEST_WORKSPACE);
 
-import { handleAgentReadFile, handleAgentListFiles, handleAgentSearchCode } from '../src/handlers/agentHandler.ts';
+import { handleAgentReadFile, handleAgentListFiles, handleAgentSearchCode, handleAgentWriteFile } from '../src/handlers/agentHandler.ts';
 
 function createMockRequest(body: Record<string, unknown>): Request {
   return new Request('http://localhost:3333/api/v1/agent/test', {
@@ -134,5 +134,75 @@ Deno.test('[9.1] agentHandler unit tests', async (t) => {
 
     const filePaths = result.data.map((item: any) => item.filePath);
     assert(filePaths.some((path: string) => path.includes('nested/nested-file.ts')));
+  });
+
+  await t.step('[P0] UT-9.2.1 should write file successfully', async () => {
+    const outputFile = 'test-output-921.ts';
+    const content = 'export const testValue = "written by agent";';
+    
+    const req = createMockRequest({ filePath: outputFile, content });
+    const response = await handleAgentWriteFile(req);
+    const result = await response.json();
+
+    assertEquals(response.status, 200);
+    assertEquals(result.status, 'success');
+    assert(result.data);
+    assert(result.data.filePath.includes(outputFile));
+
+    const writtenContent = await Deno.readTextFile(join(TEST_WORKSPACE, outputFile));
+    assertEquals(writtenContent, content);
+
+    await Deno.remove(join(TEST_WORKSPACE, outputFile));
+  });
+
+  await t.step('[P0] UT-9.2.2 should block path traversal attack', async () => {
+    const req = createMockRequest({ filePath: '../etc/passwd', content: 'malicious' });
+    const response = await handleAgentWriteFile(req);
+    const result = await response.json();
+
+    assertEquals(response.status, 400);
+    assertEquals(result.status, 'error');
+    assert(result.error.message.includes('无效') || result.error.message.includes('超出'));
+  });
+
+  await t.step('[P1] UT-9.2.3 should return error for non-existent directory', async () => {
+    const req = createMockRequest({ filePath: 'non-existent-dir/test.ts', content: 'test' });
+    const response = await handleAgentWriteFile(req);
+    const result = await response.json();
+
+    assertEquals(response.status, 404);
+    assertEquals(result.status, 'error');
+  });
+
+  await t.step('[P1] UT-9.2.4 should return error for empty file path', async () => {
+    const req = createMockRequest({ filePath: '', content: 'test' });
+    const response = await handleAgentWriteFile(req);
+    const result = await response.json();
+
+    assertEquals(response.status, 400);
+    assertEquals(result.status, 'error');
+    assert(result.error.message.includes('不能为空'));
+  });
+
+  await t.step('[P1] UT-9.2.5 should return error for missing content', async () => {
+    const req = createMockRequest({ filePath: 'test.ts' });
+    const response = await handleAgentWriteFile(req);
+    const result = await response.json();
+
+    assertEquals(response.status, 400);
+    assertEquals(result.status, 'error');
+  });
+
+  await t.step('[P1] UT-9.2.6 should return error for invalid JSON', async () => {
+    const req = new Request('http://localhost:3333/api/v1/agent/write-file', {
+      method: 'POST',
+      body: 'not valid json',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const response = await handleAgentWriteFile(req);
+    const result = await response.json();
+
+    assertEquals(response.status, 400);
+    assertEquals(result.status, 'error');
   });
 });
