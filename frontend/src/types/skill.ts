@@ -43,3 +43,16 @@ export interface SkillLoadResult {
   globalCount: number;
   projectCount: number;
 }
+
+export interface SkillMarketEntry {
+  name: string;
+  version: string;
+  latestVersion: string;
+  description: string;
+  author: string;
+  tags: string[];
+  rating: number;
+  downloads: number;
+  updatedAt: string;
+  downloadUrl: string;
+}

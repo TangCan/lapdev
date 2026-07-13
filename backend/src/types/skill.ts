@@ -40,3 +40,37 @@ export interface SkillPublishResponse {
   error?: string;
   suggestion?: string;
 }
+
+export interface SkillMarketEntry {
+  name: string;
+  version: string;
+  latestVersion: string;
+  description: string;
+  author: string;
+  tags: string[];
+  rating: number;
+  downloads: number;
+  updatedAt: string;
+  downloadUrl: string;
+}
+
+export interface SkillSearchResult {
+  skills: SkillMarketEntry[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface SkillDetailResult {
+  success: boolean;
+  skill?: SkillMarketEntry;
+  error?: string;
+  message?: string;
+}
+
+export interface SkillInstallResult {
+  success: boolean;
+  message: string;
+  error?: string;
+  suggestion?: string;
+}

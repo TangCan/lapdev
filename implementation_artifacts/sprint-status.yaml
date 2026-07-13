@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-07-06
-last_updated: 2026-07-13T22:00:00Z
+last_updated: 2026-07-13T23:30:00Z
 project: lapdev
 project_key: NOKEY
 tracking_system: file-system
@@ -99,9 +99,9 @@ development_status:
   epic-9-retrospective: done
 
   # Epic 10: Skill市场 (2 stories)
-  epic-10: in-progress
+  epic-10: done
   10-1-skill-publish-command: done
-  10-2-skill-search-install: backlog
+  10-2-skill-search-install: done
   epic-10-retrospective: optional
 
   # Epic 11: 主题切换 (1 story)
@@ -116,7 +116,7 @@ summary:
   stories_ready_for_dev: 0
   stories_in_progress: 0
   stories_in_review: 0
-  stories_completed: 18
+  stories_completed: 19
 
 story_mapping:
   epic-1:
