@@ -1,4 +1,6 @@
 import { skillService } from '../services/skillService.ts';
+import { skillPublishService } from '../services/skillPublishService.ts';
+import { skillValidator } from '../utils/skillValidator.ts';
 
 const SKILL_NAME_PATTERN = /^[a-zA-Z0-9_-]+$/;
 
@@ -9,8 +11,34 @@ function getGlobalSkillsDir(): string {
   return `${home}/.lapdev/skills`;
 }
 
+function getDefaultSkillFile(): string {
+  let currentDir: string;
+  try {
+    currentDir = Deno.cwd();
+  } catch {
+    return '.skill.md';
+  }
+  
+  const defaultPath = `${currentDir}/.skill.md`;
+  if (Deno.existsSync(defaultPath)) {
+    return defaultPath;
+  }
+  
+  try {
+    for (const file of Deno.readDirSync(currentDir)) {
+      if (file.isFile && file.name.endsWith('.skill.md')) {
+        return `${currentDir}/${file.name}`;
+      }
+    }
+  } catch {
+    return '.skill.md';
+  }
+  
+  return `${currentDir}/.skill.md`;
+}
+
 export class SkillCLI {
-  install(skillName: string): void {
+  async install(skillName: string): Promise<void> {
     if (!this.validateSkillName(skillName)) {
       console.error(`❌ 无效的Skill名称: ${skillName}`);
       console.error(`   Skill名称只能包含字母、数字、下划线和连字符`);
@@ -104,6 +132,88 @@ export class SkillCLI {
     }
   }
 
+  async login(apiKey: string): Promise<void> {
+    if (!apiKey || apiKey.trim() === '') {
+      console.error('❌ 请提供API Key');
+      console.error('   使用方法: lapdev skill login <api-key>');
+      return;
+    }
+
+    const result = await skillPublishService.login(apiKey);
+    
+    if (result.success) {
+      console.log(`✅ ${result.message}`);
+    } else {
+      console.error(`❌ ${result.message}`);
+      if (result.error) {
+        console.error(`   错误: ${result.error}`);
+      }
+      if (result.suggestion) {
+        console.error(`   建议: ${result.suggestion}`);
+      }
+    }
+  }
+
+  async logout(): Promise<void> {
+    const result = await skillPublishService.logout();
+    
+    if (result.success) {
+      console.log(`✅ ${result.message}`);
+    } else {
+      console.error(`❌ ${result.message}`);
+      if (result.error) {
+        console.error(`   错误: ${result.error}`);
+      }
+    }
+  }
+
+  async publish(filePath?: string, dryRun: boolean = false): Promise<void> {
+    const targetPath = filePath || getDefaultSkillFile();
+
+    if (!Deno.existsSync(targetPath)) {
+      console.error(`❌ 文件不存在: ${targetPath}`);
+      console.error('   使用方法: lapdev skill publish [文件路径]');
+      console.error('   默认发布当前目录下的 .skill.md 文件');
+      return;
+    }
+
+    const result = await skillPublishService.publish(targetPath, dryRun);
+    
+    if (result.success) {
+      console.log(`✅ ${result.message}`);
+    } else {
+      console.error(`❌ ${result.message}`);
+      if (result.error) {
+        console.error(`   错误: ${result.error}`);
+      }
+      if (result.suggestion) {
+        console.error(`   建议: ${result.suggestion}`);
+      }
+    }
+  }
+
+  async isLoggedIn(): Promise<boolean> {
+    return await skillPublishService.isLoggedIn();
+  }
+
+  async validateAPIKey(): Promise<boolean> {
+    return await skillPublishService.validateAPIKey();
+  }
+
+  validateSkillFile(filePath: string): void {
+    const result = skillValidator.validateSkillFile(filePath);
+    
+    if (!result.isValid) {
+      throw new Error(result.errors.join('; '));
+    }
+  }
+
+  validateVersion(version: string): void {
+    if (!skillValidator.validateVersion(version)) {
+      throw new Error('版本号必须符合语义化版本规范（semver）');
+    }
+  }
+
   showHelp(): void {
     console.log(`
 📖 Lapdev Skill CLI 命令帮助
@@ -112,34 +222,59 @@ export class SkillCLI {
   lapdev skill install <name>    安装官方Skill
   lapdev skill list              列出已安装的Skill
   lapdev skill reload            重新加载Skill
+  lapdev skill login <api-key>   登录Skill市场
+  lapdev skill logout            退出登录
+  lapdev skill publish [path]    发布Skill到市场
   lapdev skill help              显示此帮助信息
 
 示例:
   lapdev skill install code-review
-  lapdev skill install documentation
-  lapdev skill list
+  lapdev skill login my-api-key-123
+  lapdev skill publish
+  lapdev skill publish ./my-skill.skill.md
+  lapdev skill publish --dry-run
+
+选项:
+  --dry-run    仅验证Skill文件，不实际发布
 
 说明:
   - 全局Skill安装路径: ${getGlobalSkillsDir()}
   - 项目级Skill路径: .lapdev/skills/
   - 项目级Skill优先级高于全局Skill
+  - 发布前需要先登录（lapdev skill login）
     `);
   }
 
-  execute(command: string, args: string[]): void {
+  async execute(command: string, args: string[]): Promise<void> {
     switch (command) {
       case 'install':
         if (args.length === 0) {
           console.error('❌ 请提供Skill名称');
           return;
         }
-        this.install(args[0]);
+        await this.install(args[0]);
         break;
       case 'list':
         this.list();
         break;
       case 'reload':
         this.reload();
+        break;
+      case 'login':
+        if (args.length === 0) {
+          console.error('❌ 请提供API Key');
+          console.error('   使用方法: lapdev skill login <api-key>');
+          return;
+        }
+        await this.login(args[0]);
+        break;
+      case 'logout':
+        await this.logout();
+        break;
+      case 'publish':
+        const dryRun = args.includes('--dry-run') || args.includes('-d');
+        const filePath = args.filter(arg => !arg.startsWith('-'))[0];
+        await this.publish(filePath, dryRun);
         break;
       case 'help':
       default:

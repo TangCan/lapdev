@@ -8,3 +8,10 @@
 
 - [x] [Review][Defer] 重复类型定义 — 后端和前端都定义了 `OperationLogEntry` 接口，可能不一致 [agentHandler.ts:364] — deferred, pre-existing
 - [x] [Review][Defer] 大量日志（>100条）被截断 — 现有设计就是限制为100条，符合性能约束 [AgentContext.tsx:76] — deferred, pre-existing
+
+## Deferred from: code review of 10-1-skill-publish-command (2026-07-13)
+
+- [x] [Review][Defer] 缺少错误码或退出码，脚本调用无法判断成功 [skillCli.ts] — deferred, pre-existing
+- [x] [Review][Defer] 当前目录存在多个 .skill.md 文件时未提示用户选择 [skillCli.ts:getDefaultSkillFile] — deferred, pre-existing
+- [x] [Review][Defer] tags 数组为空数组时未验证是否符合业务要求 [skillValidator.ts:validateMetadata] — deferred, pre-existing
+- [x] [Review][Defer] 用户提供多个非选项参数时静默忽略多余参数 [skillCli.ts:266] — deferred, pre-existing
