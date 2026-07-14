@@ -93,17 +93,20 @@ interface RateLimitEntry {
 
 function normalizePath(filePath: string): string {
   let normalized = filePath.replace(/\\/g, '/');
+  while (normalized.startsWith('../')) {
+    normalized = normalized.replace(/^\.\.\//, '');
+  }
   while (normalized.includes('/../')) {
     normalized = normalized.replace(/[^/]+\/\.\.\//g, '');
   }
-  normalized = normalized.replace(/^\.\.\//, '');
   return normalized;
 }
 
 function isValidFilePath(filePath: string): boolean {
-  const normalized = normalizePath(filePath);
+  const normalized = filePath.replace(/\\/g, '/');
   if (normalized.startsWith('..')) return false;
   if (normalized.includes('/../')) return false;
+  if (normalized.includes('./../')) return false;
   return true;
 }
 

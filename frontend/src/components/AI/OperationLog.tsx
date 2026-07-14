@@ -131,7 +131,7 @@ export const OperationLog: React.FC<OperationLogProps> = ({ className = '' }) =>
               </option>
             ))}
           </select>
-          {operationLogs.length > 0 && (
+          {filteredLogs.length > 0 && (
             <>
               <button
                 onClick={exportLogs}

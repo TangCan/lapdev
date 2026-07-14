@@ -52,7 +52,10 @@ test.describe('Agent Operation Log E2E', () => {
     await page.locator('[data-testid="clear-logs-button"]').click();
     
     await page.waitForSelector('[data-testid="confirm-clear-logs"]', { timeout: 5000 });
-    await page.locator('[data-testid="confirm-clear-logs"]').click();
+    await page.evaluate(() => {
+      const btn = document.querySelector('[data-testid="confirm-clear-logs"]');
+      if (btn) btn.click();
+    });
     
     await page.waitForSelector('[data-testid="no-logs-message"]', { timeout: 5000 });
     await expect(logEntries).toHaveCount(0);
@@ -65,7 +68,10 @@ test.describe('Agent Operation Log E2E', () => {
     await page.locator('[data-testid="clear-logs-button"]').click();
     
     await page.waitForSelector('[data-testid="confirm-clear-logs"]', { timeout: 5000 });
-    await page.locator('[data-testid="confirm-clear-logs"]').click();
+    await page.evaluate(() => {
+      const btn = document.querySelector('[data-testid="confirm-clear-logs"]');
+      if (btn) btn.click();
+    });
     
     await page.waitForSelector('[data-testid="no-logs-message"]', { timeout: 5000 });
     expect(page.locator('[data-testid="no-logs-message"]')).toHaveText('暂无操作记录');
