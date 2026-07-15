@@ -2,6 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-bg: #1e1e1e;
+  --color-surface: #252526;
+  --color-surface-hover: #2d2d2d;
+  --color-border: #3c3c3c;
+  --color-text-primary: #d4d4d4;
+  --color-text-secondary: #c6c6c6;
+  --color-text-muted: #858585;
+  --color-accent: #007acc;
+  --color-accent-hover: #005a9e;
+  --color-success: #3fb950;
+  --color-warning: #d29922;
+  --color-danger: #f14c4c;
+  --color-info: #58a6ff;
+}
+
+[data-theme="light"] {
+  --color-bg: #ffffff;
+  --color-surface: #f5f5f5;
+  --color-surface-hover: #e8e8e8;
+  --color-border: #d4d4d4;
+  --color-text-primary: #1e1e1e;
+  --color-text-secondary: #3c3c3c;
+  --color-text-muted: #6e6e6e;
+  --color-accent: #007acc;
+  --color-accent-hover: #005a9e;
+  --color-success: #3fb950;
+  --color-warning: #d29922;
+  --color-danger: #f14c4c;
+  --color-info: #58a6ff;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -10,8 +42,8 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  background-color: #1e1e1e;
-  color: #d4d4d4;
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
   height: 100vh;
   overflow: hidden;
 }
@@ -27,17 +59,17 @@ body {
 }
 
 .header {
-  background-color: #3c3c3c;
+  background-color: var(--color-surface);
   padding: 12px 20px;
   display: flex;
   align-items: center;
-  border-bottom: 1px solid #2d2d2d;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .header h1 {
   font-size: 18px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .header-actions {
@@ -80,8 +112,8 @@ body {
 
 .sidebar {
   width: 280px;
-  background-color: #252526;
-  border-right: 1px solid #3c3c3c;
+  background-color: var(--color-surface);
+  border-right: 1px solid var(--color-border);
   overflow: hidden;
 }
 
@@ -94,8 +126,8 @@ body {
 
 .tabs {
   display: flex;
-  background-color: #1e1e1e;
-  border-bottom: 1px solid #3c3c3c;
+  background-color: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
   overflow-x: auto;
 }
 
@@ -104,20 +136,20 @@ body {
   align-items: center;
   padding: 8px 16px;
   padding-right: 8px;
-  background-color: #252526;
-  border-right: 1px solid #3c3c3c;
+  background-color: var(--color-surface);
+  border-right: 1px solid var(--color-border);
   cursor: pointer;
   transition: background-color 0.2s;
   min-width: 100px;
 }
 
 .tab:hover {
-  background-color: #2d2d2d;
+  background-color: var(--color-surface-hover);
 }
 
 .tab.active {
-  background-color: #1e1e1e;
-  border-bottom: 2px solid #007acc;
+  background-color: var(--color-bg);
+  border-bottom: 2px solid var(--color-accent);
 }
 
 .tab-icon {
@@ -134,7 +166,7 @@ body {
 .close-tab {
   background: none;
   border: none;
-  color: #858585;
+  color: var(--color-text-muted);
   cursor: pointer;
   padding: 4px;
   margin-left: 8px;
@@ -143,19 +175,19 @@ body {
 }
 
 .close-tab:hover {
-  background-color: #3c3c3c;
-  color: #ffffff;
+  background-color: var(--color-border);
+  color: var(--color-text-primary);
 }
 
 .modified-indicator {
-  color: #007acc;
+  color: var(--color-accent);
   font-size: 10px;
   margin-right: 4px;
 }
 
 .editor-container {
   flex: 1;
-  background-color: #1e1e1e;
+  background-color: var(--color-bg);
   overflow: auto;
 }
 
@@ -167,14 +199,14 @@ body {
 
 .editor-header {
   padding: 8px 16px;
-  background-color: #252526;
-  border-bottom: 1px solid #3c3c3c;
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .file-path {
   font-family: 'Consolas', 'Monaco', monospace;
   font-size: 12px;
-  color: #858585;
+  color: var(--color-text-muted);
 }
 
 .file-content {
@@ -211,13 +243,13 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #6e7681;
+  color: var(--color-text-muted);
 }
 
 .welcome-screen h2 {
   font-size: 24px;
   margin-bottom: 16px;
-  color: #d4d4d4;
+  color: var(--color-text-primary);
 }
 
 .welcome-screen p {

@@ -9,6 +9,7 @@ import { AgentProvider } from './context/AgentContext';
 import { InlineCompletionProvider } from './context/InlineCompletionContext';
 import { SkillProvider } from './context/SkillContext';
 import { LSPProvider } from './context/LSPContext';
+import { ThemeProvider } from './theme/ThemeContext';
 
 window.addEventListener('error', (e) => {
   console.error('[Global Error]', e.error, e.message, e.filename, e.lineno);
@@ -22,20 +23,22 @@ console.log('[App] Starting...');
 
 createRoot(document.getElementById('root')!).render(
   <BrowserRouter>
-    <GitProvider>
-      <AIProvider>
-        <AgentProvider>
-          <InlineCompletionProvider>
-            <SkillProvider>
-              <ChatProvider>
-                <LSPProvider>
-                  <App />
-                </LSPProvider>
-              </ChatProvider>
-            </SkillProvider>
-          </InlineCompletionProvider>
-        </AgentProvider>
-      </AIProvider>
-    </GitProvider>
+    <ThemeProvider>
+      <GitProvider>
+        <AIProvider>
+          <AgentProvider>
+            <InlineCompletionProvider>
+              <SkillProvider>
+                <ChatProvider>
+                  <LSPProvider>
+                    <App />
+                  </LSPProvider>
+                </ChatProvider>
+              </SkillProvider>
+            </InlineCompletionProvider>
+          </AgentProvider>
+        </AIProvider>
+      </GitProvider>
+    </ThemeProvider>
   </BrowserRouter>
 );

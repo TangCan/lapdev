@@ -1,4 +1,12 @@
 // Agent服务层 - 处理Agent模式下的文件操作
+export interface OperationLogEntry {
+  id: string;
+  operationType: 'read' | 'write' | 'search' | 'create' | 'delete';
+  filePath: string;
+  result: 'success' | 'failed' | 'rejected' | 'pending';
+  timestamp: number;
+  details?: string;
+}
 
 export interface AgentOperation {
   id: string;
@@ -22,15 +30,6 @@ export interface AgentSearchResult {
   filePath: string;
   lineNumber: number;
   snippet: string;
-}
-
-export interface OperationLogEntry {
-  id: string;
-  operationType: 'read' | 'write' | 'create' | 'delete' | 'search';
-  filePath: string;
-  timestamp: number;
-  result: 'success' | 'failed' | 'rejected' | 'pending';
-  details?: string;
 }
 
 const API_BASE_URL = '/api/v1/agent';

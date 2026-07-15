@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-07-06
-last_updated: 2026-07-13T23:50:00Z
+last_updated: 2026-07-14T12:00:00Z
 project: lapdev
 project_key: NOKEY
 tracking_system: file-system
@@ -102,11 +102,11 @@ development_status:
   epic-10: done
   10-1-skill-publish-command: done
   10-2-skill-search-install: done
-  epic-10-retrospective: optional
+  epic-10-retrospective: done
 
   # Epic 11: 主题切换 (1 story)
-  epic-11: backlog
-  11-1-theme-switching-ui: backlog
+  epic-11: done
+  11-1-theme-switching-ui: done
   epic-11-retrospective: optional
 
 summary:

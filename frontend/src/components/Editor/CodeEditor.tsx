@@ -3,6 +3,7 @@ import * as Monaco from 'monaco-editor';
 import { aiService } from '../../services/aiService';
 import { useAI } from '../../context/AIContext';
 import { useInlineCompletion } from '../../context/InlineCompletionContext';
+import { useTheme } from '../../theme/ThemeContext';
 
 export interface DiffLine {
   lineNumber: number;
@@ -41,6 +42,7 @@ export function CodeEditor({
 
   const { isConnected } = useAI();
   const { inlineCompletionEnabled, inlineCompletionVisible, setInlineCompletionVisible, ghostText, setGhostText } = useInlineCompletion();
+  const { themeName } = useTheme();
 
   // 使用 ref 存储最新版本的值，避免闭包问题
   const inlineCompletionEnabledRef = useRef(inlineCompletionEnabled);
@@ -299,7 +301,7 @@ export function CodeEditor({
       lineNumbers: 'on',
       scrollBeyondLastLine: false,
       automaticLayout: true,
-      theme: 'vs-dark',
+      theme: themeName === 'dark' ? 'vs-dark' : 'vs',
       folding: true,
       foldingHighlight: true,
       bracketPairColorization: { enabled: true },
@@ -382,6 +384,13 @@ export function CodeEditor({
   useEffect(() => {
     updateDiffDecorations();
   }, [updateDiffDecorations]);
+
+  useEffect(() => {
+    if (editorRef.current && Monaco.editor.setTheme) {
+      const monacoTheme = themeName === 'dark' ? 'vs-dark' : 'vs';
+      Monaco.editor.setTheme(monacoTheme);
+    }
+  }, [themeName]);
 
   return (
     <div 

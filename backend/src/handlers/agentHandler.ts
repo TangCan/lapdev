@@ -1,5 +1,6 @@
 import { join, resolve } from 'https://deno.land/std@0.224.0/path/mod.ts';
 import { getWorkspacePath } from '../config/index.ts';
+import { OperationLogEntry } from '../../../shared/types/agent.ts';
 
 type SearchResult = { filePath: string; lineNumber: number; snippet: string };
 
@@ -431,15 +432,6 @@ async function appendLogEntry(entry: Omit<OperationLogEntry, 'id' | 'timestamp'>
   } catch (error) {
     console.error(`[appendLogEntry] Failed to write log: ${error}`);
   }
-}
-
-interface OperationLogEntry {
-  id: string;
-  operationType: 'read' | 'write' | 'search' | 'create' | 'delete';
-  filePath: string;
-  result: 'success' | 'failed' | 'rejected';
-  timestamp: number;
-  details?: string;
 }
 
 export async function handleAgentGetLogs(): Promise<Response> {

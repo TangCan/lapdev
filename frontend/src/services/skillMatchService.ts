@@ -18,7 +18,7 @@ export class SkillMatchService {
     const skillKeywords = trigger.keywords || [];
     let keywordMatch = 0;
     if (skillKeywords.length > 0) {
-      const matchedCount = skillKeywords.filter(keyword => 
+      const matchedCount = skillKeywords.filter((keyword: string) => 
         text.toLowerCase().includes(keyword.toLowerCase())
       ).length;
       keywordMatch = matchedCount / skillKeywords.length;

@@ -43,11 +43,17 @@ export class SimilarityUtils {
 
   /**
    * 检查文本是否匹配任何正则模式
-   * @param patterns - 正则模式数组
+   * @param patterns - 正则模式数组（支持字符串或RegExp）
    * @param text - 输入文本
    * @returns 是否匹配
    */
-  static matchPatterns(patterns: RegExp[], text: string): boolean {
-    return patterns.some(pattern => pattern.test(text));
+  static matchPatterns(patterns: (string | RegExp)[], text: string): boolean {
+    return patterns.some(pattern => {
+      if (pattern instanceof RegExp) {
+        return pattern.test(text);
+      }
+      const regex = new RegExp(pattern);
+      return regex.test(text);
+    });
   }
 }

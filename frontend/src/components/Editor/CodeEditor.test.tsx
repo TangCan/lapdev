@@ -3,17 +3,20 @@ import { describe, it, expect, vi } from 'vitest';
 import { CodeEditor } from './CodeEditor';
 import { AIProvider } from '../../context/AIContext';
 import { InlineCompletionProvider } from '../../context/InlineCompletionContext';
+import { ThemeProvider } from '../../theme/ThemeContext';
 
 describe('CodeEditor Component', () => {
   const mockOnChange = vi.fn();
 
   const renderWithProviders = (ui: React.ReactElement) => {
     return render(
-      <AIProvider>
-        <InlineCompletionProvider>
-          {ui}
-        </InlineCompletionProvider>
-      </AIProvider>
+      <ThemeProvider>
+        <AIProvider>
+          <InlineCompletionProvider>
+            {ui}
+          </InlineCompletionProvider>
+        </AIProvider>
+      </ThemeProvider>
     );
   };
 
