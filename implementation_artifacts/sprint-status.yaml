@@ -107,7 +107,7 @@ development_status:
   # Epic 11: 主题切换 (1 story)
   epic-11: done
   11-1-theme-switching-ui: done
-  epic-11-retrospective: optional
+  epic-11-retrospective: done
 
 summary:
   total_epics: 11
