@@ -61,6 +61,7 @@ WORKDIR /app
 # 从构建阶段复制产物
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 COPY backend/ ./backend
+COPY shared/ ./shared
 
 # 复制 Deno（由 build.sh 或 CI 提前准备）
 COPY deno /usr/local/bin/deno
