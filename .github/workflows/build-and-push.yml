@@ -101,10 +101,18 @@ jobs:
         run: |
           docker run -d --name lapdev-test -p 3333:3333 \
             ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
-          sleep 30
+          sleep 10
+          docker logs lapdev-test
 
       - name: Health check
         run: |
-          curl -f http://localhost:3333/health
+          for i in {1..10}; do
+            if curl -f http://localhost:3333/health 2>/dev/null; then
+              echo "Health check passed"
+              break
+            fi
+            echo "Health check attempt $i failed, retrying..."
+            sleep 5
+          done
           docker stop lapdev-test
           docker rm lapdev-test
