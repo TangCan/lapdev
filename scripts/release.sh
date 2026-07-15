@@ -43,20 +43,20 @@ log_error() {
 detect_container_tool() {
     log_info "检测容器工具..."
     
-    # 优先使用 Docker（如果可用）
-    if command -v docker &> /dev/null; then
-        CONTAINER_TOOL="docker"
-        log_info "检测到 Docker，使用 Docker"
-        return 0
-    fi
-    
-    # 其次使用 Podman
+    # 优先使用 Podman（如果可用）
     if command -v podman &> /dev/null; then
         CONTAINER_TOOL="podman"
         log_info "检测到 Podman，使用 Podman"
         
         # 设置 rootless Podman 的运行时目录（解决 /run 只读问题）
         setup_podman_runtime
+        return 0
+    fi
+    
+    # 其次使用 Docker
+    if command -v docker &> /dev/null; then
+        CONTAINER_TOOL="docker"
+        log_info "检测到 Docker，使用 Docker"
         return 0
     fi
     
@@ -119,6 +119,26 @@ prepare_deno() {
     
     # 检查系统中是否安装了 deno
     local system_deno=$(which deno 2>/dev/null)
+    
+    # 如果系统路径中找不到，尝试常见的安装位置
+    if [ -z "$system_deno" ]; then
+        local possible_paths=(
+            "/home/$SUDO_USER/.cargo/bin/deno"
+            "/home/$SUDO_USER/.deno/bin/deno"
+            "/root/.cargo/bin/deno"
+            "/root/.deno/bin/deno"
+            "$HOME/.cargo/bin/deno"
+            "$HOME/.deno/bin/deno"
+        )
+        
+        for path in "${possible_paths[@]}"; do
+            if [ -f "$path" ] && [ -x "$path" ]; then
+                system_deno="$path"
+                log_info "在 $path 找到 Deno"
+                break
+            fi
+        done
+    fi
     
     if [ -z "$system_deno" ]; then
         log_error "系统中未安装 Deno，请先安装 Deno"
@@ -203,7 +223,6 @@ build_image() {
         docker build \
             --tag ${IMAGE_NAME}:${version} \
             --tag ${IMAGE_NAME}:latest \
-            --progress=plain \
             --build-arg VERSION=${version} \
             .
     else
