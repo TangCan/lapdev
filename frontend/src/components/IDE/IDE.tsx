@@ -29,6 +29,7 @@ function IDE() {
   const [isFormatting, setIsFormatting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showTerminal, setShowTerminal] = useState(false);
+  const [closeConfirm, setCloseConfirm] = useState<{ tabId: string; fileName: string } | null>(null);
   
   const [showGitPanel, setShowGitPanel] = useState(false);
   const [showProblemsPanel, setShowProblemsPanel] = useState(false);
@@ -180,11 +181,61 @@ function IDE() {
   };
 
   const handleCloseTab = (tabId: string) => {
+    const tab = tabs.find(t => t.id === tabId);
+    
+    if (tab && tab.isModified) {
+      setCloseConfirm({ tabId, fileName: tab.file.name });
+      return;
+    }
+    
     setTabs(tabs.filter(tab => tab.id !== tabId));
     
     if (activeTabId === tabId) {
       const remainingTabs = tabs.filter(tab => tab.id !== tabId);
       setActiveTabId(remainingTabs.length > 0 ? remainingTabs[remainingTabs.length - 1].id : null);
+    }
+  };
+
+  const confirmCloseTab = () => {
+    if (!closeConfirm) return;
+    
+    setTabs(tabs.filter(tab => tab.id !== closeConfirm.tabId));
+    
+    if (activeTabId === closeConfirm.tabId) {
+      const remainingTabs = tabs.filter(tab => tab.id !== closeConfirm.tabId);
+      setActiveTabId(remainingTabs.length > 0 ? remainingTabs[remainingTabs.length - 1].id : null);
+    }
+    
+    setCloseConfirm(null);
+  };
+
+  const cancelCloseTab = () => {
+    setCloseConfirm(null);
+  };
+
+  const saveAndCloseTab = async () => {
+    if (!closeConfirm) return;
+    
+    const tab = tabs.find(t => t.id === closeConfirm.tabId);
+    if (!tab) {
+      setCloseConfirm(null);
+      return;
+    }
+    
+    setIsSaving(true);
+    try {
+      const result = await writeFile(tab.file.path, tab.content);
+      
+      if (result.status === 'success') {
+        confirmCloseTab();
+        refreshStatus();
+      } else {
+        showError(result.message || '保存失败');
+      }
+    } catch (error) {
+      showError(error instanceof Error ? error.message : '保存失败');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -443,6 +494,36 @@ function IDE() {
       </div>
       
       <AIChatPanel />
+    
+    {closeConfirm && (
+      <div className="modal-overlay" data-testid="close-confirm-modal">
+        <div className="modal-content">
+          <h3>文件已修改</h3>
+          <p>文件 "{closeConfirm.fileName}" 已被修改，是否保存更改？</p>
+          <div className="modal-actions">
+            <button 
+              className="modal-button modal-button-primary" 
+              onClick={saveAndCloseTab}
+              disabled={isSaving}
+            >
+              {isSaving ? '保存中...' : '保存并关闭'}
+            </button>
+            <button 
+              className="modal-button modal-button-secondary" 
+              onClick={confirmCloseTab}
+            >
+              不保存并关闭
+            </button>
+            <button 
+              className="modal-button modal-button-cancel" 
+              onClick={cancelCloseTab}
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </div>
   );
 }
