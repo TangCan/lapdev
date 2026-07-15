@@ -85,15 +85,30 @@ ARG BACKEND_PORT=3333
 ENV NODE_ENV=production \
     WORKSPACE_PATH=/workspace \
     PORT=${BACKEND_PORT} \
-    DENO_PORT=${BACKEND_PORT}
+    DENO_PORT=${BACKEND_PORT} \
+    TLS_ENABLED=false \
+    TLS_CERT_PATH=/app/backend/cert/cert.pem \
+    TLS_KEY_PATH=/app/backend/cert/key.pem
+
+# 安装 openssl 用于生成 TLS 证书
+USER root
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends openssl && \
+    rm -rf /var/lib/apt/lists/* && \
+    mkdir -p /app/backend/cert && \
+    chown -R lapdev:lapdev /app/backend/cert
 
 USER lapdev
 EXPOSE ${BACKEND_PORT}
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD NO_PROXY=localhost,127.0.0.1 curl -f http://localhost:${BACKEND_PORT}/health || exit 1
+    CMD if [ "$TLS_ENABLED" = "true" ]; then \
+          NO_PROXY=localhost,127.0.0.1 curl -k -f https://localhost:${BACKEND_PORT}/health || exit 1; \
+        else \
+          NO_PROXY=localhost,127.0.0.1 curl -f http://localhost:${BACKEND_PORT}/health || exit 1; \
+        fi
 
-CMD ["deno", "run", "--no-lock", "-A", "backend/src/main.ts"]
+CMD ["sh", "-c", "if [ \"$TLS_ENABLED\" = \"true\" ] && [ ! -f /app/backend/cert/cert.pem ]; then \n  openssl genrsa -out /app/backend/cert/key.pem 2048 && \n  openssl req -new -key /app/backend/cert/key.pem -out /tmp/cert.csr -subj \"/CN=localhost\" && \n  printf 'subjectAltName=DNS:localhost,DNS:lapdev,IP:127.0.0.1\\nextendedKeyUsage=serverAuth\\nkeyUsage=digitalSignature,keyEncipherment\\n' > /tmp/extfile.cnf && \n  openssl x509 -req -in /tmp/cert.csr -signkey /app/backend/cert/key.pem -out /app/backend/cert/cert.pem -days 365 -extfile /tmp/extfile.cnf -sha256 && \n  rm -f /tmp/cert.csr /tmp/extfile.cnf; \nfi && \ndeno run --no-lock -A backend/src/main.ts"]
 
 # ========================================
 # Build Instructions:

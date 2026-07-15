@@ -55,7 +55,7 @@ import { handleBMADInstall, handleBMADStatus, handleBMADUpgrade } from './handle
 import { handleSkillLoad, handleSkillMatch, handleSkillRegister, handleSkillList } from './handlers/skillHandler.ts';
 import { handleAgentReadFile, handleAgentListFiles, handleAgentSearchCode, handleAgentWriteFile, handleAgentGetLogs, handleAgentClearLogs } from './handlers/agentHandler.ts';
 import { join, extname } from 'https://deno.land/std@0.224.0/path/mod.ts';
-import { PORT, ALLOWED_ORIGINS } from './config/index.ts';
+import { PORT, ALLOWED_ORIGINS, TLS_ENABLED, TLS_CERT_PATH, TLS_KEY_PATH } from './config/index.ts';
 
 function parseAllowedOrigins(): string[] {
   const envValue = Deno.env.get('ALLOWED_ORIGINS');
@@ -601,6 +601,27 @@ startFileWatcher();
 // Start heartbeat cleanup timer
 startCleanupTimer();
 
-console.log(`Server running on http://localhost:${PORT}`);
-
-Deno.serve({ port: PORT }, handleRequest);
+if (TLS_ENABLED) {
+  try {
+    const cert = await Deno.readTextFile(TLS_CERT_PATH);
+    const key = await Deno.readTextFile(TLS_KEY_PATH);
+    
+    console.log(`Server running on https://localhost:${PORT} (TLS 1.3)`);
+    console.log(`TLS Certificate: ${TLS_CERT_PATH}`);
+    console.log(`TLS Key: ${TLS_KEY_PATH}`);
+    
+    Deno.serve({
+      port: PORT,
+      cert,
+      key,
+    }, handleRequest);
+  } catch (error) {
+    console.error(`Failed to start TLS server: ${error.message}`);
+    console.error("Falling back to HTTP...");
+    console.log(`Server running on http://localhost:${PORT}`);
+    Deno.serve({ port: PORT }, handleRequest);
+  }
+} else {
+  console.log(`Server running on http://localhost:${PORT}`);
+  Deno.serve({ port: PORT }, handleRequest);
+}

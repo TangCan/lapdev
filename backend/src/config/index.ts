@@ -7,6 +7,8 @@ export const ALLOWED_ORIGINS = [
   `http://localhost:${FRONTEND_PORT}`,
   `http://127.0.0.1:${PORT}`,
   `http://127.0.0.1:${FRONTEND_PORT}`,
+  `https://localhost:${PORT}`,
+  `https://127.0.0.1:${PORT}`,
 ];
 
 export const API_TIMEOUT = 30000;
@@ -20,3 +22,9 @@ export function getWorkspacePath(): string {
 }
 
 export const WORKSPACE_PATH = getWorkspacePath();
+
+export const TLS_ENABLED = Deno.env.get('TLS_ENABLED') === 'true';
+
+export const TLS_CERT_PATH = Deno.env.get('TLS_CERT_PATH') || './backend/cert/cert.pem';
+
+export const TLS_KEY_PATH = Deno.env.get('TLS_KEY_PATH') || './backend/cert/key.pem';
