@@ -451,11 +451,19 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
     if (activeTabId) {
       const terminal = terminalRefs.current[activeTabId];
       const container = containerRefs.current[activeTabId];
+      const tab = tabsRef.current.find(t => t.id === activeTabId);
+      
       if (!terminal && container) {
         initXTerm(activeTabId);
+        
+        setTimeout(() => {
+          initTerminalSession(activeTabId);
+        }, 300);
+      } else if (tab && !tab.sessionId) {
+        initTerminalSession(activeTabId);
       }
     }
-  }, [activeTabId, initXTerm]);
+  }, [activeTabId, initXTerm, initTerminalSession]);
 
   useEffect(() => {
     const handleResize = () => {
