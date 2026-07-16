@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { FileInfo, FileTreeResult } from '../../types/file';
 import { fetchFileTree } from '../../services/fileService';
 import { FileTreeNode } from './FileTreeNode';
@@ -18,38 +18,48 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
     position: { x: number; y: number };
   } | null>(null);
   const [isPaused, setIsPaused] = useState(false);
+  const previousTreeRef = useRef<string | null>(null);
 
-  const loadFileTree = useCallback(async () => {
+  const loadFileTree = useCallback(async (isInitialLoad = false) => {
     if (isPaused) {
       return;
     }
     
-    setLoading(true);
-    setError(null);
+    if (isInitialLoad) {
+      setLoading(true);
+      setError(null);
+    }
     
     try {
       const result: FileTreeResult = await fetchFileTree('/workspace');
       
       if (result.status === 'success' && result.data) {
-        setFileTree(result.data);
-      } else {
+        const newTreeJson = JSON.stringify(result.data);
+        
+        if (newTreeJson !== previousTreeRef.current) {
+          previousTreeRef.current = newTreeJson;
+          setFileTree(result.data);
+        }
+      } else if (isInitialLoad) {
         setError(result.message || 'Failed to load file tree');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to connect to server';
-      setError(errorMessage);
+      if (isInitialLoad) {
+        setError(errorMessage);
+      }
     } finally {
-      setLoading(false);
+      if (isInitialLoad) {
+        setLoading(false);
+      }
     }
   }, [isPaused]);
 
   useEffect(() => {
-    loadFileTree();
+    loadFileTree(true);
     
-    // TODO: Replace polling with WebSocket file watcher for real-time updates
-    // See spec: "使用文件系统watcher而非轮询"
-    const FILE_TREE_REFRESH_INTERVAL = 3000;
-    const interval = setInterval(loadFileTree, FILE_TREE_REFRESH_INTERVAL);
+    const FILE_TREE_REFRESH_INTERVAL = 5000;
+    const interval = setInterval(() => loadFileTree(false), FILE_TREE_REFRESH_INTERVAL);
     
     return () => clearInterval(interval);
   }, [loadFileTree]);

@@ -35,6 +35,8 @@ export function GitProvider({ children }: { children: ReactNode }) {
   const reconnectDelayRef = useRef(1000);
   const reconnectAttemptsRef = useRef(0);
   const branchChangeSubscribersRef = useRef<Set<(branch: string) => void>>(new Set());
+  const previousStatusRef = useRef<string | null>(null);
+  const previousBranchesRef = useRef<string | null>(null);
 
   const notifyBranchChange = useCallback((branch: string) => {
     branchChangeSubscribersRef.current.forEach((callback) => {
@@ -46,9 +48,11 @@ export function GitProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const loadGitData = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+  const loadGitData = useCallback(async (isInitialLoad = false) => {
+    if (isInitialLoad) {
+      setIsLoading(true);
+      setError(null);
+    }
 
     try {
       const [statusResult, branchesResult] = await Promise.all([
@@ -57,21 +61,35 @@ export function GitProvider({ children }: { children: ReactNode }) {
       ]);
 
       if (statusResult.status === 'success' && statusResult.data) {
-        setStatus(statusResult.data);
+        const newStatusJson = JSON.stringify(statusResult.data);
+        if (newStatusJson !== previousStatusRef.current) {
+          previousStatusRef.current = newStatusJson;
+          setStatus(statusResult.data);
+        }
       } else if (statusResult.message) {
-        setError(statusResult.message);
-        setStatus(null);
+        if (isInitialLoad) {
+          setError(statusResult.message);
+          setStatus(null);
+        }
       }
 
       if (branchesResult.status === 'success' && branchesResult.data) {
-        setBranches(branchesResult.data.branches);
-        setCurrentBranch(branchesResult.data.current);
+        const newBranchesJson = JSON.stringify(branchesResult.data);
+        if (newBranchesJson !== previousBranchesRef.current) {
+          previousBranchesRef.current = newBranchesJson;
+          setBranches(branchesResult.data.branches);
+          setCurrentBranch(branchesResult.data.current);
+        }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load Git data');
-      setStatus(null);
+      if (isInitialLoad) {
+        setError(err instanceof Error ? err.message : 'Failed to load Git data');
+        setStatus(null);
+      }
     } finally {
-      setIsLoading(false);
+      if (isInitialLoad) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
@@ -140,10 +158,8 @@ export function GitProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Initial load
-    loadGitData();
+    loadGitData(true);
     
-    // Connect WebSocket for real-time updates
     connectWebSocket();
 
     return () => {
