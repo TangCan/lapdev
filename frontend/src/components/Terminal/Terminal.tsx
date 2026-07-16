@@ -547,14 +547,19 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
     delete fitAddonRefs.current[tabId];
     
     dispatch({ type: 'SET_SESSION_ID', tabId, sessionId: null });
+    dispatch({ type: 'SET_PROCESS_EXITED', tabId, exited: false });
 
     setTimeout(() => {
       const container = containerRefs.current[tabId];
       if (container) {
         initXTerm(tabId);
+        
+        setTimeout(() => {
+          initTerminalSession(tabId);
+        }, 300);
       }
     }, 50);
-  }, [initXTerm]);
+  }, [initXTerm, initTerminalSession]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent, tabId: string) => {
     e.preventDefault();
