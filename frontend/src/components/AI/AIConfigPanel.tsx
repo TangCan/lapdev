@@ -179,22 +179,31 @@ export const AIConfigPanel: React.FC = () => {
 
   return (
     <div className="space-y-6" data-testid="ai-config-section">
-      {/* 标题 */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-800">AI模型配置</h2>
+        <h2 className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>AI模型配置</h2>
         {currentModel && (
-          <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
+          <span 
+            className="px-3 py-1 rounded-full text-sm"
+            style={{ backgroundColor: 'var(--color-success)', color: '#ffffff' }}
+          >
             当前: {currentModel.name}
           </span>
         )}
       </div>
 
-      {/* 内联补全开关 */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <div 
+        className="rounded-lg p-5"
+        style={{ 
+          backgroundColor: 'var(--color-surface)', 
+          borderColor: 'var(--color-border)',
+          borderWidth: '1px',
+          borderStyle: 'solid'
+        }}
+      >
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-medium text-gray-700">内联代码补全</h3>
-            <p className="text-sm text-gray-500 mt-1">
+            <h3 className="text-lg font-medium" style={{ color: 'var(--color-text-primary)' }}>内联代码补全</h3>
+            <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>
               启用后，在编辑器中输入代码时将自动显示AI补全建议
             </p>
           </div>
@@ -206,46 +215,68 @@ export const AIConfigPanel: React.FC = () => {
               onChange={(e) => setInlineCompletionEnabled(e.target.checked)}
               className="sr-only peer"
             />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+            <div 
+              className="w-11 h-6 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:rounded-full after:h-5 after:w-5 after:transition-all"
+              style={{
+                backgroundColor: inlineCompletionEnabled ? 'var(--color-accent)' : 'var(--color-border)',
+                boxShadow: 'var(--color-accent) 0 0 0 0',
+                transition: 'all 0.2s',
+              }}
+            />
           </label>
         </div>
       </div>
 
-      {/* 配置表单 */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-medium text-gray-700 mb-4">
+      <div 
+        className="rounded-lg p-6"
+        style={{ 
+          backgroundColor: 'var(--color-surface)', 
+          borderColor: 'var(--color-border)',
+          borderWidth: '1px',
+          borderStyle: 'solid'
+        }}
+      >
+        <h3 className="text-lg font-medium mb-4" style={{ color: 'var(--color-text-primary)' }}>
           {editingId ? '编辑模型' : '添加新模型'}
         </h3>
 
-        <div className="space-y-4">
-          {/* 模型名称 */}
+        <div className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              模型名称 <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
+              模型名称 <span style={{ color: 'var(--color-danger)' }}>*</span>
             </label>
             <input
               type="text"
               data-testid="ai-model-name"
               value={form.name}
               onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                errors.name ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-blue-200'
-              }`}
+              className={`w-full px-4 py-2.5 rounded-lg border focus:outline-none focus:ring-2 transition-all`}
+              style={{
+                borderColor: errors.name ? 'var(--color-danger)' : 'var(--color-border)',
+                backgroundColor: 'var(--color-bg)',
+                color: 'var(--color-text-primary)',
+                outline: 'none',
+              }}
               placeholder="输入模型名称，如：My OpenAI"
             />
-            {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
+            {errors.name && <p className="mt-1 text-sm" style={{ color: 'var(--color-danger)' }}>{errors.name}</p>}
           </div>
 
-          {/* 提供商选择 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              模型提供商 <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
+              模型提供商 <span style={{ color: 'var(--color-danger)' }}>*</span>
             </label>
             <select
               data-testid="ai-provider-select"
               value={form.provider}
               onChange={(e) => setForm(prev => ({ ...prev, provider: e.target.value as AIModelForm['provider'] }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-200"
+              className="w-full px-4 py-2.5 rounded-lg border focus:outline-none focus:ring-2 transition-all"
+              style={{
+                borderColor: 'var(--color-border)',
+                backgroundColor: 'var(--color-bg)',
+                color: 'var(--color-text-primary)',
+                outline: 'none',
+              }}
             >
               {PROVIDERS.map(p => (
                 <option key={p.value} value={p.value}>{p.label}</option>
@@ -253,93 +284,120 @@ export const AIConfigPanel: React.FC = () => {
             </select>
           </div>
 
-          {/* API Key */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              API Key <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
+              API Key <span style={{ color: 'var(--color-danger)' }}>*</span>
             </label>
             <input
               type="password"
               data-testid="ai-api-key"
               value={form.apiKey}
               onChange={(e) => setForm(prev => ({ ...prev, apiKey: e.target.value }))}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                errors.apiKey ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-blue-200'
-              }`}
+              className={`w-full px-4 py-2.5 rounded-lg border focus:outline-none focus:ring-2 transition-all`}
+              style={{
+                borderColor: errors.apiKey ? 'var(--color-danger)' : 'var(--color-border)',
+                backgroundColor: 'var(--color-bg)',
+                color: 'var(--color-text-primary)',
+                outline: 'none',
+              }}
               placeholder="sk-..."
             />
-            {errors.apiKey && <p className="mt-1 text-sm text-red-500">{errors.apiKey}</p>}
-            <p className="mt-1 text-xs text-gray-500">
+            {errors.apiKey && <p className="mt-1 text-sm" style={{ color: 'var(--color-danger)' }}>{errors.apiKey}</p>}
+            <p className="mt-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
               API Key仅存储在内存中，刷新页面后需要重新输入
             </p>
           </div>
 
-          {/* Base URL */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Base URL <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
+              Base URL <span style={{ color: 'var(--color-danger)' }}>*</span>
             </label>
             <input
               type="text"
               data-testid="ai-base-url"
               value={form.baseUrl}
               onChange={(e) => setForm(prev => ({ ...prev, baseUrl: e.target.value }))}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                errors.baseUrl ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-blue-200'
-              }`}
+              className={`w-full px-4 py-2.5 rounded-lg border focus:outline-none focus:ring-2 transition-all`}
+              style={{
+                borderColor: errors.baseUrl ? 'var(--color-danger)' : 'var(--color-border)',
+                backgroundColor: 'var(--color-bg)',
+                color: 'var(--color-text-primary)',
+                outline: 'none',
+              }}
               placeholder="https://api.example.com/v1"
             />
-            {errors.baseUrl && <p className="mt-1 text-sm text-red-500">{errors.baseUrl}</p>}
+            {errors.baseUrl && <p className="mt-1 text-sm" style={{ color: 'var(--color-danger)' }}>{errors.baseUrl}</p>}
           </div>
 
-          {/* 模型选择 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              模型 <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
+              模型 <span style={{ color: 'var(--color-danger)' }}>*</span>
             </label>
             <select
               data-testid="ai-model-select"
               value={form.model}
               onChange={(e) => setForm(prev => ({ ...prev, model: e.target.value }))}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                errors.model ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-blue-200'
-              }`}
+              className={`w-full px-4 py-2.5 rounded-lg border focus:outline-none focus:ring-2 transition-all`}
+              style={{
+                borderColor: errors.model ? 'var(--color-danger)' : 'var(--color-border)',
+                backgroundColor: 'var(--color-bg)',
+                color: 'var(--color-text-primary)',
+                outline: 'none',
+              }}
             >
               {currentModels.map(m => (
                 <option key={m.value} value={m.value}>{m.name}</option>
               ))}
             </select>
-            {errors.model && <p className="mt-1 text-sm text-red-500">{errors.model}</p>}
+            {errors.model && <p className="mt-1 text-sm" style={{ color: 'var(--color-danger)' }}>{errors.model}</p>}
           </div>
 
-          {/* 测试连接结果 */}
           {testResult && (
-            <div className={`p-3 rounded-md ${
-              testResult.status === 'success' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
-            }`}>
+            <div 
+              className="p-4 rounded-lg"
+              style={{
+                backgroundColor: testResult.status === 'success' 
+                  ? 'rgba(63, 185, 80, 0.1)' 
+                  : 'rgba(241, 76, 76, 0.1)',
+                borderColor: testResult.status === 'success'
+                  ? 'var(--color-success)'
+                  : 'var(--color-danger)',
+                borderWidth: '1px',
+                borderStyle: 'solid'
+              }}
+            >
               <div className="flex items-center">
-                <span className={`w-5 h-5 rounded-full flex items-center justify-center mr-2 ${
-                  testResult.status === 'success' ? 'bg-green-500' : 'bg-red-500'
-                }`}>
+                <span 
+                  className="w-5 h-5 rounded-full flex items-center justify-center mr-2 text-white text-xs"
+                  style={{
+                    backgroundColor: testResult.status === 'success' 
+                      ? 'var(--color-success)' 
+                      : 'var(--color-danger)'
+                  }}
+                >
                   {testResult.status === 'success' ? '✓' : '✗'}
                 </span>
-                <span className={testResult.status === 'success' ? 'text-green-700' : 'text-red-700'}>
+                <span style={{ color: testResult.status === 'success' ? 'var(--color-success)' : 'var(--color-danger)' }}>
                   {testResult.message}
                 </span>
               </div>
               {testResult.latency && (
-                <p className="mt-1 text-sm text-gray-500">延迟: {testResult.latency}ms</p>
+                <p className="mt-1 text-sm" style={{ color: 'var(--color-text-muted)' }}>延迟: {testResult.latency}ms</p>
               )}
             </div>
           )}
 
-          {/* 按钮组 */}
           <div className="flex gap-3 pt-4">
             <button
               data-testid="ai-test-btn"
               onClick={handleTestConnection}
               disabled={isTesting}
-              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              className="px-5 py-2.5 rounded-lg font-medium transition-all"
+              style={{
+                backgroundColor: isTesting ? 'var(--color-text-muted)' : 'var(--color-accent)',
+                color: '#ffffff',
+                cursor: isTesting ? 'not-allowed' : 'pointer'
+              }}
             >
               {isTesting ? (
                 <span className="flex items-center">
@@ -353,14 +411,25 @@ export const AIConfigPanel: React.FC = () => {
             <button
               data-testid="ai-save-btn"
               onClick={handleSave}
-              className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
+              className="px-5 py-2.5 rounded-lg font-medium transition-all"
+              style={{
+                backgroundColor: 'var(--color-success)',
+                color: '#ffffff'
+              }}
             >
               {editingId ? '保存修改' : '添加模型'}
             </button>
             {editingId && (
               <button
                 onClick={handleCancel}
-                className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
+                className="px-5 py-2.5 rounded-lg font-medium transition-all"
+                style={{
+                  backgroundColor: 'var(--color-surface-hover)',
+                  color: 'var(--color-text-primary)',
+                  borderColor: 'var(--color-border)',
+                  borderWidth: '1px',
+                  borderStyle: 'solid'
+                }}
               >
                 取消
               </button>
@@ -369,30 +438,44 @@ export const AIConfigPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* 模型列表 */}
       {models.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-medium text-gray-700 mb-4">已配置的模型</h3>
+        <div 
+          className="rounded-lg p-6"
+          style={{ 
+            backgroundColor: 'var(--color-surface)', 
+            borderColor: 'var(--color-border)',
+            borderWidth: '1px',
+            borderStyle: 'solid'
+          }}
+        >
+          <h3 className="text-lg font-medium mb-4" style={{ color: 'var(--color-text-primary)' }}>已配置的模型</h3>
           <div className="space-y-3">
             {models.map(model => (
               <div
                 key={model.id}
                 data-testid={`model-item-${model.id}`}
-                className={`flex items-center justify-between p-3 rounded-md border ${
-                  model.isActive ? 'border-green-500 bg-green-50' : 'border-gray-200'
-                }`}
+                className="flex items-center justify-between p-4 rounded-lg border transition-all"
+                style={{
+                  borderColor: model.isActive ? 'var(--color-success)' : 'var(--color-border)',
+                  backgroundColor: model.isActive ? 'rgba(63, 185, 80, 0.08)' : 'var(--color-bg)'
+                }}
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-800">{model.name}</span>
+                    <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{model.name}</span>
                     {model.isActive && (
-                      <span className="px-2 py-0.5 bg-green-500 text-white text-xs rounded-full">活跃</span>
+                      <span 
+                        className="px-2 py-0.5 text-xs rounded-full text-white"
+                        style={{ backgroundColor: 'var(--color-success)' }}
+                      >
+                        活跃
+                      </span>
                     )}
                   </div>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>
                     {PROVIDERS.find(p => p.value === model.provider)?.label} - {model.model}
                   </div>
-                  <div className="text-xs text-gray-400" data-testid={`api-key-display-${model.id}`}>
+                  <div className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
                     {model.apiKey ? maskApiKey(model.apiKey) : '未设置'}
                   </div>
                 </div>
@@ -401,7 +484,11 @@ export const AIConfigPanel: React.FC = () => {
                     <button
                       data-testid={`activate-btn-${model.id}`}
                       onClick={() => setActiveModel(model.id)}
-                      className="px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+                      className="px-3 py-1.5 text-sm rounded-lg font-medium transition-all"
+                      style={{
+                        backgroundColor: 'var(--color-success)',
+                        color: '#ffffff'
+                      }}
                     >
                       激活
                     </button>
@@ -409,14 +496,22 @@ export const AIConfigPanel: React.FC = () => {
                   <button
                     data-testid={`edit-btn-${model.id}`}
                     onClick={() => handleEdit(model)}
-                    className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                    className="px-3 py-1.5 text-sm rounded-lg font-medium transition-all"
+                    style={{
+                      backgroundColor: 'var(--color-accent)',
+                      color: '#ffffff'
+                    }}
                   >
                     编辑
                   </button>
                   <button
                     data-testid={`delete-btn-${model.id}`}
                     onClick={() => handleDelete(model.id)}
-                    className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                    className="px-3 py-1.5 text-sm rounded-lg font-medium transition-all"
+                    style={{
+                      backgroundColor: 'var(--color-danger)',
+                      color: '#ffffff'
+                    }}
                   >
                     删除
                   </button>
@@ -427,11 +522,19 @@ export const AIConfigPanel: React.FC = () => {
         </div>
       )}
 
-      {/* 空状态 */}
       {models.length === 0 && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-          <div className="text-gray-400 mb-2">暂无模型配置</div>
-          <p className="text-sm text-gray-500">
+        <div 
+          className="rounded-lg p-8 text-center"
+          style={{ 
+            backgroundColor: 'var(--color-surface)', 
+            borderColor: 'var(--color-border)',
+            borderWidth: '1px',
+            borderStyle: 'dashed'
+          }}
+        >
+          <div className="text-4xl mb-3">🤖</div>
+          <div className="text-lg font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>暂无模型配置</div>
+          <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
             请在上方添加您的AI模型配置，支持 OpenAI、DeepSeek 和自定义 API
           </p>
         </div>
