@@ -179,12 +179,6 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
   }, [autoInit]);
 
   useEffect(() => {
-    if (lastPongRef.current === null) {
-      lastPongRef.current = Date.now();
-    }
-  }, []);
-
-  useEffect(() => {
     (window as any).__terminalInput = (input: string) => {
       const currentTab = tabsRef.current.find(t => t.id === activeTabId);
       if (currentTab) {
@@ -262,6 +256,9 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
     ws.onopen = async () => {
       setIsConnected(true);
       reconnectAttemptRef.current = 0;
+      if (lastPongRef.current === null) {
+        lastPongRef.current = Date.now();
+      }
 
       heartbeatTimerRef.current = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {

@@ -498,4 +498,5 @@ const LspCodeEditorComponent = forwardRef<LspCodeEditorHandle, LspCodeEditorProp
 });
 
 const LspCodeEditor = LspCodeEditorComponent;
+export { LspCodeEditor };
 export default LspCodeEditor;
