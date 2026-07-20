@@ -134,6 +134,7 @@ export function MockFileTree({ onFileOpen }: MockFileTreeProps) {
           file={contextMenu.file}
           position={contextMenu.position}
           onClose={handleCloseContextMenu}
+          onRefresh={() => {}}
         />
       )}
     </div>

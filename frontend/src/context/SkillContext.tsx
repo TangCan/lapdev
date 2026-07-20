@@ -2,6 +2,16 @@ import React, { createContext, useContext, useReducer, useCallback, useEffect } 
 import type { Skill, AIRequest } from '../types/skill';
 import { SkillMatchService } from '../services/skillMatchService';
 
+declare global {
+  interface Window {
+    __test_getActiveSkills?: () => Skill[];
+    __test_getAllSkills?: () => Skill[];
+    __test_loadSkills?: (skills: Skill[]) => void;
+    __test_activateSkill?: (id: string) => void;
+    __test_clearActiveSkills?: () => void;
+  }
+}
+
 // Action 类型
 type SkillAction =
   | { type: 'LOAD_SKILLS'; payload: Skill[] }

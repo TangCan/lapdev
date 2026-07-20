@@ -65,7 +65,7 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       Monaco.editor.setModelMarkers(
         editor.getModel()!,
         'lsp',
-        markers as Monaco.editor.IMarkerData[]
+        markers as unknown as Monaco.editor.IMarkerData[]
       );
     }
     notifyDiagnosticSubscribers();
@@ -113,8 +113,9 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             documentation: item.documentation,
             insertText: item.insertText,
             sortText: item.sortText,
+            range: model.getWordUntilPosition(position),
           })),
-        };
+        } as any;
       },
     });
 
@@ -130,14 +131,14 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (!locations) return [];
 
         return locations.map((loc) => ({
-          uri: loc.uri,
+          uri: Monaco.Uri.parse(loc.uri),
           range: new Monaco.Range(
             loc.range.start.line + 1,
             loc.range.start.character + 1,
             loc.range.end.line + 1,
             loc.range.end.character + 1
           ),
-        }));
+        })) as any;
       },
     });
 
@@ -150,19 +151,17 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         };
 
         const locations = await lspService.getReferences(uri, lspPosition);
-        if (!locations) return { references: [] };
+        if (!locations) return [];
 
-        return {
-          references: locations.map((loc) => ({
-            uri: loc.uri,
-            range: new Monaco.Range(
-              loc.range.start.line + 1,
-              loc.range.start.character + 1,
-              loc.range.end.line + 1,
-              loc.range.end.character + 1
-            ),
-          })),
-        };
+        return locations.map((loc) => ({
+          uri: Monaco.Uri.parse(loc.uri),
+          range: new Monaco.Range(
+            loc.range.start.line + 1,
+            loc.range.start.character + 1,
+            loc.range.end.line + 1,
+            loc.range.end.character + 1
+          ),
+        })) as any;
       },
     });
 
@@ -177,7 +176,7 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const result = await lspService.renameSymbol(uri, lspPosition, newName);
         if (!result) return { edits: [] };
 
-        const edits: Monaco.editor.IWorkspaceEdit[] = [];
+        const edits: any[] = [];
         result.changes?.forEach((change) => {
           change.edits.forEach((edit) => {
             edits.push({
@@ -197,7 +196,7 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           });
         });
 
-        return { edits };
+        return { edits } as any;
       },
     });
 
@@ -231,27 +230,29 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (!result) return null;
 
         return {
-          signatures: result.signatures.map((sig) => ({
-            label: sig.label,
-            documentation: sig.documentation
-              ? typeof sig.documentation === 'string'
-                ? sig.documentation
-                : sig.documentation.value
-              : undefined,
-            parameters: sig.parameters?.map((param) => ({
-              label: param.label,
-              documentation: param.documentation
-                ? typeof param.documentation === 'string'
-                  ? param.documentation
-                  : param.documentation.value
+          value: {
+            signatures: result.signatures.map((sig) => ({
+              label: sig.label,
+              documentation: sig.documentation
+                ? typeof sig.documentation === 'string'
+                  ? sig.documentation
+                  : sig.documentation.value
                 : undefined,
+              parameters: sig.parameters?.map((param) => ({
+                label: param.label,
+                documentation: param.documentation
+                  ? typeof param.documentation === 'string'
+                    ? param.documentation
+                    : param.documentation.value
+                  : undefined,
+              })),
             })),
-          })),
-          activeSignature: result.activeSignature,
-          activeParameter: result.activeParameter,
-        };
+            activeSignature: result.activeSignature,
+            activeParameter: result.activeParameter,
+          },
+          dispose: () => {},
+        } as any;
       },
-      triggerCharacters: ['(', ','],
     });
 
     // Setup hover provider
@@ -265,21 +266,21 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const result = await lspService.getHover(uri, lspPosition);
         if (!result) return null;
 
-        const contents: string[] = [];
+        const contents: Monaco.IMarkdownString[] = [];
         
         if (result.contents) {
           if (Array.isArray(result.contents)) {
             result.contents.forEach((content) => {
               if (typeof content === 'string') {
-                contents.push(content);
+                contents.push({ value: content } as Monaco.IMarkdownString);
               } else {
-                contents.push(content.value);
+                contents.push({ value: content.value } as Monaco.IMarkdownString);
               }
             });
           } else if (typeof result.contents === 'string') {
-            contents.push(result.contents);
+            contents.push({ value: result.contents } as Monaco.IMarkdownString);
           } else {
-            contents.push(result.contents.value);
+            contents.push({ value: result.contents.value } as Monaco.IMarkdownString);
           }
         }
 

@@ -125,7 +125,7 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
     <div className="file-tree" data-testid="file-tree" role="tree">
       <div className="file-tree-header">
         <h3>文件树</h3>
-        <button onClick={loadFileTree} className="refresh-button">
+        <button onClick={() => loadFileTree()} className="refresh-button">
           🔄
         </button>
       </div>

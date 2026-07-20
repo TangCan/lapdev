@@ -11,8 +11,8 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [themeName, setThemeNameState] = useState<ThemeName>(getDefaultTheme);
-  const [theme, setThemeState] = useState<ThemeConfig>(getThemeByName(getDefaultTheme));
+  const [themeName, setThemeNameState] = useState<ThemeName>(getDefaultTheme());
+  const [theme, setThemeState] = useState<ThemeConfig>(getThemeByName(getDefaultTheme()));
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('lapdev-theme') as ThemeName | null;

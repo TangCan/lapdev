@@ -47,7 +47,7 @@ function SimpleIDE() {
       <div className="app">
         <header className="header">
           <h1>📝 Lapdev IDE</h1>
-          <Terminal />
+          <Terminal onClose={() => {}} onResize={() => {}} />
           <GitPanel />
           <button
             className={`ai-panel-button ${isPanelOpen ? 'active' : ''}`}

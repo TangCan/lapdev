@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
-import { fetchGitStatus, fetchBranches, stageFiles, commitChanges, checkoutBranch, fetchGitDiff } from '../services/gitService';
+import { fetchGitStatus, fetchBranches, stageFiles as stageFilesService, commitChanges, checkoutBranch, fetchGitDiff } from '../services/gitService';
 import type { GitStatus, GitBranch, GitChange } from '../services/gitService';
 import { WS_URL } from '../config';
 
@@ -14,6 +14,7 @@ interface GitContextType {
   refreshStatus: () => void;
   getFileDiff: (path: string) => void;
   stageFile: (path: string) => void;
+  stageFiles: (paths: string[]) => void;
   commit: (message: string) => void;
   checkout: (branch: string) => void;
   subscribeToBranchChange: (callback: (branch: string) => void) => () => void;
@@ -191,12 +192,23 @@ export function GitProvider({ children }: { children: ReactNode }) {
 
   const stageFile = useCallback(async (path: string) => {
     try {
-      const result = await stageFiles([path]);
+      const result = await stageFilesService([path]);
       if (result.status !== 'success') {
         setError(result.message);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to stage file');
+    }
+  }, []);
+
+  const stageFiles = useCallback(async (paths: string[]) => {
+    try {
+      const result = await stageFilesService(paths);
+      if (result.status !== 'success') {
+        setError(result.message);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to stage files');
     }
   }, []);
 
@@ -256,6 +268,7 @@ export function GitProvider({ children }: { children: ReactNode }) {
         refreshStatus,
         getFileDiff,
         stageFile,
+        stageFiles,
         commit,
         checkout,
         subscribeToBranchChange

@@ -102,7 +102,7 @@ const AIChatPanel: React.FC = () => {
       return;
     }
 
-    const fileContexts: Array<{ type: string; path: string; content?: string }> = [];
+    const fileContexts: Array<{ type: 'file'; path: string; content: string }> = [];
 
     if (isAgentMode) {
       try {
@@ -112,7 +112,7 @@ const AIChatPanel: React.FC = () => {
           fileTabs.forEach(tab => {
             const tabTitle = tab.textContent?.trim();
             if (tabTitle && tabTitle !== '+' && tab.classList.contains('active')) {
-              fileContexts.push({ type: 'file', path: tabTitle });
+              fileContexts.push({ type: 'file', path: tabTitle, content: '' });
             }
           });
         }

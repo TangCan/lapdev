@@ -46,7 +46,7 @@ let currentMockEditor: MockEditor | null = null;
 export const setupMonacoMock = (initialValue: string = ''): MockEditor => {
   currentMockEditor = createMockEditor(initialValue);
   
-  vi.mocked(Monaco.editor.create).mockReturnValue(currentMockEditor);
+  vi.mocked(Monaco.editor.create).mockReturnValue(currentMockEditor as unknown as Monaco.editor.IStandaloneCodeEditor);
   vi.mocked(Monaco.editor.setModelLanguage).mockReset();
   vi.mocked(Monaco.editor.setTheme).mockReset();
   vi.mocked(Monaco.Range).mockReset().mockReturnValue({} as any);

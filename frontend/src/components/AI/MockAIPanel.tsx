@@ -63,6 +63,7 @@ export function MockAIPanel() {
           patterns: [/git.*status/i, /git.*commit/i]
         },
         content: '# Git Helper Skill\n\n## 指令\n帮助用户进行Git操作',
+        fileName: 'git-helper.skill.md',
         matchScore: 0
       },
       {
@@ -77,6 +78,7 @@ export function MockAIPanel() {
           patterns: [/审查代码/i, /代码优化/i]
         },
         content: '# Code Review Skill\n\n## 指令\n帮助用户审查代码',
+        fileName: 'code-review.skill.md',
         matchScore: 0
       },
       {
@@ -91,6 +93,7 @@ export function MockAIPanel() {
           patterns: [/生成测试/i, /测试用例/i]
         },
         content: '# Test Generator Skill\n\n## 指令\n帮助用户生成测试用例',
+        fileName: 'test-generator.skill.md',
         matchScore: 0
       }
     ];
