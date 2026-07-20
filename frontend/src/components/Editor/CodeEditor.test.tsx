@@ -1,27 +1,22 @@
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { CodeEditor } from './CodeEditor';
-import { AIProvider } from '../../context/AIContext';
-import { InlineCompletionProvider } from '../../context/InlineCompletionContext';
-import { ThemeProvider } from '../../theme/ThemeContext';
+import * as Monaco from 'monaco-editor';
+import { renderWithMonacoAsync } from '../../test/monacoTestUtils';
 
 describe('CodeEditor Component', () => {
   const mockOnChange = vi.fn();
 
-  const renderWithProviders = (ui: React.ReactElement) => {
-    return render(
-      <ThemeProvider>
-        <AIProvider>
-          <InlineCompletionProvider>
-            {ui}
-          </InlineCompletionProvider>
-        </AIProvider>
-      </ThemeProvider>
-    );
-  };
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
-  it('should render editor container', () => {
-    renderWithProviders(
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should render editor container', async () => {
+    await renderWithMonacoAsync(
       <CodeEditor
         value="console.log('Hello');"
         language="javascript"
@@ -33,13 +28,25 @@ describe('CodeEditor Component', () => {
     expect(editor).toBeInTheDocument();
   });
 
-  it('should apply diff decorations', () => {
+  it('should create Monaco editor instance', async () => {
+    await renderWithMonacoAsync(
+      <CodeEditor
+        value="const x = 1;"
+        language="typescript"
+        onChange={mockOnChange}
+      />
+    );
+
+    expect(Monaco.editor.create).toHaveBeenCalled();
+  });
+
+  it('should apply diff decorations', async () => {
     const diffLines = [
       { lineNumber: 1, type: 'added' as const },
       { lineNumber: 2, type: 'modified' as const },
     ];
 
-    renderWithProviders(
+    await renderWithMonacoAsync(
       <CodeEditor
         value="line1\nline2\nline3"
         language="javascript"
@@ -52,8 +59,8 @@ describe('CodeEditor Component', () => {
     expect(editor).toBeInTheDocument();
   });
 
-  it('should handle empty value', () => {
-    renderWithProviders(
+  it('should handle empty value', async () => {
+    await renderWithMonacoAsync(
       <CodeEditor
         value=""
         language="plaintext"
@@ -65,8 +72,8 @@ describe('CodeEditor Component', () => {
     expect(editor).toBeInTheDocument();
   });
 
-  it('should handle readOnly mode', () => {
-    renderWithProviders(
+  it('should handle readOnly mode', async () => {
+    await renderWithMonacoAsync(
       <CodeEditor
         value="const x = 1;"
         language="typescript"
@@ -79,8 +86,8 @@ describe('CodeEditor Component', () => {
     expect(editor).toBeInTheDocument();
   });
 
-  it('should handle custom font size', () => {
-    renderWithProviders(
+  it('should handle custom font size', async () => {
+    await renderWithMonacoAsync(
       <CodeEditor
         value="console.log('test');"
         language="javascript"

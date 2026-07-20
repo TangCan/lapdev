@@ -1,18 +1,30 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
-// Mock Monaco Editor using Vitest
+const createMockEditor = (initialValue: string = '') => ({
+  onDidChangeModelContent: vi.fn(),
+  setValue: vi.fn(),
+  getValue: vi.fn().mockReturnValue(initialValue),
+  getModel: vi.fn().mockReturnValue({
+    getValue: vi.fn().mockReturnValue(initialValue),
+    getOffsetAt: vi.fn().mockReturnValue(initialValue.length),
+    setLanguage: vi.fn(),
+  }),
+  deltaDecorations: vi.fn().mockReturnValue([]),
+  dispose: vi.fn(),
+  executeEdits: vi.fn(),
+  setPosition: vi.fn(),
+  focus: vi.fn(),
+  getPosition: vi.fn().mockReturnValue({ lineNumber: 1, column: 1 }),
+  setSelection: vi.fn(),
+  getSelection: vi.fn(),
+});
+
 vi.mock('monaco-editor', () => ({
   editor: {
-    create: vi.fn().mockReturnValue({
-      onDidChangeModelContent: vi.fn(),
-      setValue: vi.fn(),
-      getValue: vi.fn().mockReturnValue(''),
-      getModel: vi.fn().mockReturnValue({}),
-      deltaDecorations: vi.fn().mockReturnValue([]),
-      dispose: vi.fn(),
-    }),
+    create: vi.fn().mockReturnValue(createMockEditor()),
     setModelLanguage: vi.fn(),
+    setTheme: vi.fn(),
     OverviewRulerLane: {
       Right: 1,
     },
@@ -20,7 +32,6 @@ vi.mock('monaco-editor', () => ({
   Range: vi.fn().mockReturnValue({}),
 }));
 
-// Mock WebSocket
 const createMockWebSocket = (url: string | URL, _protocols?: string | string[]) => ({
   onopen: null,
   onmessage: null,
@@ -34,16 +45,35 @@ const createMockWebSocket = (url: string | URL, _protocols?: string | string[]) 
 
 const mockWebSocket = vi.fn(createMockWebSocket);
 
-// 使用 Object.defineProperty 来设置只读属性
 Object.defineProperty(mockWebSocket, 'CONNECTING', { value: 0, writable: false });
 Object.defineProperty(mockWebSocket, 'OPEN', { value: 1, writable: false });
 Object.defineProperty(mockWebSocket, 'CLOSING', { value: 2, writable: false });
 Object.defineProperty(mockWebSocket, 'CLOSED', { value: 3, writable: false });
 
-// 使用 globalThis 替代 global（ES模块环境）
 (globalThis as any).WebSocket = mockWebSocket as unknown as typeof WebSocket;
 
-// Mock fetch
 (globalThis as any).fetch = vi.fn().mockResolvedValue({
   json: vi.fn().mockResolvedValue({ status: 'success', data: {} }),
+});
+
+const storage: Record<string, string> = {};
+(globalThis as any).localStorage = {
+  getItem: vi.fn((key: string) => storage[key] || null),
+  setItem: vi.fn((key: string, value: string) => {
+    storage[key] = value;
+  }),
+  removeItem: vi.fn((key: string) => {
+    delete storage[key];
+  }),
+  clear: vi.fn(() => {
+    Object.keys(storage).forEach(key => delete storage[key]);
+  }),
+};
+
+(globalThis as any).matchMedia = vi.fn().mockReturnValue({
+  matches: false,
+  addListener: vi.fn(),
+  removeListener: vi.fn(),
+  addEventListener: vi.fn(),
+  removeEventListener: vi.fn(),
 });
