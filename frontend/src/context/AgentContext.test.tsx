@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AgentProvider, useAgent } from './AgentContext';
 import { AgentOperation } from '../services/agentService';
@@ -52,12 +52,16 @@ describe('AgentContext', () => {
     
     expect(screen.getByTestId('agent-mode')).toHaveTextContent('false');
     
-    screen.getByTestId('toggle-on').click();
+    await act(async () => {
+      screen.getByTestId('toggle-on').click();
+    });
     await waitFor(() => {
       expect(screen.getByTestId('agent-mode')).toHaveTextContent('true');
     });
     
-    screen.getByTestId('toggle-off').click();
+    await act(async () => {
+      screen.getByTestId('toggle-off').click();
+    });
     await waitFor(() => {
       expect(screen.getByTestId('agent-mode')).toHaveTextContent('false');
     });
@@ -68,7 +72,9 @@ describe('AgentContext', () => {
     
     expect(screen.getByTestId('pending-count')).toHaveTextContent('0');
     
-    screen.getByTestId('add-operation').click();
+    await act(async () => {
+      screen.getByTestId('add-operation').click();
+    });
     await waitFor(() => {
       expect(screen.getByTestId('pending-count')).toHaveTextContent('1');
     });
@@ -77,12 +83,16 @@ describe('AgentContext', () => {
   it('[P1] should deduplicate operations with same type and path', async () => {
     renderWithContext();
     
-    screen.getByTestId('add-operation').click();
+    await act(async () => {
+      screen.getByTestId('add-operation').click();
+    });
     await waitFor(() => {
       expect(screen.getByTestId('pending-count')).toHaveTextContent('1');
     });
     
-    screen.getByTestId('add-operation').click();
+    await act(async () => {
+      screen.getByTestId('add-operation').click();
+    });
     await waitFor(() => {
       expect(screen.getByTestId('pending-count')).toHaveTextContent('1');
       expect(screen.getByTestId('logs-count')).toHaveTextContent('1');
@@ -92,12 +102,16 @@ describe('AgentContext', () => {
   it('[P1] should approve operation', async () => {
     renderWithContext();
     
-    screen.getByTestId('add-operation').click();
+    await act(async () => {
+      screen.getByTestId('add-operation').click();
+    });
     await waitFor(() => {
       expect(screen.getByTestId('pending-count')).toHaveTextContent('1');
     });
     
-    screen.getByTestId('approve-first').click();
+    await act(async () => {
+      screen.getByTestId('approve-first').click();
+    });
     await waitFor(() => {
       expect(screen.getByTestId('pending-count')).toHaveTextContent('1');
     });
@@ -106,12 +120,16 @@ describe('AgentContext', () => {
   it('[P1] should reject operation', async () => {
     renderWithContext();
     
-    screen.getByTestId('add-operation').click();
+    await act(async () => {
+      screen.getByTestId('add-operation').click();
+    });
     await waitFor(() => {
       expect(screen.getByTestId('pending-count')).toHaveTextContent('1');
     });
     
-    screen.getByTestId('reject-first').click();
+    await act(async () => {
+      screen.getByTestId('reject-first').click();
+    });
     await waitFor(() => {
       expect(screen.getByTestId('pending-count')).toHaveTextContent('1');
     });
@@ -120,12 +138,16 @@ describe('AgentContext', () => {
   it('[P1] should approve all operations', async () => {
     renderWithContext();
     
-    screen.getByTestId('add-operation').click();
+    await act(async () => {
+      screen.getByTestId('add-operation').click();
+    });
     await waitFor(() => {
       expect(screen.getByTestId('pending-count')).toHaveTextContent('1');
     });
     
-    screen.getByTestId('approve-all').click();
+    await act(async () => {
+      screen.getByTestId('approve-all').click();
+    });
     await waitFor(() => {
       expect(screen.getByTestId('pending-count')).toHaveTextContent('1');
     });
@@ -134,12 +156,16 @@ describe('AgentContext', () => {
   it('[P1] should reject all operations', async () => {
     renderWithContext();
     
-    screen.getByTestId('add-operation').click();
+    await act(async () => {
+      screen.getByTestId('add-operation').click();
+    });
     await waitFor(() => {
       expect(screen.getByTestId('pending-count')).toHaveTextContent('1');
     });
     
-    screen.getByTestId('reject-all').click();
+    await act(async () => {
+      screen.getByTestId('reject-all').click();
+    });
     await waitFor(() => {
       expect(screen.getByTestId('pending-count')).toHaveTextContent('1');
     });
@@ -148,12 +174,16 @@ describe('AgentContext', () => {
   it('[P1] should clear pending operations', async () => {
     renderWithContext();
     
-    screen.getByTestId('add-operation').click();
+    await act(async () => {
+      screen.getByTestId('add-operation').click();
+    });
     await waitFor(() => {
       expect(screen.getByTestId('pending-count')).toHaveTextContent('1');
     });
     
-    screen.getByTestId('clear-pending').click();
+    await act(async () => {
+      screen.getByTestId('clear-pending').click();
+    });
     await waitFor(() => {
       expect(screen.getByTestId('pending-count')).toHaveTextContent('0');
     });
@@ -162,12 +192,16 @@ describe('AgentContext', () => {
   it('[P2] should persist agent mode to localStorage', async () => {
     renderWithContext();
     
-    screen.getByTestId('toggle-on').click();
+    await act(async () => {
+      screen.getByTestId('toggle-on').click();
+    });
     await waitFor(() => {
       expect(localStorage.getItem('lapdev-agent-mode')).toBe('true');
     });
     
-    screen.getByTestId('toggle-off').click();
+    await act(async () => {
+      screen.getByTestId('toggle-off').click();
+    });
     await waitFor(() => {
       expect(localStorage.getItem('lapdev-agent-mode')).toBe('false');
     });
@@ -184,7 +218,9 @@ describe('AgentContext', () => {
   it('[P2] should persist logs to localStorage', async () => {
     renderWithContext();
     
-    screen.getByTestId('toggle-on').click();
+    await act(async () => {
+      screen.getByTestId('toggle-on').click();
+    });
     await waitFor(() => {
       expect(localStorage.getItem('lapdev-agent-logs')).toBeDefined();
     });
@@ -193,12 +229,16 @@ describe('AgentContext', () => {
   it('[P2] should clear logs', async () => {
     renderWithContext();
     
-    screen.getByTestId('toggle-on').click();
+    await act(async () => {
+      screen.getByTestId('toggle-on').click();
+    });
     await waitFor(() => {
       expect(screen.getByTestId('logs-count')).toHaveTextContent('1');
     });
     
-    screen.getByTestId('clear-logs').click();
+    await act(async () => {
+      screen.getByTestId('clear-logs').click();
+    });
     await waitFor(() => {
       expect(screen.getByTestId('logs-count')).toHaveTextContent('0');
       expect(localStorage.getItem('lapdev-agent-logs')).toBe('[]');

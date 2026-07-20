@@ -82,13 +82,15 @@ RUN groupadd -g 1001 lapdev && \
 
 # 设置环境变量
 ARG BACKEND_PORT=3333
+ARG VERSION=1.1.0
 ENV NODE_ENV=production \
     WORKSPACE_PATH=/workspace \
     PORT=${BACKEND_PORT} \
     DENO_PORT=${BACKEND_PORT} \
     TLS_ENABLED=false \
     TLS_CERT_PATH=/app/backend/cert/cert.pem \
-    TLS_KEY_PATH=/app/backend/cert/key.pem
+    TLS_KEY_PATH=/app/backend/cert/key.pem \
+    VERSION=${VERSION}
 
 # 安装 openssl 用于生成 TLS 证书
 USER root

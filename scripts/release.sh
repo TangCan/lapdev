@@ -228,8 +228,10 @@ build_image() {
     else
         # Podman 构建
         # 使用 --storage-driver=vfs 避免只读文件系统问题
+        # 使用 --format docker 支持 HEALTHCHECK 指令（OCI 格式不支持）
         podman build \
             --storage-driver=vfs \
+            --format docker \
             --tag ${IMAGE_NAME}:${version} \
             --tag ${IMAGE_NAME}:latest \
             --build-arg VERSION=${version} \

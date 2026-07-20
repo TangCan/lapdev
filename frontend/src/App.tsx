@@ -1,14 +1,7 @@
-import { Routes, Route } from 'react-router-dom';
-import { SettingsPage } from './pages/SettingsPage';
-import IDE from './components/IDE/IDE';
+import { Outlet } from 'react-router-dom';
 
 function App() {
-  return (
-    <Routes>
-      <Route path="/" element={<IDE />} />
-      <Route path="/settings" element={<SettingsPage />} />
-    </Routes>
-  );
+  return <Outlet />;
 }
 
 export default App;

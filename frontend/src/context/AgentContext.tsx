@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useCallback, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useCallback, useState, useLayoutEffect, useRef } from 'react';
 import { agentService, AgentOperation, OperationLogEntry } from '../services/agentService';
 
 interface AgentContextType {
@@ -22,43 +22,40 @@ interface AgentContextType {
 
 const AgentContext = createContext<AgentContextType | null>(null);
 
+const getStoredLogs = (): OperationLogEntry[] => {
+  const storedLogs = localStorage.getItem('lapdev-agent-logs');
+  if (storedLogs) {
+    try {
+      return JSON.parse(storedLogs);
+    } catch {
+      return [];
+    }
+  }
+  return [];
+};
+
 export const AgentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // 从 localStorage 恢复 Agent 模式状态
   const [isAgentMode, setIsAgentModeState] = useState(() => {
     const stored = localStorage.getItem('lapdev-agent-mode');
     if (!stored) return false;
     try {
       return JSON.parse(stored);
     } catch {
-      // localStorage 内容格式错误，返回默认值
       return false;
     }
   });
   const [pendingOperations, setPendingOperations] = useState<AgentOperation[]>([]);
-  const [operationLogs, setOperationLogs] = useState<OperationLogEntry[]>([]);
+  const [operationLogs, setOperationLogs] = useState<OperationLogEntry[]>(getStoredLogs);
   
-  // 使用 useRef 存储定时器ID，防止泄漏
   const cleanupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 从 localStorage 恢复日志
-  useEffect(() => {
-    const storedLogs = localStorage.getItem('lapdev-agent-logs');
-    if (storedLogs) {
-      try {
-        setOperationLogs(JSON.parse(storedLogs));
-      } catch {
-        // 忽略解析错误
-      }
-    }
-  }, []);
-
   // 保存日志到 localStorage
-  useEffect(() => {
+  useLayoutEffect(() => {
     localStorage.setItem('lapdev-agent-logs', JSON.stringify(operationLogs));
   }, [operationLogs]);
 
   // 清理定时器（组件卸载时）
-  useEffect(() => {
+  useLayoutEffect(() => {
     return () => {
       if (cleanupTimerRef.current) {
         clearTimeout(cleanupTimerRef.current);

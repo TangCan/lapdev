@@ -10,14 +10,14 @@ export function ThemeSettings() {
   ];
 
   return (
-    <div className="mb-6 p-4 rounded-lg border" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
-      <h3 className="text-lg font-semibold mb-3" style={{ color: 'var(--color-text-primary)' }}>主题</h3>
-      <div className="flex items-center gap-3">
-        <label className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>选择主题:</label>
+    <div className="rounded-lg p-3 border" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
+      <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>主题</h3>
+      <div className="flex items-center gap-2">
+        <label className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>选择主题:</label>
         <select
           value={themeName}
           onChange={(e) => setTheme(e.target.value as ThemeName)}
-          className="px-3 py-2 rounded-md border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="px-2 py-1.5 rounded-md border text-xs focus:outline-none focus:ring-1"
           style={{ 
             borderColor: 'var(--color-border)', 
             backgroundColor: 'var(--color-bg)', 
