@@ -65,16 +65,18 @@ export const AIConfigPanel: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // 当provider改变时，更新默认的baseUrl和model
+  const defaultBaseUrl = BASE_URL_BY_PROVIDER[form.provider];
+  const defaultModel = MODEL_BY_PROVIDER[form.provider][0]?.value || '';
+
   useEffect(() => {
-    if (!editingId) {
+    if (!editingId && (form.baseUrl !== defaultBaseUrl || form.model !== defaultModel)) {
       setForm(prev => ({
         ...prev,
-        baseUrl: BASE_URL_BY_PROVIDER[prev.provider],
-        model: MODEL_BY_PROVIDER[prev.provider][0]?.value || '',
+        baseUrl: defaultBaseUrl,
+        model: defaultModel,
       }));
     }
-  }, [form.provider, editingId]);
+  }, [defaultBaseUrl, defaultModel, editingId]);
 
   // 开始编辑模型
   const handleEdit = (model: typeof models[0]) => {

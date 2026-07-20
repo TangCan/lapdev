@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSkill } from '../../context/SkillContext';
 import { SkillPanel } from '../SkillPanel';
 
@@ -16,9 +16,26 @@ interface Conversation {
 
 export function MockAIPanel() {
   const [isOpen, setIsOpen] = useState(false);
-  const [showGuidance, setShowGuidance] = useState(false);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [showGuidance, setShowGuidance] = useState(() => !sessionStorage.getItem('lapdev-ai-models'));
+  const [conversations, setConversations] = useState<Conversation[]>(() => {
+    const storedModels = sessionStorage.getItem('lapdev-ai-models');
+    if (!storedModels) {
+      const initialConv: Conversation = {
+        id: `conv-${Date.now()}`,
+        title: '新对话',
+        messages: [{ id: Date.now(), content: '你好！我是AI助手，有什么可以帮您的？', role: 'assistant' }]
+      };
+      return [initialConv];
+    }
+    return [];
+  });
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(() => {
+    const storedModels = sessionStorage.getItem('lapdev-ai-models');
+    if (!storedModels) {
+      return `conv-${Date.now()}`;
+    }
+    return null;
+  });
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,28 +45,12 @@ export function MockAIPanel() {
   const [showActivationNotification, setShowActivationNotification] = useState(false);
   const [activatedSkills, setActivatedSkills] = useState<string[]>([]);
 
-  const { findMatchingSkills, loadSkills, matchingSkills, activateSkill } = useSkill();
+  const { findMatchingSkills, loadSkills, activateSkill } = useSkill();
 
   const currentConversation = conversations.find(c => c.id === currentConversationId);
   const messages = currentConversation?.messages || [];
 
-  // Initialize with first conversation and mock skills
   useEffect(() => {
-    const storedModels = sessionStorage.getItem('lapdev-ai-models');
-    setShowGuidance(!storedModels);
-    
-    // Create initial conversation if none exists
-    if (conversations.length === 0) {
-      const initialConv: Conversation = {
-        id: `conv-${Date.now()}`,
-        title: '新对话',
-        messages: [{ id: Date.now(), content: '你好！我是AI助手，有什么可以帮您的？', role: 'assistant' }]
-      };
-      setConversations([initialConv]);
-      setCurrentConversationId(initialConv.id);
-    }
-
-    // Load mock skills for testing
     const mockSkills = [
       {
         id: 'git-helper',
@@ -99,7 +100,7 @@ export function MockAIPanel() {
     ];
 
     loadSkills(mockSkills);
-  }, []);
+  }, [loadSkills]);
 
   const createNewConversation = () => {
     const newConv: Conversation = {

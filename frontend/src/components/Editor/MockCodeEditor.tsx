@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
 interface Diagnostic {
   line: number;
@@ -22,17 +22,15 @@ export function MockCodeEditor() {
   const [ghostText, setGhostText] = useState<string>('');
   const editorRef = useRef<HTMLDivElement>(null);
 
-  // Detect TypeScript errors
-  useEffect(() => {
-    const newDiagnostics: Diagnostic[] = [];
+  const newDiagnostics: Diagnostic[] = useMemo(() => {
+    const diagnostics: Diagnostic[] = [];
     const lines = content.split('\n');
     
     lines.forEach((line, index) => {
-      // Detect type mismatch errors
       if (line.includes(': number') && line.includes('"')) {
         const eqIndex = line.indexOf('=');
         if (eqIndex !== -1) {
-          newDiagnostics.push({
+          diagnostics.push({
             line: index + 1,
             column: eqIndex + 2,
             message: 'Type "string" is not assignable to type "number"',
@@ -41,13 +39,12 @@ export function MockCodeEditor() {
         }
       }
       
-      // Detect unused variables
       const varMatch = line.match(/const (\w+)/);
       if (varMatch) {
         const varName = varMatch[1];
         const lineWithoutDeclaration = line.replace(/const\s+\w+\s*=/, '');
         if (!content.includes(varName + ' ') && !content.includes(varName + ';') && !lineWithoutDeclaration.includes(varName)) {
-          newDiagnostics.push({
+          diagnostics.push({
             line: index + 1,
             column: line.indexOf(varName),
             message: `'${varName}' is assigned a value but never used`,
@@ -57,13 +54,16 @@ export function MockCodeEditor() {
       }
     });
     
+    return diagnostics;
+  }, [content]);
+
+  useEffect(() => {
     setDiagnostics(newDiagnostics);
     
-    // Auto show problems panel when there are errors
     if (newDiagnostics.length > 0) {
       setShowProblemsPanel(true);
     }
-  }, [content]);
+  }, [newDiagnostics]);
 
   // Register global test functions for E2E tests
   useEffect(() => {

@@ -194,28 +194,6 @@ const AIChatPanel: React.FC = () => {
     setOperationMessage(null);
   };
 
-  const handleOperationApprove = () => {
-    setOperationMessage('操作已批准');
-    addLogEntry({
-      operationType: 'write',
-      filePath: pendingOperations[0]?.filePath || '',
-      result: 'success',
-      details: '操作已批准并执行',
-    });
-    setTimeout(() => handleOperationClose(), 2000);
-  };
-
-  const handleOperationReject = () => {
-    setOperationMessage('操作已拒绝');
-    addLogEntry({
-      operationType: 'write',
-      filePath: pendingOperations[0]?.filePath || '',
-      result: 'rejected',
-      details: '操作已拒绝',
-    });
-    setTimeout(() => handleOperationClose(), 2000);
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();

@@ -24,10 +24,6 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repositoryPath }) => {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [diff, setDiff] = useState<string>('');
 
-  useEffect(() => {
-    fetchStatus();
-  }, [repositoryPath]);
-
   const fetchStatus = async () => {
     try {
       const response = await fetch('/api/v1/git/status');
@@ -39,6 +35,10 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repositoryPath }) => {
       console.error('Failed to fetch git status:', error);
     }
   };
+
+  useEffect(() => {
+    fetchStatus();
+  }, [repositoryPath]);
 
   const fetchDiff = async (file: string) => {
     try {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { FileInfo, FileTreeResult } from '../../types/file';
 import { fetchFileTree } from '../../services/fileService';
 import { FileTreeNode } from './FileTreeNode';

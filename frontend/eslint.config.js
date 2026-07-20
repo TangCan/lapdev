@@ -13,6 +13,7 @@ export default [
         ...globals.browser,
         ...globals.es2021,
         ...globals.node,
+        RequestInit: true,
       },
       parser: parserTs,
       parserOptions: {
@@ -36,6 +37,10 @@ export default [
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       'react/prop-types': 'off',
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/immutability': 'warn',
+      'react/display-name': 'warn',
+      'react/no-unescaped-entities': 'warn',
     },
     settings: {
       react: {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import type { FileInfo } from '../../types/file';
 
 interface MockFileTreeNodeProps {

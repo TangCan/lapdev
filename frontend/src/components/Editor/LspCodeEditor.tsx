@@ -34,7 +34,7 @@ const SUPPORTED_LANGUAGES = ['javascript', 'typescript', 'python', 'rust', 'go',
 // 防抖延迟（毫秒）
 const DEBOUNCE_DELAY = 500;
 
-export const LspCodeEditor = forwardRef<LspCodeEditorHandle, LspCodeEditorProps>(({
+const LspCodeEditorComponent = forwardRef<LspCodeEditorHandle, LspCodeEditorProps>(({
   value,
   language,
   onChange,
@@ -497,4 +497,5 @@ export const LspCodeEditor = forwardRef<LspCodeEditorHandle, LspCodeEditorProps>
   );
 });
 
+const LspCodeEditor = LspCodeEditorComponent;
 export default LspCodeEditor;

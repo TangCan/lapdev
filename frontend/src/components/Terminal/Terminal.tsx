@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useReducer } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useReducer } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
@@ -151,10 +151,11 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
   
   const wsRef = useRef<WebSocket | null>(null);
   const heartbeatTimerRef = useRef<number | null>(null);
-  const lastPongRef = useRef<number>(Date.now());
+  const lastPongRef = useRef<number | null>(null);
   const reconnectAttemptRef = useRef(0);
   const reconnectTimerRef = useRef<number | null>(null);
   const tabsRef = useRef<TabInfo[]>(tabs);
+  const connectWebSocketRef = useRef<(() => Promise<void>) | null>(null);
   
   const containerRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const terminalRefs = useRef<Record<string, XTerm | null>>({});
@@ -176,6 +177,12 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
       }, 100);
     }
   }, [autoInit]);
+
+  useEffect(() => {
+    if (lastPongRef.current === null) {
+      lastPongRef.current = Date.now();
+    }
+  }, []);
 
   useEffect(() => {
     (window as any).__terminalInput = (input: string) => {
@@ -369,11 +376,15 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
         reconnectAttemptRef.current++;
         const delay = Math.min(1000 * reconnectAttemptRef.current, 10000);
         reconnectTimerRef.current = setTimeout(() => {
-          connectWebSocket();
+          connectWebSocketRef.current?.();
         }, delay) as unknown as number;
       }
     };
   }, [initTerminalSession]);
+
+  useEffect(() => {
+    connectWebSocketRef.current = connectWebSocket;
+  }, [connectWebSocket]);
 
   useEffect(() => {
     if (tabs.length > 0 && !wsRef.current) {

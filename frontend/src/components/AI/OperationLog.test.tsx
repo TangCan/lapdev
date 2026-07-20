@@ -1,8 +1,7 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { OperationLog } from './OperationLog';
 import { AgentProvider } from '../../context/AgentContext';
-import { agentService } from '../../services/agentService';
 import { vi, describe, test, expect, beforeEach } from 'vitest';
 
 vi.mock('../../services/agentService');

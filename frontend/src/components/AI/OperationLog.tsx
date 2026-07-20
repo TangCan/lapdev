@@ -18,7 +18,7 @@ const FILTER_OPTIONS: { value: FilterType; label: string }[] = [
 ];
 
 export const OperationLog: React.FC<OperationLogProps> = ({ className = '' }) => {
-  const { operationLogs, clearLogs, filterLogsByType, exportLogs } = useAgent();
+  const { clearLogs, filterLogsByType, exportLogs } = useAgent();
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('all');
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 

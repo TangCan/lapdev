@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { FileInfo } from '../../types/file';
 import { MockFileTreeNode } from './MockFileTreeNode';
 import { FileTreeContextMenu } from './FileTreeContextMenu';

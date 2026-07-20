@@ -244,6 +244,19 @@ export function CodeEditor({
       decorationRef.current = [];
     }
 
+    const getDiffColor = (type: string): string => {
+      switch (type) {
+        case 'added':
+          return '#3fb950';
+        case 'modified':
+          return '#3794ff';
+        case 'deleted':
+          return '#f85149';
+        default:
+          return '#8b949e';
+      }
+    };
+
     const decorations: Monaco.editor.IModelDeltaDecoration[] = [];
 
     diffLines.forEach((diffLine) => {
@@ -271,19 +284,6 @@ export function CodeEditor({
       decorationRef.current = editorRef.current.deltaDecorations([], decorations);
     }
   }, [diffLines]);
-
-  const getDiffColor = (type: string): string => {
-    switch (type) {
-      case 'added':
-        return '#3fb950';
-      case 'modified':
-        return '#3794ff';
-      case 'deleted':
-        return '#f85149';
-      default:
-        return '#8b949e';
-    }
-  };
 
   useEffect(() => {
     if (!containerRef.current) {

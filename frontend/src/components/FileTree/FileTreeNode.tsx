@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import type { FileInfo } from '../../types/file';
 import { useGit } from '../../context/GitContext';
 

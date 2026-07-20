@@ -22,6 +22,18 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   const editorContainer = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
 
+  const loadFile = async (uri: string) => {
+    try {
+      const response = await fetch(`/api/v1/files/read?path=${encodeURIComponent(uri)}`);
+      const data = await response.json();
+      if (data.status === 'success') {
+        editorRef.current?.setValue(data.content);
+      }
+    } catch (error) {
+      console.error('Failed to load file:', error);
+    }
+  };
+
   useEffect(() => {
     if (!editorContainer.current) return;
 
@@ -67,18 +79,6 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
       loadFile(modelUri);
     }
   }, [modelUri]);
-
-  const loadFile = async (uri: string) => {
-    try {
-      const response = await fetch(`/api/v1/files/read?path=${encodeURIComponent(uri)}`);
-      const data = await response.json();
-      if (data.status === 'success') {
-        editorRef.current?.setValue(data.content);
-      }
-    } catch (error) {
-      console.error('Failed to load file:', error);
-    }
-  };
 
   return (
     <div className="h-full w-full">
