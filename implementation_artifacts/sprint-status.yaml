@@ -35,11 +35,13 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-07-06
-last_updated: 2026-07-20T12:00:00Z
+last_updated: 2026-07-21T09:00:00Z
 project: lapdev
 project_key: NOKEY
 tracking_system: file-system
 story_location: implementation_artifacts
+project_status: closed
+closure_date: 2026-07-21
 
 development_status:
   # Epic 1: 基础IDE功能 (3 stories)
