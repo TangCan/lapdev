@@ -1,7 +1,6 @@
-import React, { useEffect, useRef, useCallback, useState, forwardRef, useImperativeHandle } from 'react';
+import React, { useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import * as Monaco from 'monaco-editor';
 import { useLSP } from '../../context/LSPContext';
-import { Position } from 'vscode-languageserver-types';
 import { aiService } from '../../services/aiService';
 import { useAI } from '../../context/AIContext';
 import { useInlineCompletion } from '../../context/InlineCompletionContext';
@@ -34,21 +33,21 @@ const SUPPORTED_LANGUAGES = ['javascript', 'typescript', 'python', 'rust', 'go',
 // 防抖延迟（毫秒）
 const DEBOUNCE_DELAY = 500;
 
-const LspCodeEditorComponent = forwardRef<LspCodeEditorHandle, LspCodeEditorProps>(({
-  value,
-  language,
-  onChange,
-  readOnly = false,
-  minimap = true,
-  fontSize = 14,
-  diffLines = [],
-  uri = 'file:///workspace/test.ts',
-}, ref) => {
+function LspCodeEditorComponent(props: LspCodeEditorProps, ref: React.ForwardedRef<LspCodeEditorHandle>) {
+  const {
+    value,
+    language,
+    onChange,
+    readOnly = false,
+    minimap = true,
+    fontSize = 14,
+    diffLines = [],
+    uri = 'file:///workspace/test.ts',
+  } = props;
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
   const decorationRef = useRef<string[]>([]);
   const { connect, registerEditor, unregisterEditor } = useLSP();
-  const [isLspConnected, setIsLspConnected] = useState(false);
   
   // 内联补全相关状态
   const { isConnected } = useAI();
@@ -68,6 +67,19 @@ const LspCodeEditorComponent = forwardRef<LspCodeEditorHandle, LspCodeEditorProp
   useEffect(() => {
     isConnectedRef.current = isConnected;
   }, [isConnected]);
+
+  const getDiffColor = (type: string): string => {
+    switch (type) {
+      case 'added':
+        return '#3fb950';
+      case 'modified':
+        return '#3794ff';
+      case 'deleted':
+        return '#f85149';
+      default:
+        return '#8b949e';
+    }
+  };
 
   const updateDiffDecorations = useCallback(() => {
     if (!editorRef.current) return;
@@ -260,20 +272,7 @@ const LspCodeEditorComponent = forwardRef<LspCodeEditorHandle, LspCodeEditorProp
         console.error('Unhandled inline completion error:', error);
       });
     }, DEBOUNCE_DELAY);
-  }, [language, cancelCurrentCompletion, clearGhostText, setGhostText, setInlineCompletionVisible, inlineCompletionEnabled, isConnected]);
-
-  const getDiffColor = (type: string): string => {
-    switch (type) {
-      case 'added':
-        return '#3fb950';
-      case 'modified':
-        return '#3794ff';
-      case 'deleted':
-        return '#f85149';
-      default:
-        return '#8b949e';
-    }
-  };
+  }, [language, cancelCurrentCompletion, clearGhostText, setGhostText, setInlineCompletionVisible]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -393,12 +392,12 @@ const LspCodeEditorComponent = forwardRef<LspCodeEditorHandle, LspCodeEditorProp
     document.addEventListener('keydown', handleKeyDown);
 
     // 为测试暴露全局方法
-    (window as any).__test_triggerCompletion = () => {
+    window.__test_triggerCompletion = () => {
       console.log('Global __test_triggerCompletion called');
       triggerCompletion();
     };
 
-    (window as any).__test_setEditorValue = (val: string) => {
+    window.__test_setEditorValue = (val: string) => {
       editorRef.current?.setValue(val);
       // 设置光标到文本末尾
       const model = editorRef.current?.getModel();
@@ -414,16 +413,16 @@ const LspCodeEditorComponent = forwardRef<LspCodeEditorHandle, LspCodeEditorProp
       cancelCurrentCompletion();
       editorRef.current?.dispose();
       document.removeEventListener('keydown', handleKeyDown);
-      delete (window as any).__test_triggerCompletion;
-      delete (window as any).__test_setEditorValue;
+      delete window.__test_triggerCompletion;
+      delete window.__test_setEditorValue;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     const initLSP = async () => {
       try {
         await connect({ language });
-        setIsLspConnected(true);
 
         if (editorRef.current) {
           registerEditor(editorRef.current, uri);
@@ -495,8 +494,8 @@ const LspCodeEditorComponent = forwardRef<LspCodeEditorHandle, LspCodeEditorProp
       style={{ height: '100%', width: '100%' }}
     />
   );
-});
+}
 
-const LspCodeEditor = LspCodeEditorComponent;
+const LspCodeEditor = forwardRef(LspCodeEditorComponent);
 export { LspCodeEditor };
 export default LspCodeEditor;

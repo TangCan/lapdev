@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import { fetchGitStatus, fetchBranches, stageFiles as stageFilesService, commitChanges, checkoutBranch, fetchGitDiff } from '../services/gitService';
-import type { GitStatus, GitBranch, GitChange } from '../services/gitService';
+import type { GitStatus, GitBranch } from '../services/gitService';
 import { WS_URL } from '../config';
 
 interface GitContextType {
@@ -38,6 +38,7 @@ export function GitProvider({ children }: { children: ReactNode }) {
   const branchChangeSubscribersRef = useRef<Set<(branch: string) => void>>(new Set());
   const previousStatusRef = useRef<string | null>(null);
   const previousBranchesRef = useRef<string | null>(null);
+  const connectWebSocketRef = useRef<() => void>(() => {});
 
   const notifyBranchChange = useCallback((branch: string) => {
     branchChangeSubscribersRef.current.forEach((callback) => {
@@ -108,7 +109,6 @@ export function GitProvider({ children }: { children: ReactNode }) {
         console.log('WebSocket connected');
         reconnectDelayRef.current = 1000;
         reconnectAttemptsRef.current = 0;
-        // Subscribe to Git updates
         ws.send(JSON.stringify({ type: 'subscribeToGit' }));
       };
 
@@ -126,7 +126,6 @@ export function GitProvider({ children }: { children: ReactNode }) {
               }
               break;
             case 'ping':
-              // Respond to heartbeat
               ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
               break;
             default:
@@ -149,8 +148,7 @@ export function GitProvider({ children }: { children: ReactNode }) {
           return;
         }
         console.log('WebSocket disconnected, reconnecting in', reconnectDelayRef.current, 'ms', '(attempt', reconnectAttemptsRef.current, '/', MAX_RECONNECT_ATTEMPTS, ')');
-        // Reconnect with exponential backoff
-        setTimeout(connectWebSocket, reconnectDelayRef.current);
+        setTimeout(connectWebSocketRef.current, reconnectDelayRef.current);
         reconnectDelayRef.current = Math.min(reconnectDelayRef.current * 2, 30000);
       };
     } catch (err) {
@@ -159,6 +157,11 @@ export function GitProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    connectWebSocketRef.current = connectWebSocket;
+  }, [connectWebSocket]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadGitData(true);
     
     connectWebSocket();

@@ -81,7 +81,7 @@ const MOCK_SKILLS: SkillMarketEntry[] = [
 
 export function SkillMarket() {
   const [skills, setSkills] = useState<SkillMarketEntry[]>(MOCK_SKILLS);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [, setSearchQuery] = useState('');
   const [selectedSkill, setSelectedSkill] = useState<SkillMarketEntry | null>(null);
   const [installingSkill, setInstallingSkill] = useState<string | null>(null);
   const [installedSkills, setInstalledSkills] = useState<string[]>([]);

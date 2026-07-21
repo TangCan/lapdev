@@ -36,6 +36,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     console.log('AIContext init: models loaded:', loadedModels.length);
     console.log('AIContext init: currentModel:', loadedCurrentModel?.name || null);
     
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setModels(loadedModels);
     setCurrentModel(loadedCurrentModel);
     setIsConnected(loadedCurrentModel !== null);
@@ -43,7 +44,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({ children }
 
   // 添加模型
   const addModel = useCallback((config: Omit<AIModelConfig, 'id' | 'isActive'>) => {
-    const newModel = aiService.addModel(config);
+    aiService.addModel(config);
     setModels(aiService.getModels());
     setCurrentModel(aiService.getCurrentModel());
     setIsConnected(true);

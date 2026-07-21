@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import * as Monaco from 'monaco-editor';
 
 vi.mock('monaco-editor', () => ({
   editor: {
@@ -26,7 +25,7 @@ describe('lspService', () => {
         })
       });
 
-      (global as any).fetch = mockFetch;
+      globalThis.fetch = mockFetch as unknown as typeof fetch;
 
       await lspService.getHover('file:///workspace/test.ts', { line: 0, character: 6 });
 
@@ -44,12 +43,12 @@ describe('lspService', () => {
         range: { start: { line: 0, character: 0 }, end: { line: 0, character: 5 } }
       };
 
-      (global as any).fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         json: () => Promise.resolve({
           status: 'success',
           hover: mockHover
         })
-      });
+      }) as unknown as typeof fetch;
 
       const result = await lspService.getHover('file:///workspace/test.ts', { line: 0, character: 6 });
 
@@ -57,7 +56,7 @@ describe('lspService', () => {
     });
 
     it('[P1] TC-8.1.15 should handle API error gracefully', async () => {
-      (global as any).fetch = vi.fn().mockRejectedValue(new Error('API error'));
+      globalThis.fetch = vi.fn().mockRejectedValue(new Error('API error')) as unknown as typeof fetch;
 
       const result = await lspService.getHover('file:///workspace/test.ts', { line: 0, character: 6 });
 
@@ -65,12 +64,12 @@ describe('lspService', () => {
     });
 
     it('[P1] TC-8.1.16 should handle 404 error for uninitialized session', async () => {
-      (global as any).fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         json: () => Promise.resolve({
           status: 'error',
           message: 'Session not found'
         })
-      });
+      }) as unknown as typeof fetch;
 
       const result = await lspService.getHover('file:///workspace/test.ts', { line: 0, character: 6 });
 
@@ -78,12 +77,12 @@ describe('lspService', () => {
     });
 
     it('[P1] TC-8.1.17 should handle 400 error for invalid parameters', async () => {
-      (global as any).fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         json: () => Promise.resolve({
           status: 'error',
           message: 'Invalid parameters'
         })
-      });
+      }) as unknown as typeof fetch;
 
       const result = await lspService.getHover('file:///workspace/test.ts', { line: -1, character: -1 });
 

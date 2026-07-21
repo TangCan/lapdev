@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FileTree } from '../FileTree';
-import { CodeEditor, type DiffLine } from '../Editor/CodeEditor';
+import type { DiffLine } from '../Editor/CodeEditor';
 import { LspCodeEditor } from '../Editor/LspCodeEditor';
 import { Terminal } from '../Terminal/Terminal';
 import GitPanel from '../Git/GitPanel';
@@ -39,10 +39,10 @@ function IDE() {
   const { status, currentBranch, refreshStatus } = useGit();
   const { isPanelOpen, togglePanel } = useChat();
 
-  const showError = (message: string) => {
+  const showError = useCallback((message: string) => {
     setErrorMessage(message);
     setTimeout(() => setErrorMessage(null), 5000);
-  };
+  }, []);
 
   const parseDiffLines = useCallback((diff: string): DiffLine[] => {
     const lines: DiffLine[] = [];
@@ -499,7 +499,7 @@ function IDE() {
       <div className="modal-overlay" data-testid="close-confirm-modal">
         <div className="modal-content">
           <h3>文件已修改</h3>
-          <p>文件 "{closeConfirm.fileName}" 已被修改，是否保存更改？</p>
+          <p>文件 &quot;{closeConfirm.fileName}&quot; 已被修改，是否保存更改？</p>
           <div className="modal-actions">
             <button 
               className="modal-button modal-button-primary" 

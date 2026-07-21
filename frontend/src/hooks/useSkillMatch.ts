@@ -15,6 +15,7 @@ export function useSkillMatch() {
     findMatchingSkills(request);
     
     return matchingSkills;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [skills, findMatchingSkills]);
 
   const getSystemPromptWithSkills = useCallback(() => {

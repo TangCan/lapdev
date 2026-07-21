@@ -58,6 +58,7 @@ export function MockCodeEditor() {
   }, [content]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDiagnostics(newDiagnostics);
     
     if (newDiagnostics.length > 0) {

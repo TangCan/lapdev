@@ -16,7 +16,7 @@ interface Conversation {
 
 export function MockAIPanel() {
   const [isOpen, setIsOpen] = useState(false);
-  const [showGuidance, setShowGuidance] = useState(() => !sessionStorage.getItem('lapdev-ai-models'));
+  const [showGuidance] = useState(() => !sessionStorage.getItem('lapdev-ai-models'));
   const [conversations, setConversations] = useState<Conversation[]>(() => {
     const storedModels = sessionStorage.getItem('lapdev-ai-models');
     if (!storedModels) {

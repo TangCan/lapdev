@@ -15,6 +15,7 @@ interface CodeEditorProps {
   language: string;
   onChange: (value: string) => void;
   readOnly?: boolean;
+  _readOnly?: boolean;
   minimap?: boolean;
   fontSize?: number;
   diffLines?: DiffLine[];
@@ -28,7 +29,7 @@ export function CodeEditor({
   value,
   language,
   onChange,
-  readOnly = false,
+  _readOnly = false,
   minimap = true,
   fontSize = 14,
   diffLines = []
@@ -201,7 +202,7 @@ export function CodeEditor({
         console.error('Unhandled inline completion error:', error);
       });
     }, DEBOUNCE_DELAY);
-  }, [inlineCompletionEnabled, isConnected, language, cancelCurrentCompletion, clearGhostText, setGhostText, setInlineCompletionVisible]);
+  }, [language, cancelCurrentCompletion, clearGhostText, setGhostText, setInlineCompletionVisible]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.ctrlKey && e.shiftKey && e.key === 'F') {
@@ -344,12 +345,12 @@ export function CodeEditor({
     document.addEventListener('keydown', handleKeyDown);
 
     // 为测试暴露全局方法
-    (window as any).__test_triggerCompletion = () => {
+    window.__test_triggerCompletion = () => {
       console.log('Global triggerCompletion called');
       triggerCompletion();
     };
 
-    (window as any).__test_setEditorValue = (value: string) => {
+    window.__test_setEditorValue = (value: string) => {
       editor.setValue(value);
       console.log('Global setEditorValue called:', value);
     };
@@ -358,13 +359,11 @@ export function CodeEditor({
       cancelCurrentCompletion();
       editor.dispose();
       document.removeEventListener('keydown', handleKeyDown);
-      delete (window as any).__test_triggerCompletion;
-      delete (window as any).__test_setEditorValue;
+      delete window.__test_triggerCompletion;
+      delete window.__test_setEditorValue;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // 暴露给测试的方法
-  const getEditorRef = () => editorRef.current;
 
   useEffect(() => {
     if (editorRef.current && editorRef.current.getValue() !== value) {

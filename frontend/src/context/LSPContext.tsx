@@ -113,9 +113,8 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             documentation: item.documentation,
             insertText: item.insertText,
             sortText: item.sortText,
-            range: model.getWordUntilPosition(position),
           })),
-        } as any;
+        } as unknown as Monaco.languages.CompletionList;
       },
     });
 
@@ -138,13 +137,13 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             loc.range.end.line + 1,
             loc.range.end.character + 1
           ),
-        })) as any;
+        }));
       },
     });
 
     // Setup reference provider
     Monaco.languages.registerReferenceProvider(uri, {
-      provideReferences: async (model, position, context) => {
+      provideReferences: async (model, position) => {
         const lspPosition: Position = {
           line: position.lineNumber - 1,
           character: position.column - 1,
@@ -161,7 +160,7 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             loc.range.end.line + 1,
             loc.range.end.character + 1
           ),
-        })) as any;
+        }));
       },
     });
 
@@ -176,6 +175,7 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const result = await lspService.renameSymbol(uri, lspPosition, newName);
         if (!result) return { edits: [] };
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const edits: any[] = [];
         result.changes?.forEach((change) => {
           change.edits.forEach((edit) => {
@@ -196,13 +196,14 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           });
         });
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return { edits } as any;
       },
     });
 
     // Setup document formatter
     Monaco.languages.registerDocumentFormattingEditProvider(uri, {
-      provideDocumentFormattingEdits: async (model, options) => {
+      provideDocumentFormattingEdits: async () => {
         const result = await lspService.formatDocument(uri);
         if (!result) return [];
 
@@ -251,7 +252,7 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             activeParameter: result.activeParameter,
           },
           dispose: () => {},
-        } as any;
+        } as Monaco.languages.SignatureHelpResult;
       },
     });
 

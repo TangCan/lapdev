@@ -1,4 +1,4 @@
-import { agentService, AgentOperation, OperationLogEntry } from './agentService';
+import { agentService, OperationLogEntry } from './agentService';
 import { vi, describe, test, expect, beforeEach } from 'vitest';
 
 global.fetch = vi.fn();
@@ -52,11 +52,11 @@ describe('AgentService', () => {
     });
 
     test('should throw error when content is undefined', async () => {
-      await expect(agentService.writeFile('/test/file.ts', undefined as any)).rejects.toThrow('文件内容不能为空');
+      await expect(agentService.writeFile('/test/file.ts', undefined as unknown as string)).rejects.toThrow('文件内容不能为空');
     });
 
     test('should throw error when content is null', async () => {
-      await expect(agentService.writeFile('/test/file.ts', null as any)).rejects.toThrow('文件内容不能为空');
+      await expect(agentService.writeFile('/test/file.ts', null as unknown as string)).rejects.toThrow('文件内容不能为空');
     });
 
     test('should write file successfully', async () => {

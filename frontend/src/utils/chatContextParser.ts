@@ -11,7 +11,6 @@ const FILE_REF_PATTERN = /@file:([^\s]+)/g;
 const SELECTION_REF_PATTERN = /@selection/g;
 
 const MAX_CONTEXT_FILES = 10;
-const MAX_FILE_SIZE = 1024 * 100; // 100KB
 
 function sanitizePath(filePath: string): string {
   const normalized = filePath.replace(/\\/g, '/');
@@ -58,7 +57,7 @@ export async function parseContextReferences(content: string): Promise<ChatConte
         path: filePath,
         content: fileContent,
       });
-    } catch (error) {
+    } catch {
       contexts.push({
         type: 'file',
         path: filePath,

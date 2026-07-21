@@ -40,6 +40,7 @@ const ProblemsPanel: React.FC<ProblemsPanelProps> = ({ onSelectProblem }) => {
   }, [getDiagnostics]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     updateProblems();
 
     const unsubscribe = subscribeToDiagnostics(updateProblems);

@@ -1,7 +1,7 @@
 import type { Skill, SkillTrigger, SkillLoadResult } from '../types/skill';
 import { load } from 'js-yaml';
 import { existsSync, readdirSync, readFileSync, statSync } from 'fs';
-import { join, basename, extname } from 'path';
+import { join, basename } from 'path';
 
 const API_BASE_URL = '/api/v1/skills';
 
@@ -72,7 +72,6 @@ export class SkillService {
   }
 
   loadSkills(): SkillLoadResult {
-    const skills: Skill[] = [];
     let globalCount = 0;
     let projectCount = 0;
 

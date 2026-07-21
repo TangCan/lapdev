@@ -10,16 +10,23 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | null>(null);
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [themeName, setThemeNameState] = useState<ThemeName>(getDefaultTheme());
-  const [theme, setThemeState] = useState<ThemeConfig>(getThemeByName(getDefaultTheme()));
+const getInitialTheme = (): { themeName: ThemeName; theme: ThemeConfig } => {
+  const savedTheme = localStorage.getItem('lapdev-theme') as ThemeName | null;
+  if (savedTheme) {
+    return { themeName: savedTheme, theme: getThemeByName(savedTheme) };
+  }
+  return { themeName: getDefaultTheme(), theme: getThemeByName(getDefaultTheme()) };
+};
 
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('lapdev-theme') as ThemeName | null;
-    if (savedTheme) {
-      setThemeNameState(savedTheme);
-      setThemeState(getThemeByName(savedTheme));
-    }
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [{ themeName, theme }, setState] = useState<{ themeName: ThemeName; theme: ThemeConfig }>(getInitialTheme);
+
+  const setThemeNameState = useCallback((name: ThemeName) => {
+    setState({ themeName: name, theme: getThemeByName(name) });
+  }, []);
+
+  const setThemeState = useCallback((config: ThemeConfig) => {
+    setState(prev => ({ ...prev, theme: config }));
   }, []);
 
   useEffect(() => {
@@ -30,11 +37,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const setTheme = useCallback((name: ThemeName) => {
     setThemeNameState(name);
     setThemeState(getThemeByName(name));
-  }, []);
+  }, [setThemeNameState, setThemeState]);
 
   const toggleTheme = useCallback(() => {
-    setThemeNameState((prev) => (prev === 'dark' ? 'light' : 'dark'));
-  }, []);
+    setThemeNameState(themeName === 'dark' ? 'light' : 'dark');
+  }, [setThemeNameState, themeName]);
 
   return (
     <ThemeContext.Provider value={{ theme, themeName, setTheme, toggleTheme }}>

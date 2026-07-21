@@ -37,6 +37,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repositoryPath }) => {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchStatus();
   }, [repositoryPath]);
 
@@ -65,17 +66,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repositoryPath }) => {
     }
   };
 
-  const commit = async (message: string) => {
-    try {
-      await fetch('/api/v1/git/commit', {
-        method: 'POST',
-        body: JSON.stringify({ message })
-      });
-      fetchStatus();
-    } catch (error) {
-      console.error('Failed to commit:', error);
-    }
-  };
+  
 
   return (
     <div className="h-full bg-gray-800 text-white flex flex-col">

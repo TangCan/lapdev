@@ -176,10 +176,10 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
         dispatch({ type: 'ADD_TAB', tabId: initialTabId, title: 'Terminal 1' });
       }, 100);
     }
-  }, [autoInit]);
+  }, [autoInit, tabs.length]);
 
   useEffect(() => {
-    (window as any).__terminalInput = (input: string) => {
+    window.__terminalInput = (input: string) => {
       const currentTab = tabsRef.current.find(t => t.id === activeTabId);
       if (currentTab) {
         const terminal = terminalRefs.current[currentTab.id];
@@ -190,13 +190,13 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
       }
     };
     
-    (window as any).__getTerminalOutput = (tabId?: string) => {
+    window.__getTerminalOutput = (tabId?: string) => {
       const targetTabId = tabId || activeTabId;
       return terminalOutputCache.current[targetTabId] || '';
     };
 
     return () => {
-      delete (window as any).__terminalInput;
+      delete window.__terminalInput;
     };
   }, [activeTabId]);
 
@@ -243,6 +243,11 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
       console.error('Failed to create terminal:', error);
     }
   }, []);
+
+  const activeTabIdRef = useRef(activeTabId);
+  useEffect(() => {
+    activeTabIdRef.current = activeTabId;
+  }, [activeTabId]);
 
   const connectWebSocket = useCallback(async () => {
     if (wsRef.current) {
@@ -327,7 +332,7 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
             }
           }
         } catch {
-          const activeTab = tabsRef.current.find(t => t.id === activeTabId);
+          const activeTab = tabsRef.current.find(t => t.id === activeTabIdRef.current);
           if (activeTab) {
             const terminal = terminalRefs.current[activeTab.id];
             terminal?.write(event.data);
@@ -339,7 +344,7 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
         const output = decoder.decode(event.data);
         console.warn('[Terminal] Received binary output without sessionId, routing to active tab');
         
-        let targetTab = tabsRef.current.find(t => t.id === activeTabId);
+        let targetTab = tabsRef.current.find(t => t.id === activeTabIdRef.current);
         if (!targetTab && tabsRef.current.length > 0) {
           targetTab = tabsRef.current[0];
         }
@@ -387,7 +392,7 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
     if (tabs.length > 0 && !wsRef.current) {
       connectWebSocket();
     }
-  }, [tabs.length]);
+  }, [tabs.length, connectWebSocket]);
 
   const initXTerm = useCallback((tabId: string) => {
     const container = containerRefs.current[tabId];
@@ -488,6 +493,10 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
   }, []);
 
   useEffect(() => {
+    const currentTerminalRefs = terminalRefs.current;
+    const currentTabsRef = tabsRef.current;
+    const closeTerminalRef = closeTerminal;
+    
     return () => {
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
@@ -498,11 +507,11 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
       if (heartbeatTimerRef.current) {
         clearInterval(heartbeatTimerRef.current);
       }
-      for (const tab of tabsRef.current) {
-        const terminal = terminalRefs.current[tab.id];
+      for (const tab of currentTabsRef) {
+        const terminal = currentTerminalRefs[tab.id];
         terminal?.dispose();
         if (tab.sessionId) {
-          closeTerminal(tab.sessionId);
+          closeTerminalRef(tab.sessionId);
         }
       }
     };
@@ -585,10 +594,6 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
       y: e.clientY,
       tabId,
     });
-  }, []);
-
-  const handleCloseContextMenu = useCallback(() => {
-    setContextMenu(null);
   }, []);
 
   const handleRename = useCallback((tabId: string) => {

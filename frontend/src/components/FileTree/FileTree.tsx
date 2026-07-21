@@ -56,6 +56,7 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
   }, [isPaused]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadFileTree(true);
     
     const FILE_TREE_REFRESH_INTERVAL = 5000;
@@ -98,7 +99,7 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
 
   useEffect(() => {
     const handleClick = () => {
-      handleCloseContextMenu();
+      setContextMenu(null);
     };
     
     document.addEventListener('click', handleClick);

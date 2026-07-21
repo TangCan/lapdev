@@ -50,14 +50,14 @@ Object.defineProperty(mockWebSocket, 'OPEN', { value: 1, writable: false });
 Object.defineProperty(mockWebSocket, 'CLOSING', { value: 2, writable: false });
 Object.defineProperty(mockWebSocket, 'CLOSED', { value: 3, writable: false });
 
-(globalThis as any).WebSocket = mockWebSocket as unknown as typeof WebSocket;
+globalThis.WebSocket = mockWebSocket as unknown as typeof WebSocket;
 
-(globalThis as any).fetch = vi.fn().mockResolvedValue({
+globalThis.fetch = vi.fn().mockResolvedValue({
   json: vi.fn().mockResolvedValue({ status: 'success', data: {} }),
 });
 
 const storage: Record<string, string> = {};
-(globalThis as any).localStorage = {
+globalThis.localStorage = {
   getItem: vi.fn((key: string) => storage[key] || null),
   setItem: vi.fn((key: string, value: string) => {
     storage[key] = value;
@@ -68,9 +68,11 @@ const storage: Record<string, string> = {};
   clear: vi.fn(() => {
     Object.keys(storage).forEach(key => delete storage[key]);
   }),
+  length: 0,
+  key: vi.fn((index: number) => Object.keys(storage)[index] || null),
 };
 
-(globalThis as any).matchMedia = vi.fn().mockReturnValue({
+globalThis.matchMedia = vi.fn().mockReturnValue({
   matches: false,
   addListener: vi.fn(),
   removeListener: vi.fn(),

@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import { render, RenderOptions, act, waitFor, screen } from '@testing-library/react';
+import { render, RenderOptions, act, waitFor } from '@testing-library/react';
 import { vi, Mock } from 'vitest';
 import { ThemeProvider } from '../theme/ThemeContext';
 import { AIProvider } from '../context/AIContext';
@@ -49,7 +49,7 @@ export const setupMonacoMock = (initialValue: string = ''): MockEditor => {
   vi.mocked(Monaco.editor.create).mockReturnValue(currentMockEditor as unknown as Monaco.editor.IStandaloneCodeEditor);
   vi.mocked(Monaco.editor.setModelLanguage).mockReset();
   vi.mocked(Monaco.editor.setTheme).mockReset();
-  vi.mocked(Monaco.Range).mockReset().mockReturnValue({} as any);
+  vi.mocked(Monaco.Range).mockReset().mockReturnValue({} as unknown as Monaco.Range);
   
   return currentMockEditor;
 };

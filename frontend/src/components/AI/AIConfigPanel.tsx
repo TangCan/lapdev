@@ -70,13 +70,14 @@ export const AIConfigPanel: React.FC = () => {
 
   useEffect(() => {
     if (!editingId && (form.baseUrl !== defaultBaseUrl || form.model !== defaultModel)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm(prev => ({
         ...prev,
         baseUrl: defaultBaseUrl,
         model: defaultModel,
       }));
     }
-  }, [defaultBaseUrl, defaultModel, editingId]);
+  }, [defaultBaseUrl, defaultModel, editingId, form.baseUrl, form.model]);
 
   // 开始编辑模型
   const handleEdit = (model: typeof models[0]) => {

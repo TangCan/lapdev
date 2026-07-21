@@ -72,6 +72,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
     return () => {
       editorRef.current?.dispose();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

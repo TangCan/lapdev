@@ -175,7 +175,7 @@ class AiService {
       });
 
       return await response.json();
-    } catch (error) {
+    } catch {
       return {
         status: 'error',
         message: '网络连接失败，请检查网络或稍后重试',

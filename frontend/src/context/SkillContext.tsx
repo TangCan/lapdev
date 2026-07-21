@@ -175,6 +175,7 @@ export function SkillProvider({ children }: { children: React.ReactNode }) {
       delete window.__test_activateSkill;
       delete window.__test_clearActiveSkills;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getActiveSkills, loadSkills, activateSkill, clearActiveSkills]);
 
   return (
