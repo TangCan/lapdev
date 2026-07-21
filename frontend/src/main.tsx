@@ -1,17 +1,8 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import './index.css';
 import App from './App';
-import { SettingsPage } from './pages/SettingsPage';
-import IDE from './components/IDE/IDE';
-import { GitProvider } from './context/GitContext';
-import { ChatProvider } from './context/ChatContext';
-import { AIProvider } from './context/AIContext';
-import { AgentProvider } from './context/AgentContext';
-import { InlineCompletionProvider } from './context/InlineCompletionContext';
-import { SkillProvider } from './context/SkillContext';
-import { LSPProvider } from './context/LSPContext';
 import { ThemeProvider } from './theme/ThemeContext';
 
 window.addEventListener('error', (e) => {
@@ -24,33 +15,44 @@ window.addEventListener('unhandledrejection', (e) => {
 
 console.log('[App] Starting...');
 
-const Providers: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <ThemeProvider>
-    <GitProvider>
-      <AIProvider>
-        <AgentProvider>
-          <InlineCompletionProvider>
-            <SkillProvider>
-              <ChatProvider>
-                <LSPProvider>
-                  {children}
-                </LSPProvider>
-              </ChatProvider>
-            </SkillProvider>
-          </InlineCompletionProvider>
-        </AgentProvider>
-      </AIProvider>
-    </GitProvider>
-  </ThemeProvider>
+const IDE = lazy(() => import('./components/IDE/IDE'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage').then(({ SettingsPage }) => ({ default: SettingsPage })));
+const Providers = lazy(() => import('./context/Providers'));
+
+const Loading: React.FC = () => (
+  <div className="loading-app">
+    <div className="loading-spinner"></div>
+    <p>Loading Lapdev...</p>
+  </div>
 );
 
 const router = createBrowserRouter(
   [
     {
-      element: <Providers><App /></Providers>,
+      element: (
+        <Suspense fallback={<Loading />}>
+          <Providers>
+            <App />
+          </Providers>
+        </Suspense>
+      ),
       children: [
-        { path: '/', element: <IDE /> },
-        { path: '/settings', element: <SettingsPage /> },
+        { 
+          path: '/', 
+          element: (
+            <Suspense fallback={<Loading />}>
+              <IDE />
+            </Suspense>
+          ) 
+        },
+        { 
+          path: '/settings', 
+          element: (
+            <Suspense fallback={<Loading />}>
+              <SettingsPage />
+            </Suspense>
+          ) 
+        },
       ],
     },
   ],
@@ -62,5 +64,7 @@ const router = createBrowserRouter(
 );
 
 createRoot(document.getElementById('root')!).render(
-  <RouterProvider router={router} />
+  <ThemeProvider>
+    <RouterProvider router={router} />
+  </ThemeProvider>
 );

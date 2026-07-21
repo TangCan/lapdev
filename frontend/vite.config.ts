@@ -28,4 +28,20 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          monaco: ['monaco-editor'],
+          xterm: ['@xterm/xterm', '@xterm/addon-fit', '@xterm/addon-web-links'],
+          react: ['react', 'react-dom', 'react-router-dom'],
+          lucide: ['lucide-react'],
+          diff2html: ['diff2html'],
+          yaml: ['js-yaml'],
+          vendors: ['vscode-languageserver-types'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
+  },
 });
