@@ -6,6 +6,7 @@ import { Terminal } from '../Terminal/Terminal';
 import GitPanel from '../Git/GitPanel';
 import ProblemsPanel from '../Problems/ProblemsPanel';
 import AIChatPanel from '../AI/AIChatPanel';
+import { PerformancePanel } from '../Performance/PerformancePanel';
 import { useGit } from '../../context/GitContext';
 import { useChat } from '../../context/ChatContext';
 import type { FileInfo } from '../../types/file';
@@ -33,6 +34,7 @@ function IDE() {
   
   const [showGitPanel, setShowGitPanel] = useState(false);
   const [showProblemsPanel, setShowProblemsPanel] = useState(false);
+  const [showPerformancePanel, setShowPerformancePanel] = useState(false);
   const [terminalHeight, setTerminalHeight] = useState(300);
   const [diffLines, setDiffLines] = useState<Record<string, DiffLine[]>>({});
   
@@ -378,6 +380,13 @@ function IDE() {
           >
             🤖 AI Chat
           </button>
+          <button 
+            className={`action-button ${showPerformancePanel ? 'active' : ''}`}
+            onClick={() => setShowPerformancePanel(!showPerformancePanel)}
+            data-testid="performance-panel-button"
+          >
+            ⚡ Performance
+          </button>
         </div>
       </header>
       
@@ -489,6 +498,12 @@ function IDE() {
                 console.log('Jump to problem:', line, column);
               }}
             />
+          </aside>
+        )}
+        
+        {showPerformancePanel && (
+          <aside className="performance-sidebar">
+            <PerformancePanel />
           </aside>
         )}
       </div>

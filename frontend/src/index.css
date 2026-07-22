@@ -832,6 +832,13 @@ body {
   overflow: hidden;
 }
 
+.performance-sidebar {
+  width: 360px;
+  background-color: #252526;
+  border-left: 1px solid #3c3c3c;
+  overflow: hidden;
+}
+
 .git-panel {
   height: 100%;
   display: flex;

@@ -4,6 +4,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import './index.css';
 import App from './App';
 import { ThemeProvider } from './theme/ThemeContext';
+import { performanceService } from './services/performanceService';
 
 window.addEventListener('error', (e) => {
   console.error('[Global Error]', e.error, e.message, e.filename, e.lineno);
@@ -14,6 +15,7 @@ window.addEventListener('unhandledrejection', (e) => {
 });
 
 console.log('[App] Starting...');
+performanceService.start();
 
 const IDE = lazy(() => import('./components/IDE/IDE'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then(({ SettingsPage }) => ({ default: SettingsPage })));
