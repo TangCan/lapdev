@@ -100,7 +100,11 @@ RUN apt-get update && \
     mkdir -p /app/backend/cert && \
     chown -R lapdev:lapdev /app/backend/cert
 
-USER lapdev
+# 复制 entrypoint 脚本
+COPY scripts/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+USER root
 EXPOSE ${BACKEND_PORT}
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
@@ -110,7 +114,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
           NO_PROXY=localhost,127.0.0.1 curl -f http://localhost:${BACKEND_PORT}/health || exit 1; \
         fi
 
-CMD ["sh", "-c", "if [ \"$TLS_ENABLED\" = \"true\" ] && [ ! -f /app/backend/cert/cert.pem ]; then \n  openssl genrsa -out /app/backend/cert/key.pem 2048 && \n  openssl req -new -key /app/backend/cert/key.pem -out /tmp/cert.csr -subj \"/CN=localhost\" && \n  printf 'subjectAltName=DNS:localhost,DNS:lapdev,IP:127.0.0.1\\nextendedKeyUsage=serverAuth\\nkeyUsage=digitalSignature,keyEncipherment\\n' > /tmp/extfile.cnf && \n  openssl x509 -req -in /tmp/cert.csr -signkey /app/backend/cert/key.pem -out /app/backend/cert/cert.pem -days 365 -extfile /tmp/extfile.cnf -sha256 && \n  rm -f /tmp/cert.csr /tmp/extfile.cnf; \nfi && \ndeno run --no-lock -A backend/src/main.ts"]
+ENTRYPOINT ["/app/entrypoint.sh"]
 
 # ========================================
 # Build Instructions:
