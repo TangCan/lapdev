@@ -398,7 +398,7 @@ const LOG_FILE_PATH = join(Deno.cwd(), 'logs', 'agent-operations.log');
 async function ensureLogDirectory(): Promise<void> {
   const logDir = join(Deno.cwd(), 'logs');
   try {
-    await Deno.stat(logDir);
+    await Deno.mkdir(logDir, { recursive: true });
   } catch (error) {
     console.error(`[ensureLogDirectory] Failed to create log directory: ${error}`);
     throw error;

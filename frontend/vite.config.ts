@@ -31,17 +31,31 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          monaco: ['monaco-editor'],
-          xterm: ['@xterm/xterm', '@xterm/addon-fit', '@xterm/addon-web-links'],
-          react: ['react', 'react-dom', 'react-router-dom'],
-          lucide: ['lucide-react'],
-          diff2html: ['diff2html'],
-          yaml: ['js-yaml'],
-          vendors: ['vscode-languageserver-types'],
+        manualChunks(id: string) {
+          if (id.includes('monaco-editor')) {
+            return 'monaco';
+          }
+          if (id.includes('@xterm')) {
+            return 'xterm';
+          }
+          if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+            return 'react';
+          }
+          if (id.includes('lucide-react')) {
+            return 'lucide';
+          }
+          if (id.includes('diff2html')) {
+            return 'diff2html';
+          }
+          if (id.includes('js-yaml')) {
+            return 'yaml';
+          }
+          if (id.includes('vscode-languageserver-types')) {
+            return 'vendors';
+          }
         },
       },
     },
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 2000,
   },
 });

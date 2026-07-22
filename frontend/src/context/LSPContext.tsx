@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useCallback, useState } from 'react';
-import * as Monaco from 'monaco-editor';
+import { Monaco } from '../services/monacoLoader';
 import { lspService, LspDiagnostic, LspConfig } from '../services/lspService';
 import { Position } from 'vscode-languageserver-types';
 

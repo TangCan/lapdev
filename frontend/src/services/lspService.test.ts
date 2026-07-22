@@ -56,11 +56,13 @@ describe('lspService', () => {
     });
 
     it('[P1] TC-8.1.15 should handle API error gracefully', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       globalThis.fetch = vi.fn().mockRejectedValue(new Error('API error')) as unknown as typeof fetch;
 
       const result = await lspService.getHover('file:///workspace/test.ts', { line: 0, character: 6 });
 
       expect(result).toBeNull();
+      consoleErrorSpy.mockRestore();
     });
 
     it('[P1] TC-8.1.16 should handle 404 error for uninitialized session', async () => {

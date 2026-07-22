@@ -2,14 +2,14 @@ import { Page, expect } from '@playwright/test';
 
 export async function clickElementByTestId(page: Page, testId: string): Promise<void> {
   await page.evaluate((id) => {
-    const el = document.querySelector(`[data-testid="${id}"]`);
+    const el = document.querySelector(`[data-testid="${id}"]`) as HTMLElement | null;
     if (el) el.click();
   }, testId);
 }
 
 export async function clickElementBySelector(page: Page, selector: string): Promise<void> {
   await page.evaluate((sel) => {
-    const el = document.querySelector(sel);
+    const el = document.querySelector(sel) as HTMLElement | null;
     if (el) el.click();
   }, selector);
 }
@@ -135,4 +135,127 @@ export async function waitForText(page: Page, selector: string, text: string, ti
 export async function waitForCount(page: Page, selector: string, count: number, timeout: number = 5000): Promise<void> {
   const locator = page.locator(selector);
   await expect(locator).toHaveCount(count, { timeout });
+}
+
+export async function waitForPageReady(page: Page, timeout: number = 30000): Promise<void> {
+  const startTime = Date.now();
+  while (Date.now() - startTime < timeout) {
+    const readyState = await page.evaluate(() => document.readyState);
+    if (readyState === 'complete') {
+      return;
+    }
+    await page.waitForTimeout(500);
+  }
+  throw new Error(`Page did not become ready within ${timeout}ms`);
+}
+
+export async function retry<T>(
+  fn: () => Promise<T>,
+  options: {
+    maxRetries: number;
+    baseDelay: number;
+    maxDelay?: number;
+    shouldRetry?: (error: unknown) => boolean;
+  }
+): Promise<T> {
+  const { maxRetries, baseDelay, maxDelay = 10000, shouldRetry = () => true } = options;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (attempt >= maxRetries || !shouldRetry(error)) {
+        break;
+      }
+      const delay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError;
+}
+
+export async function safeClick(
+  page: Page,
+  selector: string,
+  options: {
+    maxRetries?: number;
+    timeout?: number;
+  } = {}
+): Promise<void> {
+  const { maxRetries = 2, timeout = 15000 } = options;
+
+  await retry(
+    async () => {
+      const locator = page.locator(selector);
+      await locator.waitFor({ timeout, state: 'visible' });
+      await locator.click({ timeout });
+    },
+    {
+      maxRetries,
+      baseDelay: 1000,
+      maxDelay: 5000,
+      shouldRetry: (error) => {
+        return error instanceof Error && 
+          (error.message.includes('Timeout') || 
+           error.message.includes('not visible') ||
+           error.message.includes('is not clickable'));
+      },
+    }
+  );
+}
+
+export async function safeWaitForSelector(
+  page: Page,
+  selector: string,
+  options: {
+    maxRetries?: number;
+    timeout?: number;
+    state?: 'visible' | 'hidden' | 'attached';
+  } = {}
+): Promise<void> {
+  const { maxRetries = 2, timeout = 15000, state = 'visible' } = options;
+
+  await retry(
+    async () => {
+      await page.waitForSelector(selector, { timeout, state });
+    },
+    {
+      maxRetries,
+      baseDelay: 1000,
+      maxDelay: 5000,
+      shouldRetry: (error) => {
+        return error instanceof Error && error.message.includes('Timeout');
+      },
+    }
+  );
+}
+
+export async function safeGoto(
+  page: Page,
+  url: string,
+  options: {
+    maxRetries?: number;
+    timeout?: number;
+  } = {}
+): Promise<void> {
+  const { maxRetries = 2, timeout = 30000 } = options;
+
+  await retry(
+    async () => {
+      await page.goto(url, { timeout, waitUntil: 'networkidle' });
+    },
+    {
+      maxRetries,
+      baseDelay: 2000,
+      maxDelay: 10000,
+      shouldRetry: (error) => {
+        return error instanceof Error && 
+          (error.message.includes('Timeout') || 
+           error.message.includes('ERR_CONNECTION_REFUSED'));
+      },
+    }
+  );
 }

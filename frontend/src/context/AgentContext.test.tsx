@@ -246,6 +246,7 @@ describe('AgentContext', () => {
   });
 
   it('[P2] should throw error when useAgent outside AgentProvider', () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const UseAgentOutsideProvider = () => {
       useAgent();
       return <div />;
@@ -254,5 +255,7 @@ describe('AgentContext', () => {
     expect(() => {
       render(<UseAgentOutsideProvider />);
     }).toThrow('useAgent must be used within an AgentProvider');
+    
+    consoleErrorSpy.mockRestore();
   });
 });

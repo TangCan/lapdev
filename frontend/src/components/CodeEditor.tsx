@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useRef } from 'react';
-import * as Monaco from 'monaco-editor';
+import { Monaco } from '../services/monacoLoader';
 
 interface CodeEditorProps {
   modelUri?: string;

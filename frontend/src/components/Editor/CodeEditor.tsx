@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import * as Monaco from 'monaco-editor';
+import { Monaco } from '../../services/monacoLoader';
 import { aiService } from '../../services/aiService';
 import { useAI } from '../../context/AIContext';
 import { useInlineCompletion } from '../../context/InlineCompletionContext';

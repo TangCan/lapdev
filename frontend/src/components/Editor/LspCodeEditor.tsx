@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
-import * as Monaco from 'monaco-editor';
+import { Monaco, registerLanguageCallbacks, loadLanguage } from '../../services/monacoLoader';
 import { useLSP } from '../../context/LSPContext';
 import { aiService } from '../../services/aiService';
 import { useAI } from '../../context/AIContext';
 import { useInlineCompletion } from '../../context/InlineCompletionContext';
+
+registerLanguageCallbacks(Monaco);
 
 export interface DiffLine {
   lineNumber: number;
@@ -277,6 +279,8 @@ function LspCodeEditorComponent(props: LspCodeEditorProps, ref: React.ForwardedR
   useEffect(() => {
     if (!containerRef.current) return;
 
+    loadLanguage(language);
+
     editorRef.current = Monaco.editor.create(containerRef.current, {
       value,
       language,
@@ -361,11 +365,9 @@ function LspCodeEditorComponent(props: LspCodeEditorProps, ref: React.ForwardedR
         editorRef.current?.trigger('keyboard', 'editor.action.rename', {});
       }
 
-      // 内联补全快捷键处理
       if (inlineCompletionVisible) {
         if (e.key === 'Tab') {
           e.preventDefault();
-          // 接受补全建议
           if (ghostText && editorRef.current) {
             const editor = editorRef.current;
             const position = editor.getPosition();
@@ -391,7 +393,6 @@ function LspCodeEditorComponent(props: LspCodeEditorProps, ref: React.ForwardedR
 
     document.addEventListener('keydown', handleKeyDown);
 
-    // 为测试暴露全局方法
     window.__test_triggerCompletion = () => {
       console.log('Global __test_triggerCompletion called');
       triggerCompletion();
@@ -399,7 +400,6 @@ function LspCodeEditorComponent(props: LspCodeEditorProps, ref: React.ForwardedR
 
     window.__test_setEditorValue = (val: string) => {
       editorRef.current?.setValue(val);
-      // 设置光标到文本末尾
       const model = editorRef.current?.getModel();
       if (model) {
         const lineCount = model.getLineCount();

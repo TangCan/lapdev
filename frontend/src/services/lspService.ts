@@ -1,4 +1,4 @@
-import * as Monaco from 'monaco-editor';
+import { Monaco } from './monacoLoader';
 import {
   CompletionItem,
   CompletionItemKind,

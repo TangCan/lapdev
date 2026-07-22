@@ -17,11 +17,14 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
     file: FileInfo;
     position: { x: number; y: number };
   } | null>(null);
-  const [isPaused, setIsPaused] = useState(false);
+  const isPausedRef = useRef(false);
   const previousTreeRef = useRef<string | null>(null);
 
   const loadFileTree = useCallback(async (isInitialLoad = false) => {
-    if (isPaused) {
+    console.log('[FileTree] loadFileTree called, isInitialLoad:', isInitialLoad, 'isPausedRef.current:', isPausedRef.current);
+    
+    if (!isInitialLoad && isPausedRef.current) {
+      console.log('[FileTree] loadFileTree skipped because isPaused is true');
       return;
     }
     
@@ -37,8 +40,11 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
         const newTreeJson = JSON.stringify(result.data);
         
         if (newTreeJson !== previousTreeRef.current) {
+          console.log('[FileTree] File tree changed, updating state');
           previousTreeRef.current = newTreeJson;
           setFileTree(result.data);
+        } else {
+          console.log('[FileTree] File tree unchanged, skipping update');
         }
       } else if (isInitialLoad) {
         setError(result.message || 'Failed to load file tree');
@@ -53,10 +59,10 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
         setLoading(false);
       }
     }
-  }, [isPaused]);
+  }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    console.log('[FileTree] Initial useEffect, calling loadFileTree(true)');
     loadFileTree(true);
     
     const FILE_TREE_REFRESH_INTERVAL = 5000;
@@ -84,22 +90,28 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
   };
 
   const handleContextMenu = (file: FileInfo, event: React.MouseEvent) => {
+    console.log('[FileTree] handleContextMenu called, file:', file.path);
     setContextMenu({
       file,
       position: { x: event.clientX, y: event.clientY }
     });
-    setIsPaused(true);
+    isPausedRef.current = true;
+    console.log('[FileTree] isPausedRef set to true');
   };
 
   const handleCloseContextMenu = () => {
+    console.log('[FileTree] handleCloseContextMenu called');
     setContextMenu(null);
-    setIsPaused(false);
+    isPausedRef.current = false;
+    console.log('[FileTree] isPausedRef set to false, calling loadFileTree()');
     loadFileTree();
   };
 
   useEffect(() => {
     const handleClick = () => {
+      console.log('[FileTree] Global click handler triggered');
       setContextMenu(null);
+      isPausedRef.current = false;
     };
     
     document.addEventListener('click', handleClick);

@@ -1,10 +1,11 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
+import { safeGoto, safeWaitForSelector, safeClick } from './utils/testUtils';
 
 test.describe('[1.3] Terminal E2E Tests (ATDD GREEN PHASE)', () => {
   test.beforeEach(async ({ page }) => {
     page.on('console', (msg) => console.log(`[Browser] ${msg.text()}`));
-    await page.goto('/');
-    await page.waitForSelector('[data-testid="file-tree"]', { timeout: 15000 });
+    await safeGoto(page, '/');
+    await safeWaitForSelector(page, '[data-testid="file-tree"]', { timeout: 15000 });
     await page.waitForTimeout(2000);
     
     await closeTerminalIfOpen(page);
@@ -26,7 +27,7 @@ test.describe('[1.3] Terminal E2E Tests (ATDD GREEN PHASE)', () => {
     }
   };
 
-  const waitForTerminalReady = async (page: { waitForSelector: (arg0: string, arg1: { timeout: number }) => Promise<void>; waitForTimeout: (arg0: number) => Promise<void> }) => {
+  const waitForTerminalReady = async (page: Page) => {
     try {
       await page.waitForSelector('[data-testid^="terminal-tab-"] .connection-status.connected', { timeout: 15000 });
     } catch {
@@ -34,7 +35,7 @@ test.describe('[1.3] Terminal E2E Tests (ATDD GREEN PHASE)', () => {
     }
   };
 
-  const clickAndOpenTerminal = async (page: { getByTestId: (arg0: string) => any; waitForTimeout: (arg0: number) => Promise<void>; waitForSelector: (arg0: string, arg1: { timeout: number }) => Promise<void>; locator: (arg0: string) => any; waitForFunction: (arg0: string, arg1: { timeout: number }) => Promise<void>; evaluate: (arg0: () => Promise<string[]>) => Promise<string[]> }) => {
+  const clickAndOpenTerminal = async (page: Page) => {
     const terminalButtons = page.locator('[data-testid="terminal-button"]');
     const buttonCount = await terminalButtons.count();
     console.log(`[Test] Number of terminal buttons found: ${buttonCount}`);
@@ -49,7 +50,7 @@ test.describe('[1.3] Terminal E2E Tests (ATDD GREEN PHASE)', () => {
     const terminalButton = page.getByTestId('terminal-button');
     await terminalButton.waitFor({ state: 'visible', timeout: 10000 });
     console.log('[Test] Clicking terminal button...');
-    await terminalButton.click();
+    await safeClick(page, '[data-testid="terminal-button"]');
     await page.waitForTimeout(2000);
     
     const showTerminalState = await page.evaluate(() => {
@@ -112,7 +113,7 @@ test.describe('[1.3] Terminal E2E Tests (ATDD GREEN PHASE)', () => {
     const terminalPanel = page.getByTestId('terminal-panel');
     await terminalPanel.waitFor({ state: 'visible', timeout: 15000 });
     
-    await page.waitForSelector('[data-testid^="terminal-output-"] .xterm', { timeout: 15000 });
+    await safeWaitForSelector(page, '[data-testid^="terminal-output-"] .xterm', { timeout: 15000 });
     
     await waitForTerminalReady(page);
     
@@ -195,8 +196,7 @@ test.describe('[1.3] Terminal E2E Tests (ATDD GREEN PHASE)', () => {
     const terminalPanel = page.getByTestId('terminal-panel');
     await expect(terminalPanel).toBeVisible({ timeout: 15000 });
 
-    const terminalButton = page.getByTestId('terminal-button');
-    await terminalButton.click();
+    await safeClick(page, '[data-testid="terminal-button"]');
     await expect(terminalPanel).not.toBeVisible();
   });
 

@@ -21,16 +21,24 @@ export function FileTreeContextMenu({ file, position, onClose, onRefresh }: File
     file.children.length > 0;
 
   const handleCreateFile = async () => {
+    console.log('[FileTreeContextMenu] handleCreateFile called');
+    console.log('[FileTreeContextMenu] file:', JSON.stringify(file));
+    
     const baseName = 'new-file';
     const ext = '.txt';
     const parentPath = file.type === 'directory' 
       ? file.path
       : file.path.substring(0, file.path.lastIndexOf('/'));
     
+    console.log('[FileTreeContextMenu] parentPath:', parentPath);
+    
     let newFileName = `${baseName}${ext}`;
     let newFilePath = `${parentPath}/${newFileName}`;
     
+    console.log('[FileTreeContextMenu] Creating file:', newFilePath);
+    
     const result = await createFile({ path: newFilePath, type: 'file' });
+    console.log('[FileTreeContextMenu] createFile result:', JSON.stringify(result));
     
     if (result.status === 'error' && result.message.includes('already exists')) {
       let counter = 2;
@@ -39,26 +47,37 @@ export function FileTreeContextMenu({ file, position, onClose, onRefresh }: File
         newFilePath = `${parentPath}/${newFileName}`;
         const retryResult = await createFile({ path: newFilePath, type: 'file' });
         if (retryResult.status === 'success') {
+          console.log('[FileTreeContextMenu] Retry succeeded with:', newFilePath);
           break;
         }
         counter++;
       }
     }
     
-    onRefresh();
+    console.log('[FileTreeContextMenu] Calling onClose first to reset isPaused...');
     onClose();
+    console.log('[FileTreeContextMenu] Calling onRefresh after isPaused reset...');
+    onRefresh();
   };
 
   const handleCreateFolder = async () => {
+    console.log('[FileTreeContextMenu] handleCreateFolder called');
+    console.log('[FileTreeContextMenu] file:', JSON.stringify(file));
+    
     const baseName = 'new-folder';
     const parentPath = file.type === 'directory' 
       ? file.path
       : file.path.substring(0, file.path.lastIndexOf('/'));
     
+    console.log('[FileTreeContextMenu] parentPath:', parentPath);
+    
     let newFolderName = baseName;
     let newFolderPath = `${parentPath}/${newFolderName}`;
     
+    console.log('[FileTreeContextMenu] Creating folder:', newFolderPath);
+    
     const result = await createFile({ path: newFolderPath, type: 'directory' });
+    console.log('[FileTreeContextMenu] createFolder result:', JSON.stringify(result));
     
     if (result.status === 'error' && result.message.includes('already exists')) {
       let counter = 2;
@@ -67,14 +86,17 @@ export function FileTreeContextMenu({ file, position, onClose, onRefresh }: File
         newFolderPath = `${parentPath}/${newFolderName}`;
         const retryResult = await createFile({ path: newFolderPath, type: 'directory' });
         if (retryResult.status === 'success') {
+          console.log('[FileTreeContextMenu] Retry succeeded with:', newFolderPath);
           break;
         }
         counter++;
       }
     }
     
-    onRefresh();
+    console.log('[FileTreeContextMenu] Calling onClose first to reset isPaused...');
     onClose();
+    console.log('[FileTreeContextMenu] Calling onRefresh after isPaused reset...');
+    onRefresh();
   };
 
   const handleRename = async () => {

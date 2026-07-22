@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import * as Monaco from 'monaco-editor';
+import { Monaco } from '../../services/monacoLoader';
 import { useLSP } from '../../context/LSPContext';
 
 interface ProblemsPanelProps {
