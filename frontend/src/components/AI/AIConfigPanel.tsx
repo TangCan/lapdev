@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAI } from '../../context/AIContext';
 import { useInlineCompletion } from '../../context/InlineCompletionContext';
 import { maskApiKey } from '../../services/aiService';
@@ -64,20 +64,19 @@ export const AIConfigPanel: React.FC = () => {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const defaultBaseUrl = BASE_URL_BY_PROVIDER[form.provider];
-  const defaultModel = MODEL_BY_PROVIDER[form.provider][0]?.value || '';
+  const providerRef = useRef(form.provider);
 
   useEffect(() => {
-    if (!editingId && (form.baseUrl !== defaultBaseUrl || form.model !== defaultModel)) {
+    if (!editingId && providerRef.current !== form.provider) {
+      providerRef.current = form.provider;
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm(prev => ({
         ...prev,
-        baseUrl: defaultBaseUrl,
-        model: defaultModel,
+        baseUrl: BASE_URL_BY_PROVIDER[form.provider],
+        model: MODEL_BY_PROVIDER[form.provider][0]?.value || '',
       }));
     }
-  }, [defaultBaseUrl, defaultModel, editingId, form.baseUrl, form.model]);
+  }, [form.provider, editingId]);
 
   // 开始编辑模型
   const handleEdit = (model: typeof models[0]) => {

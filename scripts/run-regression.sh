@@ -296,6 +296,12 @@ run_test "4. 后端单元测试" "npm run test:backend 2>&1"
 run_test "5. 公共单元测试" "npm run test:unit 2>&1"
 
 # 6. API集成测试（需要后端服务）
+echo -e "\n${YELLOW}检查后端服务状态...${NC}"
+if ! wait_for_service "${BACKEND_URL}/api/v1/git/status" 5; then
+  echo -e "${RED}后端服务不可用，尝试重启...${NC}"
+  stop_backend
+  start_backend
+fi
 run_test "6. API集成测试" "npm run test:api 2>&1"
 
 # 7. E2E测试（需要前端和后端服务）
