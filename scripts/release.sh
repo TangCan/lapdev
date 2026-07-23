@@ -219,6 +219,16 @@ build_image() {
         log_info "镜像标签:"
         log_info "  - ${IMAGE_NAME}:${version}"
         log_info "  - ${IMAGE_NAME}:latest"
+        
+        # 如果使用 Docker 构建，同时导入到 Podman
+        if [ "$CONTAINER_TOOL" = "docker" ] && command -v podman &> /dev/null; then
+            log_info "将镜像导入到 Podman..."
+            sudo docker save ${IMAGE_NAME}:latest -o /tmp/${IMAGE_NAME}.tar
+            sudo podman load -i /tmp/${IMAGE_NAME}.tar > /dev/null 2>&1
+            sudo podman tag localhost/latest:latest localhost/${IMAGE_NAME}:latest > /dev/null 2>&1
+            sudo rm -f /tmp/${IMAGE_NAME}.tar
+            log_info "镜像已导入 Podman: localhost/${IMAGE_NAME}:latest"
+        fi
     else
         log_error "镜像构建失败"
         exit 1
