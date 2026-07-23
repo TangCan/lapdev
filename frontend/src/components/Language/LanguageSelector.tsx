@@ -14,11 +14,21 @@ export function LanguageSelector({ className = '' }: LanguageSelectorProps) {
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <Globe className="w-4 h-4" />
+      <Globe className="w-4 h-4" style={{ color: 'var(--color-text-primary)' }} />
       <select
         value={i18n.language}
         onChange={(e) => changeLanguage(e.target.value)}
-        className="bg-transparent border-none outline-none text-sm cursor-pointer hover:opacity-80"
+        style={{
+          backgroundColor: 'var(--color-surface)',
+          color: 'var(--color-text-primary)',
+          border: '1px solid var(--color-border)',
+          borderRadius: '4px',
+          padding: '4px 8px',
+          fontSize: '13px',
+          cursor: 'pointer',
+          outline: 'none',
+          minWidth: '80px',
+        }}
       >
         <option value="en">English</option>
         <option value="zh">中文</option>
