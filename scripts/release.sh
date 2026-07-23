@@ -39,18 +39,106 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# 检测 Podman 网络是否可用
+is_podman_network_available() {
+    # 检查默认网络是否存在
+    if ! podman network ls 2>/dev/null | grep -q "podman"; then
+        return 1
+    fi
+    
+    # 检查网络是否可用（尝试拉取一个小镜像测试）
+    timeout 10 podman pull --quiet docker.io/library/alpine:latest 2>/dev/null || return 1
+    
+    return 0
+}
+
+# 检查 Podman 网络状态（详细诊断）
+check_podman_network() {
+    log_info "========== Podman 网络诊断 =========="
+    
+    # 1. 检查 Podman 是否安装
+    if ! command -v podman &> /dev/null; then
+        log_error "Podman 未安装"
+        return 1
+    fi
+    log_info "✓ Podman 已安装: $(podman --version)"
+    
+    # 2. 检查默认网络
+    log_info ""
+    log_info "--- 网络列表 ---"
+    podman network ls
+    
+    # 3. 检查默认网络详情
+    log_info ""
+    log_info "--- 默认网络详情 ---"
+    if podman network inspect podman &> /dev/null; then
+        podman network inspect podman | head -30
+    else
+        log_error "默认网络 'podman' 不存在"
+        return 1
+    fi
+    
+    # 4. 检查 CNI 插件
+    log_info ""
+    log_info "--- CNI 插件检查 ---"
+    local cni_dir="/etc/cni/net.d"
+    if [ -d "$cni_dir" ]; then
+        log_info "CNI 目录存在: $cni_dir"
+        ls -la $cni_dir
+    else
+        log_warn "CNI 目录不存在: $cni_dir"
+    fi
+    
+    # 5. 测试网络连通性
+    log_info ""
+    log_info "--- 网络连通性测试 ---"
+    
+    # 测试 DNS 解析
+    log_info "测试 DNS 解析..."
+    if timeout 5 podman run --rm --network podman docker.io/library/alpine:latest nslookup google.com &> /dev/null; then
+        log_info "✓ DNS 解析正常"
+    else
+        log_error "✗ DNS 解析失败"
+    fi
+    
+    # 测试外网访问
+    log_info "测试外网访问..."
+    if timeout 10 podman run --rm --network podman docker.io/library/alpine:latest wget -qO- https://www.google.com &> /dev/null; then
+        log_info "✓ 外网访问正常"
+    else
+        log_error "✗ 外网访问失败"
+    fi
+    
+    # 6. 总结
+    log_info ""
+    log_info "========== 诊断完成 =========="
+    if is_podman_network_available; then
+        log_info "✓ Podman 网络状态: 正常"
+        return 0
+    else
+        log_error "✗ Podman 网络状态: 异常"
+        return 1
+    fi
+}
+
 # 检测容器工具
 detect_container_tool() {
     log_info "检测容器工具..."
     
-    # 优先使用 Podman（如果可用）
+    # 优先使用 Podman（如果可用且网络正常）
     if command -v podman &> /dev/null; then
-        CONTAINER_TOOL="podman"
-        log_info "检测到 Podman，使用 Podman"
+        log_info "检测到 Podman，检查网络可用性..."
         
-        # 设置 rootless Podman 的运行时目录（解决 /run 只读问题）
-        setup_podman_runtime
-        return 0
+        if is_podman_network_available; then
+            CONTAINER_TOOL="podman"
+            log_info "Podman 网络可用，使用 Podman"
+            
+            # 设置 rootless Podman 的运行时目录（解决 /run 只读问题）
+            setup_podman_runtime
+            return 0
+        else
+            log_warn "Podman 网络不可用"
+        fi
     fi
     
     # 其次使用 Docker
@@ -194,24 +282,12 @@ build_image() {
             .
     else
         # Podman 构建
-        # 优先尝试 sudo podman，解决 rootless podman 的文件描述符限制问题
-        if command -v docker &> /dev/null; then
-            log_info "Podman 网络不可用，回退到 Docker"
-            sudo docker build \
-                --no-cache \
-                --ulimit nofile=65536:65536 \
-                --tag ${IMAGE_NAME}:${version} \
-                --tag ${IMAGE_NAME}:latest \
-                --build-arg VERSION=${version} \
-                .
-        else
-            sudo podman build \
-                --no-cache \
-                --tag ${IMAGE_NAME}:${version} \
-                --tag ${IMAGE_NAME}:latest \
-                --build-arg VERSION=${version} \
-                .
-        fi
+        sudo podman build \
+            --no-cache \
+            --tag ${IMAGE_NAME}:${version} \
+            --tag ${IMAGE_NAME}:latest \
+            --build-arg VERSION=${version} \
+            .
     fi
     
     if [ $? -eq 0 ]; then
@@ -498,6 +574,9 @@ main() {
             detect_container_tool
             list_images
             ;;
+        network-check)
+            check_podman_network
+            ;;
         version)
             echo ${version}
             ;;
@@ -505,17 +584,18 @@ main() {
             cleanup
             ;;
         help)
-            echo "用法: $0 {build|test|push|release|images|version|cleanup|help}"
+            echo "用法: $0 {build|test|push|release|images|network-check|version|cleanup|help}"
             echo
             echo "命令说明:"
-            echo "  build    - 构建镜像（自动检测 Docker/Podman）"
-            echo "  test     - 测试镜像"
-            echo "  push     - 推送镜像到仓库"
-            echo "  release  - 完整发布流程（构建+测试+创建发布说明）"
-            echo "  images   - 列出本地镜像"
-            echo "  version  - 显示版本号"
-            echo "  cleanup  - 清理临时文件（如 deno 二进制）"
-            echo "  help     - 显示帮助信息"
+            echo "  build         - 构建镜像（自动检测 Docker/Podman）"
+            echo "  test          - 测试镜像"
+            echo "  push          - 推送镜像到仓库"
+            echo "  release       - 完整发布流程（构建+测试+创建发布说明）"
+            echo "  images        - 列出本地镜像"
+            echo "  network-check - 检测 Podman 网络状态"
+            echo "  version       - 显示版本号"
+            echo "  cleanup       - 清理临时文件（如 deno 二进制）"
+            echo "  help          - 显示帮助信息"
             echo
             echo "环境变量:"
             echo "  REGISTRY              - 镜像仓库地址（默认: registry.gitee.com）"
