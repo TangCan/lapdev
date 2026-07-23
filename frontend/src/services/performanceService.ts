@@ -24,6 +24,11 @@ export class PerformanceService {
   private networkObserver: PerformanceObserver | null = null;
   private longTaskObserver: PerformanceObserver | null = null;
   private listeners: Set<(metrics: PerformanceMetrics) => void> = new Set();
+  
+  // CPU 使用率计算相关
+  private cpuFrameTimes: number[] = [];
+  private cpuLastFrameTime = 0;
+  private maxFrameTime = 1000 / 60; // 60fps 的帧时间
 
   constructor(config: Partial<PerformanceServiceConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -119,6 +124,17 @@ export class PerformanceService {
   private startFpsMonitoring(): void {
     const updateFps = () => {
       if (!this.isRunning) return;
+      
+      const now = performance.now();
+      if (this.cpuLastFrameTime > 0) {
+        const frameTime = now - this.cpuLastFrameTime;
+        this.cpuFrameTimes.push(frameTime);
+        if (this.cpuFrameTimes.length > 60) {
+          this.cpuFrameTimes.shift();
+        }
+      }
+      this.cpuLastFrameTime = now;
+      
       this.fpsFrameCount++;
       requestAnimationFrame(updateFps);
     };
@@ -219,7 +235,27 @@ export class PerformanceService {
   }
 
   private getCpuUsage(): number {
-    return 0;
+    if (this.cpuFrameTimes.length === 0) return 0;
+    
+    // 计算平均帧时间
+    const sum = this.cpuFrameTimes.reduce((a, b) => a + b, 0);
+    const avgFrameTime = sum / this.cpuFrameTimes.length;
+    
+    // 如果平均帧率太低（< 10fps），说明页面可能在后台或空闲状态
+    // 空闲状态下浏览器会降低帧率以节省电量
+    const avgFps = 1000 / avgFrameTime;
+    if (avgFps < 10) {
+      return 5; // 空闲状态，返回一个很低的 CPU 使用率
+    }
+    
+    // 计算 CPU 使用率
+    // 理想情况下，60fps 的帧时间是 16.67ms
+    // 如果帧时间超过理想时间，说明 CPU 繁忙
+    // 但如果帧时间远小于理想时间，说明 CPU 空闲
+    const cpuUsage = (avgFrameTime / this.maxFrameTime) * 100;
+    
+    // 限制在 0-100 之间，并考虑空闲状态
+    return Math.min(100, Math.max(5, cpuUsage));
   }
 
   private getPerformanceLevel(value: number, thresholds: number[]): PerformanceLevel {
