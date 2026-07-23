@@ -310,9 +310,22 @@ build_image() {
         # 如果使用 Docker 构建，同时导入到 Podman
         if [ "$CONTAINER_TOOL" = "docker" ] && command -v podman &> /dev/null; then
             log_info "将镜像导入到 Podman..."
+            
+            # 使用对所有用户可读的临时文件
             sudo docker save ${IMAGE_NAME}:latest -o /tmp/${IMAGE_NAME}.tar
+            sudo chmod 644 /tmp/${IMAGE_NAME}.tar
+            
+            # 导入到 root 用户的 Podman
             sudo podman load -i /tmp/${IMAGE_NAME}.tar > /dev/null 2>&1
             sudo podman tag localhost/latest:latest localhost/${IMAGE_NAME}:latest > /dev/null 2>&1
+            
+            # 导入到普通用户的 Podman（如果脚本以 sudo 运行）
+            if [ -n "$SUDO_USER" ]; then
+                log_info "同时导入到普通用户 $SUDO_USER 的 Podman..."
+                sudo -u $SUDO_USER podman load -i /tmp/${IMAGE_NAME}.tar > /dev/null 2>&1
+                sudo -u $SUDO_USER podman tag localhost/latest:latest localhost/${IMAGE_NAME}:latest > /dev/null 2>&1
+            fi
+            
             sudo rm -f /tmp/${IMAGE_NAME}.tar
             log_info "镜像已导入 Podman: localhost/${IMAGE_NAME}:latest"
         fi
