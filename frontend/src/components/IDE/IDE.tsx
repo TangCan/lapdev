@@ -7,6 +7,7 @@ import GitPanel from '../Git/GitPanel';
 import ProblemsPanel from '../Problems/ProblemsPanel';
 import AIChatPanel from '../AI/AIChatPanel';
 import { PerformancePanel } from '../Performance/PerformancePanel';
+import { LanguageSelector } from '../Language/LanguageSelector';
 import { useGit } from '../../context/GitContext';
 import { useChat } from '../../context/ChatContext';
 import type { FileInfo } from '../../types/file';
@@ -406,6 +407,7 @@ function IDE() {
           )}
         </div>
         <div className="status-right">
+          <LanguageSelector className="mr-4" />
           <span>Lapdev v1.0</span>
         </div>
       </footer>
