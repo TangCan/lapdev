@@ -13,6 +13,7 @@ import type { FileInfo } from '../../types/file';
 import { readFile, writeFile, formatCode } from '../../services/fileService';
 import { fetchGitDiff } from '../../services/gitService';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface Tab {
   id: string;
@@ -23,6 +24,7 @@ interface Tab {
 }
 
 function IDE() {
+  const { t } = useTranslation();
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [loadingFiles, setLoadingFiles] = useState<Set<string>>(new Set());
@@ -332,7 +334,7 @@ function IDE() {
             disabled={!activeTab || !activeTab.isModified || isSaving}
             data-testid="save-button"
           >
-            {isSaving ? '⏳ 保存中...' : '💾 保存'}
+            {isSaving ? '⏳ ' + t('ide.fileSaved') : '💾 ' + t('common.save')}
           </button>
           <button 
             className="action-button" 
@@ -340,21 +342,21 @@ function IDE() {
             disabled={!activeTab || isFormatting}
             data-testid="format-button"
           >
-            {isFormatting ? '⏳ 格式化中...' : '🎨 格式化'}
+            {isFormatting ? '⏳ ' + t('ide.formatting') : '🎨 ' + t('editor.format')}
           </button>
           <button 
             className={`action-button ${showGitPanel ? 'active' : ''}`}
             onClick={() => setShowGitPanel(!showGitPanel)}
             data-testid="git-panel-button"
           >
-            🗂️ Git {changesCount > 0 && `(${changesCount})`}
+            🗂️ {t('git.title')} {changesCount > 0 && `(${changesCount})`}
           </button>
           <button 
             className={`action-button ${showProblemsPanel ? 'active' : ''}`}
             onClick={() => setShowProblemsPanel(!showProblemsPanel)}
             data-testid="problems-panel-button"
           >
-            ⚠️ 问题
+            ⚠️ {t('ide.problems')}
           </button>
           <button 
             className={`action-button ${showTerminal ? 'active' : ''}`}
@@ -364,28 +366,28 @@ function IDE() {
             }}
             data-testid="terminal-button"
           >
-            🖥️ 终端
+            🖥️ {t('ide.terminal')}
           </button>
           <Link 
             to="/settings" 
             className="action-button"
             data-testid="settings-button"
           >
-            ⚙️ 设置
+            ⚙️ {t('common.settings')}
           </Link>
           <button 
             className={`action-button ${isPanelOpen ? 'active' : ''}`}
             onClick={togglePanel}
             data-testid="ai-panel-button"
           >
-            🤖 AI Chat
+            🤖 {t('ai.title')}
           </button>
           <button 
             className={`action-button ${showPerformancePanel ? 'active' : ''}`}
             onClick={() => setShowPerformancePanel(!showPerformancePanel)}
             data-testid="performance-panel-button"
           >
-            ⚡ Performance
+            ⚡ {t('performance.title')}
           </button>
         </div>
       </header>

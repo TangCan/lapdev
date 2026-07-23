@@ -2,10 +2,14 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { AIConfigPanel } from '../components/AI/AIConfigPanel';
 import { ThemeSettings } from '../components/Settings/ThemeSettings';
+import { LanguageSelector } from '../components/Language/LanguageSelector';
 import { AIProvider } from '../context/AIContext';
 import { InlineCompletionProvider } from '../context/InlineCompletionContext';
+import { useTranslation } from 'react-i18next';
 
 export const SettingsPage: React.FC = () => {
+  const { t } = useTranslation();
+  
   return (
     <AIProvider>
       <InlineCompletionProvider>
@@ -29,10 +33,13 @@ export const SettingsPage: React.FC = () => {
                   e.currentTarget.style.backgroundColor = 'transparent';
                 }}
               >
-                ← 返回 IDE
+                ← {t('common.back')}
               </Link>
               <div style={{ width: '1px', height: '16px', backgroundColor: 'var(--color-border)', opacity: '0.6' }}></div>
-              <h1 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>设置</h1>
+              <h1 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>{t('settings.title')}</h1>
+              <div className="ml-auto">
+                <LanguageSelector />
+              </div>
             </div>
             
             <div className="space-y-3">

@@ -2,6 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import './index.css';
+import './i18n';
 import App from './App';
 import { ThemeProvider } from './theme/ThemeContext';
 import { performanceService } from './services/performanceService';
