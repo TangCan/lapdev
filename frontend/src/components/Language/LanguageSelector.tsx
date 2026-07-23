@@ -28,10 +28,29 @@ export function LanguageSelector({ className = '' }: LanguageSelectorProps) {
           cursor: 'pointer',
           outline: 'none',
           minWidth: '80px',
+          WebkitAppearance: 'none',
+          MozAppearance: 'none',
+          appearance: 'none',
         }}
       >
-        <option value="en">English</option>
-        <option value="zh">中文</option>
+        <option 
+          value="en" 
+          style={{ 
+            backgroundColor: 'var(--color-surface)', 
+            color: 'var(--color-text-primary)' 
+          }}
+        >
+          English
+        </option>
+        <option 
+          value="zh" 
+          style={{ 
+            backgroundColor: 'var(--color-surface)', 
+            color: 'var(--color-text-primary)' 
+          }}
+        >
+          中文
+        </option>
       </select>
     </div>
   );
