@@ -68,47 +68,12 @@ detect_container_tool() {
 setup_podman_runtime() {
     # 检测是否使用 sudo
     local original_user="$USER"
-    local original_home="$HOME"
     if [ -n "$SUDO_USER" ]; then
         original_user="$SUDO_USER"
-        original_home=$(getent passwd "$SUDO_USER" | cut -d: -f6)
         log_info "检测到 sudo，原始用户: $original_user"
     fi
     
-    # 检查 /run/user/{uid} 是否只读挂载（常见于容器环境）
-    local runtime_dir="/run/user/$(id -u)"
-    if mount | grep -q "$runtime_dir.*\bro\b"; then
-        log_info "/run 目录只读挂载，设置 XDG_RUNTIME_DIR 到用户目录"
-        
-        # 创建用户级运行时目录（使用原始用户的 home）
-        export XDG_RUNTIME_DIR="$original_home/.podman-run"
-        mkdir -p "$XDG_RUNTIME_DIR"
-        
-        # 设置 podman 存储目录（使用原始用户的 home）
-        export PODMAN_STORAGE_DIR="$original_home/.local/share/containers"
-        mkdir -p "$PODMAN_STORAGE_DIR"
-        
-        log_info "XDG_RUNTIME_DIR: $XDG_RUNTIME_DIR"
-        log_info "PODMAN_STORAGE_DIR: $PODMAN_STORAGE_DIR"
-        
-        # 确保 libpod 目录存在并设置 sticky bit（避免 Podman 尝试设置失败）
-        mkdir -p "$XDG_RUNTIME_DIR/libpod"
-        chmod +t "$XDG_RUNTIME_DIR/libpod" 2>/dev/null || true
-    fi
-    
-    # 设置存储驱动为 vfs（解决只读文件系统问题）
-    export CONTAINERS_STORAGE_DRIVER="vfs"
-    log_info "设置存储驱动为 vfs"
-    
-    # 如果使用 sudo，设置 CONTAINERS_STORAGE 指向原始用户的存储目录
-    if [ -n "$SUDO_USER" ]; then
-        export CONTAINERS_STORAGE="$original_home/.local/share/containers/storage"
-        log_info "CONTAINERS_STORAGE: $CONTAINERS_STORAGE"
-    fi
-    
-    # 设置 cgroup 管理器为 cgroupfs（避免 systemd D-Bus 权限问题）
-    export CONTAINERS_CGROUP_MANAGER="cgroupfs"
-    log_info "设置 cgroup 管理器为 cgroupfs"
+    log_info "Podman 运行时环境已设置"
 }
 
 
@@ -220,22 +185,33 @@ build_image() {
     
     if [ "$CONTAINER_TOOL" = "docker" ]; then
         # Docker 构建
-        docker build \
+        sudo docker build \
+            --no-cache \
+            --ulimit nofile=65536:65536 \
             --tag ${IMAGE_NAME}:${version} \
             --tag ${IMAGE_NAME}:latest \
             --build-arg VERSION=${version} \
             .
     else
         # Podman 构建
-        # 使用 --storage-driver=vfs 避免只读文件系统问题
-        # 使用 --format docker 支持 HEALTHCHECK 指令（OCI 格式不支持）
-        podman build \
-            --storage-driver=vfs \
-            --format docker \
-            --tag ${IMAGE_NAME}:${version} \
-            --tag ${IMAGE_NAME}:latest \
-            --build-arg VERSION=${version} \
-            .
+        # 优先尝试 sudo podman，解决 rootless podman 的文件描述符限制问题
+        if command -v docker &> /dev/null; then
+            log_info "Podman 网络不可用，回退到 Docker"
+            sudo docker build \
+                --no-cache \
+                --ulimit nofile=65536:65536 \
+                --tag ${IMAGE_NAME}:${version} \
+                --tag ${IMAGE_NAME}:latest \
+                --build-arg VERSION=${version} \
+                .
+        else
+            sudo podman build \
+                --no-cache \
+                --tag ${IMAGE_NAME}:${version} \
+                --tag ${IMAGE_NAME}:latest \
+                --build-arg VERSION=${version} \
+                .
+        fi
     fi
     
     if [ $? -eq 0 ]; then

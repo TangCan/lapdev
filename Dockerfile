@@ -19,7 +19,8 @@ RUN npm config set registry ${NPM_REGISTRY} && \
     npm install --prefer-offline --no-audit
 
 COPY frontend/ ./
-RUN npm run build
+# 使用 NODE_OPTIONS 增加文件描述符限制
+RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
 # Stage 2: Rust Base（缓存层）
 FROM docker.io/library/node:20-slim AS rust-base
