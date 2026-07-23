@@ -47,9 +47,20 @@ is_podman_network_available() {
     fi
     
     # 检查网络是否可用（尝试拉取一个小镜像测试）
-    timeout 10 podman pull --quiet docker.io/library/alpine:latest 2>/dev/null || return 1
+    # 使用子shell避免timeout影响主shell环境
+    (
+        set +e
+        timeout 10 podman pull --quiet docker.io/library/alpine:latest 2>/dev/null
+        exit $?
+    )
     
-    return 0
+    # timeout返回124表示超时，返回其他非零表示失败
+    local exit_code=$?
+    if [ $exit_code -eq 0 ]; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 # 检查 Podman 网络状态（详细诊断）
