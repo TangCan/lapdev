@@ -1,32 +1,70 @@
+/**
+ * 主题名称类型
+ * 
+ * 支持的主题：
+ * - dark: 深色主题
+ * - light: 浅色主题
+ * - high-contrast: 高对比度主题
+ * - solarized-dark: Solarized 深色主题
+ * - solarized-light: Solarized 浅色主题
+ */
 export type ThemeName = 'dark' | 'light' | 'high-contrast' | 'solarized-dark' | 'solarized-light';
 
+/**
+ * 主题颜色配置
+ */
 export interface ThemeColors {
+  /** 背景色 */
   background: string;
+  /** 表面色（卡片、面板等） */
   surface: string;
+  /** 表面悬停色 */
   surfaceHover: string;
+  /** 边框色 */
   border: string;
+  /** 主要文字颜色 */
   textPrimary: string;
+  /** 次要文字颜色 */
   textSecondary: string;
+  /** 弱化文字颜色 */
   textMuted: string;
+  /** 强调色 */
   accent: string;
+  /** 强调色悬停 */
   accentHover: string;
+  /** 成功状态颜色 */
   success: string;
+  /** 警告状态颜色 */
   warning: string;
+  /** 危险状态颜色 */
   danger: string;
+  /** 信息状态颜色 */
   info: string;
+  /** 选中区域颜色 */
   selection: string;
+  /** 滚动条颜色 */
   scrollbar: string;
+  /** 滚动条悬停颜色 */
   scrollbarHover: string;
 }
 
+/**
+ * 主题配置接口
+ */
 export interface ThemeConfig {
+  /** 主题唯一标识 */
   name: ThemeName;
+  /** 颜色配置 */
   colors: ThemeColors;
+  /** 是否为深色主题 */
   isDark: boolean;
+  /** 显示名称（用户可见） */
   displayName: string;
+  /** 主题描述 */
   description: string;
 }
 
+/** 深色主题配置 */
 export const darkTheme: ThemeConfig = {
   name: 'dark',
   isDark: true,
@@ -52,6 +90,7 @@ export const darkTheme: ThemeConfig = {
   },
 };
 
+/** 浅色主题配置 */
 export const lightTheme: ThemeConfig = {
   name: 'light',
   isDark: false,
@@ -77,6 +116,7 @@ export const lightTheme: ThemeConfig = {
   },
 };
 
+/** 高对比度主题配置 */
 export const highContrastTheme: ThemeConfig = {
   name: 'high-contrast',
   isDark: true,
@@ -102,6 +142,7 @@ export const highContrastTheme: ThemeConfig = {
   },
 };
 
+/** Solarized 深色主题配置 */
 export const solarizedDarkTheme: ThemeConfig = {
   name: 'solarized-dark',
   isDark: true,
@@ -127,6 +168,7 @@ export const solarizedDarkTheme: ThemeConfig = {
   },
 };
 
+/** Solarized 浅色主题配置 */
 export const solarizedLightTheme: ThemeConfig = {
   name: 'solarized-light',
   isDark: false,
@@ -152,6 +194,7 @@ export const solarizedLightTheme: ThemeConfig = {
   },
 };
 
+/** 所有主题的映射表 */
 export const themes: Record<ThemeName, ThemeConfig> = {
   dark: darkTheme,
   light: lightTheme,
@@ -160,10 +203,26 @@ export const themes: Record<ThemeName, ThemeConfig> = {
   'solarized-light': solarizedLightTheme,
 };
 
+/**
+ * 根据主题名称获取主题配置
+ * 
+ * @param name 主题名称
+ * @returns 主题配置对象
+ */
 export function getThemeByName(name: ThemeName): ThemeConfig {
   return themes[name];
 }
 
+/**
+ * 获取默认主题
+ * 
+ * 优先级：
+ * 1. 从 localStorage 读取保存的主题
+ * 2. 检测系统偏好（prefers-color-scheme）
+ * 3. 默认使用深色主题
+ * 
+ * @returns 默认主题名称
+ */
 export function getDefaultTheme(): ThemeName {
   const saved = localStorage.getItem('lapdev-theme');
   if (saved && saved in themes) {
@@ -175,6 +234,11 @@ export function getDefaultTheme(): ThemeName {
   return 'dark';
 }
 
+/**
+ * 获取所有主题列表
+ * 
+ * @returns 主题配置数组
+ */
 export function getThemeList(): ThemeConfig[] {
   return Object.values(themes);
 }
