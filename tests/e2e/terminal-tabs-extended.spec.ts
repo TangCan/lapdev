@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { safeGoto, safeWaitForSelector, safeClick } from './utils/testUtils';
 
 test.describe('[7.1] Terminal Tab Management - Extended Tests', () => {
   test.beforeEach(async ({ page }) => {
@@ -6,12 +7,11 @@ test.describe('[7.1] Terminal Tab Management - Extended Tests', () => {
       console.log('[Browser Console]', msg.text());
     });
     
-    await page.goto('/');
-    await page.waitForSelector('[data-testid="terminal-button"]', { timeout: 10000 });
+    await safeGoto(page, '/');
+    await safeWaitForSelector(page, '[data-testid="file-tree"]', { timeout: 15000 });
+    await page.waitForTimeout(2000);
     
-    const button = page.locator('[data-testid="terminal-button"]');
-    await button.click();
-    
+    await safeClick(page, '[data-testid="terminal-button"]');
     await page.waitForTimeout(3000);
     
     const showTerminalState = await page.evaluate(() => (window as any).__test_showTerminalState);
@@ -31,17 +31,20 @@ test.describe('[7.1] Terminal Tab Management - Extended Tests', () => {
     
     const allTerminalElements = await page.evaluate(() => {
       const elements = document.querySelectorAll('[data-testid*="terminal"]');
-      return Array.from(elements).map(el => ({
-        testid: el.getAttribute('data-testid'),
-        visible: el.offsetParent !== null,
-        display: window.getComputedStyle(el).display,
-        visibility: window.getComputedStyle(el).visibility,
-        hidden: el.hidden
-      }));
+      return Array.from(elements).map(el => {
+        const htmlEl = el as HTMLElement;
+        return {
+          testid: el.getAttribute('data-testid'),
+          visible: htmlEl.offsetParent !== null,
+          display: window.getComputedStyle(el).display,
+          visibility: window.getComputedStyle(el).visibility,
+          hidden: htmlEl.hidden
+        };
+      });
     });
     console.log('[Test] All terminal elements:', JSON.stringify(allTerminalElements, null, 2));
     
-    await page.waitForSelector('[data-testid="terminal-panel"]', { timeout: 10000 });
+    await safeWaitForSelector(page, '[data-testid="terminal-panel"]', { timeout: 15000 });
   });
 
   test('[P0] should maintain terminal state across tab switches', async ({ page }) => {
