@@ -104,7 +104,7 @@ CPU使用率监控: 基于帧时间分析正常显示 ✅
 |------|----------|--------|--------------|
 | **DEBT-001** | 部分组件缺乏完整的单元测试覆盖 | ✅ 已完成 | 为 ThemeSettings、LanguageSelector、PerformancePanel、usePerformanceMonitor 新增 40 个测试用例 |
 | **DEBT-002** | 代码注释不完整 | ✅ 已完成 | 为核心服务（performanceService、agentService、skillService）和 Hook（usePerformanceMonitor）、主题系统（themeConfig、ThemeContext）添加了详细的 JSDoc 注释，新增 638 行注释 |
-| **DEBT-003** | 技术文档不完善 | 低 | 持续改进 |
+| **DEBT-003** | 技术文档不完善 | ✅ 已完成 | 新增项目根目录 README.md，包含完整的项目介绍、功能特性、技术栈、快速开始、容器部署、配置说明、使用指南、开发指南、测试说明和贡献指南；更新架构文档 architecture.md，反映实际项目结构 |
 
 ---
 
