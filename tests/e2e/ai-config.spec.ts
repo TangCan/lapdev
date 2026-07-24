@@ -2,38 +2,43 @@
 // 测试覆盖：UI交互、配置表单、连接测试、模型管理
 
 import { test, expect } from '@playwright/test';
+import { safeGoto, safeWaitForSelector } from './utils/testUtils';
 
 test.describe('AI Configuration - AC-1: Model Config Form', () => {
   test('should display AI config panel in settings', async ({ page }) => {
-    await page.goto('/settings');
+    await safeGoto(page, '/settings');
+    await safeWaitForSelector(page, '[data-testid="ai-config-section"]');
     
     // Verify AI config section exists
     const aiSection = page.locator('[data-testid="ai-config-section"]');
     await expect(aiSection).toBeVisible();
     
     // Verify form fields exist
-    await expect(page.locator('[data-testid="ai-model-name"]')).toBeVisible();
-    await expect(page.locator('[data-testid="ai-provider-select"]')).toBeVisible();
-    await expect(page.locator('[data-testid="ai-api-key"]')).toBeVisible();
-    await expect(page.locator('[data-testid="ai-base-url"]')).toBeVisible();
-    await expect(page.locator('[data-testid="ai-model-select"]')).toBeVisible();
+    await safeWaitForSelector(page, '[data-testid="ai-model-name"]');
+    await safeWaitForSelector(page, '[data-testid="ai-provider-select"]');
+    await safeWaitForSelector(page, '[data-testid="ai-api-key"]');
+    await safeWaitForSelector(page, '[data-testid="ai-base-url"]');
+    await safeWaitForSelector(page, '[data-testid="ai-model-select"]');
   });
 
   test('should show password type for API key field', async ({ page }) => {
-    await page.goto('/settings');
+    await safeGoto(page, '/settings');
+    await safeWaitForSelector(page, '[data-testid="ai-api-key"]');
     
     const apiKeyInput = page.locator('[data-testid="ai-api-key"]');
     await expect(apiKeyInput).toHaveAttribute('type', 'password');
   });
 
   test('should support provider selection (OpenAI/DeepSeek/Custom)', async ({ page }) => {
-    await page.goto('/settings');
+    await safeGoto(page, '/settings');
+    await safeWaitForSelector(page, '[data-testid="ai-provider-select"]');
     
     const providerSelect = page.locator('[data-testid="ai-provider-select"]');
     
     // Verify all provider options exist by checking select content
     const options = await providerSelect.evaluate((select) => {
-      return Array.from(select.options).map(opt => opt.textContent);
+      const selectEl = select as HTMLSelectElement;
+      return Array.from(selectEl.options).map((opt: HTMLOptionElement) => opt.textContent);
     });
     
     expect(options).toContain('OpenAI');
@@ -66,7 +71,8 @@ test.describe('AI Configuration - AC-1: Model Config Form', () => {
 
 test.describe('AI Configuration - AC-2: Connection Test', () => {
   test('should show test connection button', async ({ page }) => {
-    await page.goto('/settings');
+    await safeGoto(page, '/settings');
+    await safeWaitForSelector(page, '[data-testid="ai-test-btn"]');
     
     const testBtn = page.locator('[data-testid="ai-test-btn"]');
     await expect(testBtn).toBeVisible();
@@ -74,7 +80,8 @@ test.describe('AI Configuration - AC-2: Connection Test', () => {
   });
 
   test('should show loading state during test', async ({ page }) => {
-    await page.goto('/settings');
+    await safeGoto(page, '/settings');
+    await safeWaitForSelector(page, '[data-testid="ai-model-name"]');
     
     // Fill in valid form
     await page.locator('[data-testid="ai-model-name"]').fill('Test Model');
@@ -99,7 +106,8 @@ test.describe('AI Configuration - AC-2: Connection Test', () => {
   });
 
   test('should show success message for valid connection', async ({ page }) => {
-    await page.goto('/settings');
+    await safeGoto(page, '/settings');
+    await safeWaitForSelector(page, '[data-testid="ai-model-name"]');
     
     // Fill in form
     await page.locator('[data-testid="ai-model-name"]').fill('Test Model');
@@ -120,7 +128,8 @@ test.describe('AI Configuration - AC-2: Connection Test', () => {
   });
 
   test('should show error message for failed connection', async ({ page }) => {
-    await page.goto('/settings');
+    await safeGoto(page, '/settings');
+    await safeWaitForSelector(page, '[data-testid="ai-model-name"]');
     
     // Fill in form
     await page.locator('[data-testid="ai-model-name"]').fill('Test Model');
@@ -143,7 +152,8 @@ test.describe('AI Configuration - AC-2: Connection Test', () => {
 
 test.describe('AI Configuration - AC-3: Multi-Model Management', () => {
   test('should add and list configured models', async ({ page }) => {
-    await page.goto('/settings');
+    await safeGoto(page, '/settings');
+    await safeWaitForSelector(page, '[data-testid="ai-model-name"]');
     
     // Add a model
     await page.locator('[data-testid="ai-model-name"]').fill('Test Model');
@@ -158,7 +168,8 @@ test.describe('AI Configuration - AC-3: Multi-Model Management', () => {
   });
 
   test('should allow editing model', async ({ page }) => {
-    await page.goto('/settings');
+    await safeGoto(page, '/settings');
+    await safeWaitForSelector(page, '[data-testid="ai-model-name"]');
     
     // First add a model
     await page.locator('[data-testid="ai-model-name"]').fill('Model A');
@@ -168,7 +179,7 @@ test.describe('AI Configuration - AC-3: Multi-Model Management', () => {
     await page.locator('[data-testid="ai-save-btn"]').click();
     
     // Wait for model to appear
-    await page.waitForSelector('text=Model A');
+    await safeWaitForSelector(page, 'text=Model A');
     
     // Click edit button
     const editBtn = page.locator('[data-testid^="edit-btn-"]').first();
@@ -187,7 +198,8 @@ test.describe('AI Configuration - AC-3: Multi-Model Management', () => {
   });
 
   test('should allow deleting model', async ({ page }) => {
-    await page.goto('/settings');
+    await safeGoto(page, '/settings');
+    await safeWaitForSelector(page, '[data-testid="ai-model-name"]');
     
     // First add a model
     await page.locator('[data-testid="ai-model-name"]').fill('Model to Delete');
@@ -197,7 +209,7 @@ test.describe('AI Configuration - AC-3: Multi-Model Management', () => {
     await page.locator('[data-testid="ai-save-btn"]').click();
     
     // Wait for model to appear
-    await page.waitForSelector('text=Model to Delete');
+    await safeWaitForSelector(page, 'text=Model to Delete');
     
     // Set up dialog handler
     page.on('dialog', dialog => dialog.accept());
@@ -213,7 +225,8 @@ test.describe('AI Configuration - AC-3: Multi-Model Management', () => {
 
 test.describe('AI Configuration - AC-4: Security Requirements', () => {
   test('should clear API key on page refresh', async ({ page }) => {
-    await page.goto('/settings');
+    await safeGoto(page, '/settings');
+    await safeWaitForSelector(page, '[data-testid="ai-api-key"]');
     
     // Fill in API key
     const apiKeyInput = page.locator('[data-testid="ai-api-key"]');
@@ -224,13 +237,15 @@ test.describe('AI Configuration - AC-4: Security Requirements', () => {
     
     // Refresh page
     await page.reload();
+    await safeWaitForSelector(page, '[data-testid="ai-api-key"]');
     
     // Verify field is empty
     await expect(apiKeyInput).toHaveValue('');
   });
 
   test('should mask API key display', async ({ page }) => {
-    await page.goto('/settings');
+    await safeGoto(page, '/settings');
+    await safeWaitForSelector(page, '[data-testid="ai-model-name"]');
     
     // Add a model with full API key
     await page.locator('[data-testid="ai-model-name"]').fill('Model with Key');
@@ -240,7 +255,7 @@ test.describe('AI Configuration - AC-4: Security Requirements', () => {
     await page.locator('[data-testid="ai-save-btn"]').click();
     
     // Wait for model to appear
-    await page.waitForSelector('text=Model with Key');
+    await safeWaitForSelector(page, 'text=Model with Key');
     
     // Find the API key display element
     const keyDisplay = page.locator('[data-testid^="api-key-display-"]').first();
@@ -253,7 +268,8 @@ test.describe('AI Configuration - AC-4: Security Requirements', () => {
   });
 
   test('should send API key in request body', async ({ page }) => {
-    await page.goto('/settings');
+    await safeGoto(page, '/settings');
+    await safeWaitForSelector(page, '[data-testid="ai-model-name"]');
     
     let requestBody: string | null = null;
     
