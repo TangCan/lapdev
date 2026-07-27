@@ -1,0 +1,152 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import React from 'react';
+import ProblemsPanel from './ProblemsPanel';
+import { Monaco } from '../../services/monacoLoader';
+
+const { mockOnSelectProblem, mockGetDiagnostics, mockSubscribeToDiagnostics, mockUseLSP } = vi.hoisted(() => ({
+  mockOnSelectProblem: vi.fn(),
+  mockGetDiagnostics: vi.fn(),
+  mockSubscribeToDiagnostics: vi.fn(() => vi.fn()),
+  mockUseLSP: vi.fn(),
+}));
+
+vi.mock('../../context/LSPContext', () => ({
+  useLSP: mockUseLSP,
+  LSPProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock('../../services/monacoLoader', () => ({
+  Monaco: {
+    editor: {
+      getModels: vi.fn().mockReturnValue([{
+        uri: { toString: () => 'file:///test.ts' },
+      }]),
+    },
+    MarkerSeverity: {
+      Error: 8,
+      Warning: 4,
+      Info: 2,
+    },
+  },
+}));
+
+describe('ProblemsPanel Component', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetDiagnostics.mockReturnValue([]);
+    mockSubscribeToDiagnostics.mockReturnValue(vi.fn());
+
+    mockUseLSP.mockReturnValue({
+      isConnected: true,
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      getDiagnostics: mockGetDiagnostics,
+      registerEditor: vi.fn(),
+      unregisterEditor: vi.fn(),
+      subscribeToDiagnostics: mockSubscribeToDiagnostics,
+    });
+  });
+
+  it('[P0] should render panel title', () => {
+    render(<ProblemsPanel onSelectProblem={mockOnSelectProblem} />);
+    expect(screen.getByText('Problems')).toBeTruthy();
+  });
+
+  it('[P0] should show empty list state when no problems', () => {
+    render(<ProblemsPanel onSelectProblem={mockOnSelectProblem} />);
+    expect(screen.getByText('No problems')).toBeTruthy();
+    expect(screen.getByText('No problems detected')).toBeTruthy();
+  });
+
+  it('[P1] should display error count in header', () => {
+    mockGetDiagnostics.mockReturnValue([
+      {
+        range: { startLineNumber: 1, startColumn: 1, endLineNumber: 1, endColumn: 10 },
+        severity: Monaco.MarkerSeverity.Error,
+        message: 'Type error',
+        source: 'ts',
+      },
+    ]);
+
+    render(<ProblemsPanel onSelectProblem={mockOnSelectProblem} />);
+    expect(screen.getByText('1 errors')).toBeTruthy();
+  });
+
+  it('[P1] should display warning count in header', () => {
+    mockGetDiagnostics.mockReturnValue([
+      {
+        range: { startLineNumber: 1, startColumn: 1, endLineNumber: 1, endColumn: 10 },
+        severity: Monaco.MarkerSeverity.Warning,
+        message: 'Unused variable',
+        source: 'ts',
+      },
+    ]);
+
+    render(<ProblemsPanel onSelectProblem={mockOnSelectProblem} />);
+    expect(screen.getByText('1 warnings')).toBeTruthy();
+  });
+
+  it('[P1] should display problem item with message and location', () => {
+    mockGetDiagnostics.mockReturnValue([
+      {
+        range: { startLineNumber: 5, startColumn: 3, endLineNumber: 5, endColumn: 20 },
+        severity: Monaco.MarkerSeverity.Error,
+        message: 'Cannot find name "foo"',
+        source: 'ts',
+      },
+    ]);
+
+    render(<ProblemsPanel onSelectProblem={mockOnSelectProblem} />);
+    expect(screen.getByText('Cannot find name "foo"')).toBeTruthy();
+    expect(screen.getByText('Line 5, Column 3')).toBeTruthy();
+  });
+
+  it('[P2] should call onSelectProblem when a problem item is clicked', () => {
+    mockGetDiagnostics.mockReturnValue([
+      {
+        range: { startLineNumber: 10, startColumn: 5, endLineNumber: 10, endColumn: 15 },
+        severity: Monaco.MarkerSeverity.Error,
+        message: 'Test error',
+        source: 'ts',
+      },
+    ]);
+
+    render(<ProblemsPanel onSelectProblem={mockOnSelectProblem} />);
+
+    const problemItem = screen.getByText('Test error');
+    fireEvent.click(problemItem);
+
+    expect(mockOnSelectProblem).toHaveBeenCalledWith(10, 5);
+  });
+
+  it('[P2] should display error severity icon', () => {
+    mockGetDiagnostics.mockReturnValue([
+      {
+        range: { startLineNumber: 1, startColumn: 1, endLineNumber: 1, endColumn: 5 },
+        severity: Monaco.MarkerSeverity.Error,
+        message: 'Error test',
+        source: 'ts',
+      },
+    ]);
+
+    const { container } = render(<ProblemsPanel onSelectProblem={mockOnSelectProblem} />);
+    const errorIcons = container.querySelectorAll('.text-red-500');
+    expect(errorIcons.length).toBeGreaterThan(0);
+  });
+
+  it('[P2] should display warning severity icon', () => {
+    mockGetDiagnostics.mockReturnValue([
+      {
+        range: { startLineNumber: 1, startColumn: 1, endLineNumber: 1, endColumn: 5 },
+        severity: Monaco.MarkerSeverity.Warning,
+        message: 'Warning test',
+        source: 'ts',
+      },
+    ]);
+
+    const { container } = render(<ProblemsPanel onSelectProblem={mockOnSelectProblem} />);
+    const warningIcons = container.querySelectorAll('.text-yellow-500');
+    expect(warningIcons.length).toBeGreaterThan(0);
+  });
+});
