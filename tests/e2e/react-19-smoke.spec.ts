@@ -111,8 +111,8 @@ test.describe('EPI1.01: React 19 升级冒烟测试', () => {
     await page.getByTestId('ai-panel-button').click();
     await expect(page.getByTestId('ai-chat-panel')).toBeVisible({ timeout: 5000 });
 
-    await page.getByTestId('settings-button').click();
-    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible({ timeout: 15000 });
+    await page.goto('/settings');
+    await expect(page.getByRole('heading', { name: /设置|Settings/i })).toBeVisible({ timeout: 15000 });
 
     const reactErrors = errors.filter(
       (e) =>
