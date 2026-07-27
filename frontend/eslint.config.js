@@ -4,6 +4,7 @@ import pluginTs from '@typescript-eslint/eslint-plugin';
 import parserTs from '@typescript-eslint/parser';
 import pluginReact from 'eslint-plugin-react';
 import pluginReactHooks from 'eslint-plugin-react-hooks';
+import pluginReactCompiler from 'eslint-plugin-react-compiler';
 
 export default [
   {
@@ -25,6 +26,7 @@ export default [
       '@typescript-eslint': pluginTs,
       react: pluginReact,
       'react-hooks': pluginReactHooks,
+      'react-compiler': pluginReactCompiler,
     },
     rules: {
       ...pluginJs.configs.recommended.rules,
@@ -39,6 +41,7 @@ export default [
       'react/prop-types': 'off',
       'react-hooks/set-state-in-effect': 'warn',
       'react-hooks/immutability': 'warn',
+      'react-compiler/react-compiler': 'warn',
       'react/display-name': 'warn',
       'react/no-unescaped-entities': 'warn',
     },

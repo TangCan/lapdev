@@ -15,3 +15,9 @@
 - [x] [Review][Defer] 当前目录存在多个 .skill.md 文件时未提示用户选择 [skillCli.ts:getDefaultSkillFile] — deferred, pre-existing
 - [x] [Review][Defer] tags 数组为空数组时未验证是否符合业务要求 [skillValidator.ts:validateMetadata] — deferred, pre-existing
 - [x] [Review][Defer] 用户提供多个非选项参数时静默忽略多余参数 [skillCli.ts:266] — deferred, pre-existing
+
+## Deferred from: code review of epi1-02-enable-react-compiler (2026-07-27)
+
+- [x] [Review][Defer] eslint-plugin-react-compiler uses RC pre-release version — `^19.1.0-rc.2` is a release candidate, not stable GA. Acceptable during development but should be updated before production merge. [package.json:53] — deferred, pre-existing
+- [x] [Review][Defer] compilationMode: 'infer' may conflict with existing manual memoization — With 'infer' mode, React Compiler auto-memoizes all components, potentially conflicting with the 159 existing `useMemo`/`useCallback` call sites. Double-memoization could cause stale closures or missed updates. Should be addressed in EPI1.03 when removing manual memoization. [vite.config.ts:14] — deferred, tracked in EPI1.03
+- [x] [Review][Defer] Tests verify config files only, not actual behavior — Unit tests use `fs.readFileSync` + string matching only. No test verifies ESLint actually runs, Vite builds, or the babel plugin produces correct output. A misconfigured plugin would pass all tests but fail in production. [eslint-react-compiler.test.ts] — deferred, improvement opportunity
