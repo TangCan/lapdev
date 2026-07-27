@@ -97,62 +97,71 @@ class AiService {
 
   // 获取所有模型配置
   getModels(): AIModelConfig[] {
-    return this.models;
+    return [...this.models];
   }
 
   // 获取当前活跃模型
   getCurrentModel(): AIModelConfig | null {
-    return this.models.find(m => m.id === this.currentModelId) || null;
+    const model = this.models.find(m => m.id === this.currentModelId);
+    return model ? { ...model } : null;
   }
 
   // 设置活跃模型
   setActiveModel(modelId: string): void {
     this.currentModelId = modelId;
-    this.models.forEach(m => {
-      m.isActive = m.id === modelId;
-    });
+    this.models = this.models.map(m => ({
+      ...m,
+      isActive: m.id === modelId,
+    }));
     this.saveToStorage();
   }
 
   // 添加模型配置
   addModel(config: Omit<AIModelConfig, 'id' | 'isActive'>): AIModelConfig {
+    const isFirstModel = this.models.length === 0;
     const newModel: AIModelConfig = {
       ...config,
       id: this.generateId(),
-      isActive: this.models.length === 0, // 第一个模型默认激活
+      isActive: isFirstModel,
     };
-    
+
     if (newModel.isActive) {
       this.currentModelId = newModel.id;
     }
-    
-    this.models.push(newModel);
+
+    this.models = [...this.models, newModel];
     this.saveToStorage();
     return newModel;
   }
 
   // 更新模型配置
   updateModel(modelId: string, updates: Partial<Omit<AIModelConfig, 'id' | 'isActive'>>): AIModelConfig | null {
-    const index = this.models.findIndex(m => m.id === modelId);
-    if (index === -1) return null;
+    const model = this.models.find(m => m.id === modelId);
+    if (!model) return null;
 
-    this.models[index] = { ...this.models[index], ...updates };
+    this.models = this.models.map(m =>
+      m.id === modelId ? { ...m, ...updates } : m
+    );
     this.saveToStorage();
-    return this.models[index];
+    return this.models.find(m => m.id === modelId) || null;
   }
 
   // 删除模型配置
   removeModel(modelId: string): boolean {
-    const index = this.models.findIndex(m => m.id === modelId);
-    if (index === -1) return false;
+    const model = this.models.find(m => m.id === modelId);
+    if (!model) return false;
 
-    const removed = this.models[index];
-    this.models.splice(index, 1);
+    const wasActive = model.isActive;
+    const remaining = this.models.filter(m => m.id !== modelId);
+    this.models = remaining;
 
-    // 如果删除的是当前活跃模型，选择第一个作为新的活跃模型
-    if (removed.isActive && this.models.length > 0) {
-      this.setActiveModel(this.models[0].id);
-    } else if (this.models.length === 0) {
+    if (wasActive && remaining.length > 0) {
+      this.currentModelId = remaining[0].id;
+      this.models = this.models.map(m => ({
+        ...m,
+        isActive: m.id === this.currentModelId,
+      }));
+    } else if (remaining.length === 0) {
       this.currentModelId = null;
     }
 
