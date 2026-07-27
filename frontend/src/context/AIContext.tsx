@@ -36,7 +36,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     console.log('AIContext init: models loaded:', loadedModels.length);
     console.log('AIContext init: currentModel:', loadedCurrentModel?.name || null);
     
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- TODO: Refactor with useEffectEvent in EPI5
     setModels(loadedModels);
     setCurrentModel(loadedCurrentModel);
     setIsConnected(loadedCurrentModel !== null);

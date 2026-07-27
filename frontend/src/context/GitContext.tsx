@@ -161,7 +161,7 @@ export function GitProvider({ children }: { children: ReactNode }) {
   }, [connectWebSocket]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- TODO: Refactor with useEffectEvent in EPI5
     loadGitData(true);
     
     connectWebSocket();

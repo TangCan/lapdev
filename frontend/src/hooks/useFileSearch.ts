@@ -24,6 +24,7 @@ export function useFileSearch({ searchFn, debounceMs = 200 }: UseFileSearchOptio
       return;
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- TODO: Refactor with useEffectEvent in EPI5
     setIsSearching(true);
     setError(null);
 

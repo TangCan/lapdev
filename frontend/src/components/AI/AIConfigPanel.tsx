@@ -69,7 +69,7 @@ export const AIConfigPanel: React.FC = () => {
   useEffect(() => {
     if (!editingId && providerRef.current !== form.provider) {
       providerRef.current = form.provider;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- TODO: Refactor with useEffectEvent in EPI5
       setForm(prev => ({
         ...prev,
         baseUrl: BASE_URL_BY_PROVIDER[form.provider],

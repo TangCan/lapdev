@@ -40,7 +40,7 @@ const ProblemsPanel: React.FC<ProblemsPanelProps> = ({ onSelectProblem }) => {
   }, [getDiagnostics]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- TODO: Refactor with useEffectEvent in EPI5
     updateProblems();
 
     const unsubscribe = subscribeToDiagnostics(updateProblems);

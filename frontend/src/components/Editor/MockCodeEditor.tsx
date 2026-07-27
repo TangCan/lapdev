@@ -58,7 +58,7 @@ export function MockCodeEditor() {
   }, [content]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- TODO: Refactor with useEffectEvent in EPI5
     setDiagnostics(newDiagnostics);
     
     if (newDiagnostics.length > 0) {

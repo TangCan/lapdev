@@ -26,7 +26,7 @@ export function usePerformanceMonitor(service: PerformanceService = performanceS
   /** 当前性能状态评估 */
   const [status, setStatus] = useState<PerformanceStatus>(service.getStatus());
   /** 取消订阅的引用 */
-  const unsubscribeRef = useRef<() => void>();
+  const unsubscribeRef = useRef<(() => void) | undefined>(undefined);
 
   useEffect(() => {
     // 启动性能监控服务

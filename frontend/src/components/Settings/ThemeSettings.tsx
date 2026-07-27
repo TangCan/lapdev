@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { useTheme } from '../../theme/ThemeContext';
 import { getThemeList, type ThemeConfig } from '../../theme/themeConfig';
 
@@ -36,9 +37,9 @@ export function ThemeSettings() {
               style={{
                 backgroundColor: theme.colors.surface,
                 borderColor: themeName === theme.name ? theme.colors.accent : theme.colors.border,
-                ringColor: theme.colors.accent,
-                ringOffsetColor: theme.colors.background,
-              }}
+                ['--ring-color']: theme.colors.accent,
+                ['--ring-offset-color']: theme.colors.background,
+              } as CSSProperties}
             >
               <div className="flex items-center gap-2 mb-1">
                 <div 

@@ -31,11 +31,11 @@ export class SimilarityUtils {
     const keywords: string[] = [];
     
     // 匹配英文单词
-    const englishWords = text.match(/[a-zA-Z]+/g) || [];
+    const englishWords: string[] = text.match(/[a-zA-Z]+/g) || [];
     keywords.push(...englishWords.filter(w => w.length > 2));
     
     // 匹配中文字符（简单分词）
-    const chineseChars = text.match(/[\u4e00-\u9fa5]{2,}/g) || [];
+    const chineseChars: string[] = text.match(/[\u4e00-\u9fa5]{2,}/g) || [];
     keywords.push(...chineseChars);
     
     return keywords;

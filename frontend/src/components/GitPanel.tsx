@@ -37,7 +37,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({ repositoryPath }) => {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- TODO: Refactor with useEffectEvent in EPI5
     fetchStatus();
   }, [repositoryPath]);
 

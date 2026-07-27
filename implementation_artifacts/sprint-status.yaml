@@ -1,5 +1,5 @@
-# generated: 2026-07-06
-# last_updated: 2026-07-06
+# generated: 2026-07-27
+# last_updated: 2026-07-27 (epi1-01 in review; testing-library upgraded to v16, ESLint warnings fixed)
 # project: lapdev
 # project_key: NOKEY
 # tracking_system: file-system
@@ -34,16 +34,16 @@
 # - Developer typically creates next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
-generated: 2026-07-06
-last_updated: 2026-07-21T09:00:00Z
+generated: 2026-07-27
+last_updated: 2026-07-27
 project: lapdev
 project_key: NOKEY
 tracking_system: file-system
 story_location: implementation_artifacts
-project_status: closed
-closure_date: 2026-07-21
 
 development_status:
+  # ========== Phase 1: 基础功能 (Epic 1-11) — 全部完成 ==========
+
   # Epic 1: 基础IDE功能 (3 stories)
   epic-1: done
   1-1-file-tree: done
@@ -111,21 +111,65 @@ development_status:
   11-1-theme-switching-ui: done
   epic-11-retrospective: done
 
-summary:
-  total_epics: 11
-  total_stories: 27
-  epics_in_progress: 0
-  stories_ready_for_dev: 0
-  stories_in_progress: 0
-  stories_in_review: 0
-  stories_completed: 27
+  # ========== Phase 2: 性能优化与架构改进 (EPI1-EPI6) — 进行中 ==========
+  # 说明：代码文件已创建，但尚未集成到应用中（未被实际使用）
 
-test_coverage:
-  total_unit_tests: 121
-  story_10_2_tests: 18
-  test_automation_status: completed
+  # Epic EPI1: 性能优化 - React 19 升级与编译器优化 (3 stories)
+  epi1: in-progress
+  epi1-01-react-19-dependency-upgrade: done
+  epi1-02-enable-react-compiler: in-progress
+  epi1-03-remove-manual-memoization: in-progress
+  epi1-retrospective: optional
+
+  # Epic EPI2: 性能优化 - Monaco Editor 深度优化 (3 stories)
+  epi2: in-progress
+  epi2-01-monaco-editor-lazy-loading: in-progress
+  epi2-02-large-file-optimization: in-progress
+  epi2-03-range-formatting-incremental-update: in-progress
+  epi2-retrospective: optional
+
+  # Epic EPI3: 性能优化 - 并发渲染与虚拟滚动 (3 stories)
+  epi3: in-progress
+  epi3-01-file-search-concurrent-optimization: in-progress
+  epi3-02-file-tree-virtual-scrolling: in-progress
+  epi3-03-complex-operation-concurrent-processing: in-progress
+  epi3-retrospective: optional
+
+  # Epic EPI4: 架构改进 - Zustand 状态管理迁移 (3 stories)
+  epi4: in-progress
+  epi4-01-zustand-store-gitcontext: in-progress
+  epi4-02-zustand-store-chatcontext: in-progress
+  epi4-03-zustand-store-themecontext: in-progress
+  epi4-retrospective: optional
+
+  # Epic EPI5: 架构改进 - IDE 组件职责拆分 (4 stories)
+  epi5: in-progress
+  epi5-01-create-useeditortabs-hook: in-progress
+  epi5-02-create-usefileoperations-hook: in-progress
+  epi5-03-create-usekeyboardshortcuts-hook: in-progress
+  epi5-04-create-independent-components: in-progress
+  epi5-retrospective: optional
+
+  # Epic EPI6: 架构改进 - 服务层重构 (4 stories)
+  epi6: in-progress
+  epi6-01-create-core-domain-models: in-progress
+  epi6-02-create-port-interfaces: in-progress
+  epi6-03-create-api-adapter-implementation: in-progress
+  epi6-04-refactor-service-layer-ports-adapters: in-progress
+  epi6-retrospective: optional
+
+summary:
+  total_epics: 17
+  total_stories: 45
+  epics_done: 11
+  epics_in_progress: 6
+  stories_done: 27
+  stories_in_progress: 17
+  stories_ready_for_dev: 1
+  stories_in_review: 0
 
 story_mapping:
+  # Phase 1: 基础功能
   epic-1:
     - id: "1-1"
       title: "文件树浏览与管理"
@@ -229,3 +273,129 @@ story_mapping:
       title: "主题切换UI"
       key: "11-1-theme-switching-ui"
       frs: ["FR-006"]
+
+  # Phase 2: 性能优化与架构改进
+  epi1:
+    - id: "EPI1.01"
+      title: "React 19 依赖升级"
+      key: "epi1-01-react-19-dependency-upgrade"
+      frs: ["NFR-002", "NFR-004"]
+      status_note: "升级到 18.3.1 替代 19（19 未正式发布）"
+    - id: "EPI1.02"
+      title: "启用 React Compiler"
+      key: "epi1-02-enable-react-compiler"
+      frs: []
+      status_note: "vite.config.ts 尚未配置 babel-plugin-react-compiler"
+    - id: "EPI1.03"
+      title: "移除手动 Memoization 代码"
+      key: "epi1-03-remove-manual-memoization"
+      frs: []
+      status_note: "全项目仍有 159 处 useMemo/useCallback 未清理"
+  epi2:
+    - id: "EPI2.01"
+      title: "Monaco Editor 懒加载"
+      key: "epi2-01-monaco-editor-lazy-loading"
+      frs: ["UX-DR1"]
+      status_note: "LazyCodeEditor.tsx 已创建但未集成"
+    - id: "EPI2.02"
+      title: "大文件优化配置"
+      key: "epi2-02-large-file-optimization"
+      frs: ["UX-DR2"]
+      status_note: "monacoOptimizer.ts 已创建但未集成"
+    - id: "EPI2.03"
+      title: "范围格式化与增量更新"
+      key: "epi2-03-range-formatting-incremental-update"
+      frs: []
+      status_note: "未实现"
+  epi3:
+    - id: "EPI3.01"
+      title: "文件搜索并发优化"
+      key: "epi3-01-file-search-concurrent-optimization"
+      frs: ["UX-DR3"]
+      status_note: "useFileSearch.ts 已创建但未集成"
+    - id: "EPI3.02"
+      title: "文件树虚拟滚动"
+      key: "epi3-02-file-tree-virtual-scrolling"
+      frs: ["UX-DR4"]
+      status_note: "VirtualList.tsx 已创建但未集成"
+    - id: "EPI3.03"
+      title: "复杂操作并发处理"
+      key: "epi3-03-complex-operation-concurrent-processing"
+      frs: []
+      status_note: "未实现 — 无 startTransition 调用"
+  epi4:
+    - id: "EPI4.01"
+      title: "创建 Zustand Store 替换 GitContext"
+      key: "epi4-01-zustand-store-gitcontext"
+      frs: []
+      status_note: "gitStore.ts 已创建但 IDE.tsx 仍使用 GitContext"
+    - id: "EPI4.02"
+      title: "创建 Zustand Store 替换 ChatContext"
+      key: "epi4-02-zustand-store-chatcontext"
+      frs: []
+      status_note: "chatStore.ts 已创建但 IDE.tsx 仍使用 ChatContext"
+    - id: "EPI4.03"
+      title: "创建 Zustand Store 替换 ThemeContext"
+      key: "epi4-03-zustand-store-themecontext"
+      frs: []
+      status_note: "themeStore.ts 已创建但旧 ThemeContext 仍在使用"
+  epi5:
+    - id: "EPI5.01"
+      title: "创建 useEditorTabs Hook"
+      key: "epi5-01-create-useeditortabs-hook"
+      frs: []
+      status_note: "useEditorTabs.ts 已创建但 IDE.tsx 未集成"
+    - id: "EPI5.02"
+      title: "创建 useFileOperations Hook"
+      key: "epi5-02-create-usefileoperations-hook"
+      frs: []
+      status_note: "useFileOperations.ts 已创建但 IDE.tsx 未集成"
+    - id: "EPI5.03"
+      title: "创建 useKeyboardShortcuts Hook"
+      key: "epi5-03-create-usekeyboardshortcuts-hook"
+      frs: []
+      status_note: "useKeyboardShortcuts.ts 已创建但 IDE.tsx 未集成"
+    - id: "EPI5.04"
+      title: "创建独立组件（Header、StatusBar、PanelManager）"
+      key: "epi5-04-create-independent-components"
+      frs: []
+      status_note: "组件已创建但 IDE.tsx 仍为 550 行未重构"
+  epi6:
+    - id: "EPI6.01"
+      title: "创建核心领域模型"
+      key: "epi6-01-create-core-domain-models"
+      frs: []
+      status_note: "File.ts/Git.ts/Chat.ts 已创建，框架无关"
+    - id: "EPI6.02"
+      title: "创建端口接口"
+      key: "epi6-02-create-port-interfaces"
+      frs: []
+      status_note: "IFileRepository/IGitRepository/IAIRepository 已创建"
+    - id: "EPI6.03"
+      title: "创建 API 适配器实现"
+      key: "epi6-03-create-api-adapter-implementation"
+      frs: []
+      status_note: "三个适配器已实现，符合端口接口"
+    - id: "EPI6.04"
+      title: "重构服务层使用端口与适配器"
+      key: "epi6-04-refactor-service-layer-ports-adapters"
+      frs: []
+      status_note: "DI 容器已创建但未被任何服务/组件使用"
+
+integration_gap_analysis:
+  summary: "Phase 2 代码文件已创建，但未集成到应用中"
+  affected_areas:
+    - "IDE.tsx 仍为 550 行上帝组件，未使用新的 Hooks 和组件"
+    - "GitContext/ChatContext/ThemeContext 未被 Zustand stores 替换"
+    - "LazyCodeEditor 和 monacoOptimizer 未接入编辑器"
+    - "VirtualList 未接入 FileTree"
+    - "useFileSearch 未被任何组件使用"
+    - "DI 容器未被任何服务/组件引用"
+    - "无 startTransition 调用"
+  recommended_next_steps:
+    - "优先集成 EPI5（IDE.tsx 拆分）—— 影响面最大"
+    - "集成 EPI4（Zustand 替换 Context）—— 与 EPI5 并行"
+    - "集成 EPI2（编辑器优化）—— 替换 LspCodeEditor 为 LazyCodeEditor"
+    - "集成 EPI3（并发渲染 + 虚拟滚动）—— 接入 useFileSearch 和 VirtualList"
+    - "配置 EPI1（React Compiler + 清理 useMemo）"
+    - "集成 EPI6（DI 容器）—— 重构服务层"

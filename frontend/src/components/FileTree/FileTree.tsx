@@ -63,6 +63,7 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
 
   useEffect(() => {
     console.log('[FileTree] Initial useEffect, calling loadFileTree(true)');
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- TODO: Refactor with useEffectEvent in EPI5
     loadFileTree(true);
     
     const FILE_TREE_REFRESH_INTERVAL = 5000;
