@@ -1,6 +1,6 @@
 # Story EPI1.03: 移除手动 Memoization 代码
 
-Status: reviewed
+Status: done
 
 ## Story
 
