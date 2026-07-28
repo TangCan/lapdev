@@ -44,12 +44,12 @@ function IDE() {
   const { status, currentBranch, refreshStatus } = useGit();
   const { isPanelOpen, togglePanel } = useChat();
 
-  const showError = useCallback((message: string) => {
+  const showError = (message: string) => {
     setErrorMessage(message);
     setTimeout(() => setErrorMessage(null), 5000);
-  }, []);
+  };
 
-  const parseDiffLines = useCallback((diff: string): DiffLine[] => {
+  const parseDiffLines = (diff: string): DiffLine[] => {
     const lines: DiffLine[] = [];
     const diffLines = diff.split('\n');
     let currentLineNumber = 0;
@@ -91,9 +91,9 @@ function IDE() {
     }
     
     return lines;
-  }, []);
+  };
 
-  const loadDiffForFile = useCallback(async (filePath: string) => {
+  const loadDiffForFile = async (filePath: string) => {
     try {
       const result = await fetchGitDiff(filePath);
       if (result.status === 'success' && result.data) {
@@ -106,9 +106,9 @@ function IDE() {
     } catch (error) {
       console.error('Failed to load diff:', error);
     }
-  }, [parseDiffLines]);
+  };
 
-  const detectLanguage = useCallback((filePath: string): string => {
+  const detectLanguage = (filePath: string): string => {
     const extension = filePath.split('.').pop()?.toLowerCase() || '';
     
     const languageMap: Record<string, string> = {
@@ -132,7 +132,7 @@ function IDE() {
     };
 
     return languageMap[extension] || 'plaintext';
-  }, []);
+  };
 
   const handleFileOpen = async (file: FileInfo) => {
     const existingTab = tabs.find(tab => tab.file.path === file.path);

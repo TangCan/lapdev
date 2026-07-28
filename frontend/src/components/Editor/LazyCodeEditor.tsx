@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, Suspense, lazy } from 'react';
+import { useState, useRef, Suspense, lazy } from 'react';
 
 const LspCodeEditor = lazy(() =>
   import('../Editor/LspCodeEditor').then((module) => ({ default: module.LspCodeEditor }))
@@ -24,7 +24,7 @@ export function LazyCodeEditor({ value, language, onChange, diffLines, uri }: La
   const [loadState, setLoadState] = useState<LoadState>(editorLoadedOnce ? 'loaded' : 'idle');
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleFocus = useCallback(() => {
+  const handleFocus = () => {
     if (loadState !== 'idle') return;
     setLoadState('loading');
     // 开始加载编辑器
@@ -32,7 +32,7 @@ export function LazyCodeEditor({ value, language, onChange, diffLines, uri }: La
       setLoadState('loaded');
       editorLoadedOnce = true;
     }, 0);
-  }, [loadState]);
+  };
 
   if (loadState === 'loaded') {
     return (

@@ -517,21 +517,21 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
     };
   }, []);
 
-  const handleAddTab = useCallback(() => {
+  const handleAddTab = () => {
     const newTabId = `tab-${Date.now()}`;
     const newTitle = `Terminal ${nextTabNumber}`;
     dispatch({ type: 'ADD_TAB', tabId: newTabId, title: newTitle });
-  }, [nextTabNumber]);
+  };
 
-  const handleSelectTab = useCallback((tabId: string) => {
+  const handleSelectTab = (tabId: string) => {
     dispatch({ type: 'SELECT_TAB', tabId });
     setTimeout(() => {
       const terminal = terminalRefs.current[tabId];
       terminal?.focus();
     }, 100);
-  }, []);
+  };
 
-  const handleCloseTab = useCallback((tabId: string) => {
+  const handleCloseTab = (tabId: string) => {
     if (tabsRef.current.length <= 1) {
       setLastTabWarning(true);
       setTimeout(() => setLastTabWarning(false), 2000);
@@ -557,9 +557,9 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
     delete containerRefs.current[tabId];
     
     dispatch({ type: 'CLOSE_TAB', tabId });
-  }, []);
+  };
 
-  const handleRestart = useCallback((tabId: string) => {
+  const handleRestart = (tabId: string) => {
     const terminal = terminalRefs.current[tabId];
     terminal?.dispose();
 
@@ -584,9 +584,9 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
         }, 300);
       }
     }, 50);
-  }, [initXTerm, initTerminalSession]);
+  };
 
-  const handleContextMenu = useCallback((e: React.MouseEvent, tabId: string) => {
+  const handleContextMenu = (e: React.MouseEvent, tabId: string) => {
     e.preventDefault();
     setContextMenu({
       visible: true,
@@ -594,25 +594,25 @@ export function Terminal({ onClose, onResize, autoInit = true }: TerminalProps) 
       y: e.clientY,
       tabId,
     });
-  }, []);
+  };
 
-  const handleRename = useCallback((tabId: string) => {
+  const handleRename = (tabId: string) => {
     dispatch({ type: 'START_RENAME', tabId });
     setContextMenu(null);
-  }, []);
+  };
 
-  const handleRenameSubmit = useCallback((tabId: string) => {
+  const handleRenameSubmit = (tabId: string) => {
     const tab = tabsRef.current.find(t => t.id === tabId);
     if (tab && tab.renameValue.trim()) {
       dispatch({ type: 'RENAME_TAB', tabId, newTitle: tab.renameValue.trim() });
     } else {
       dispatch({ type: 'CANCEL_RENAME', tabId });
     }
-  }, []);
+  };
 
-  const handleRenameCancel = useCallback((tabId: string) => {
+  const handleRenameCancel = (tabId: string) => {
     dispatch({ type: 'CANCEL_RENAME', tabId });
-  }, []);
+  };
 
   useEffect(() => {
     const handleClickOutside = () => {

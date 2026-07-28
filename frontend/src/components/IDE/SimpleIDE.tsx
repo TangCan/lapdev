@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { FileTree } from '../FileTree/FileTree';
 import { CodeEditor } from '../Editor/CodeEditor';
 import { Terminal } from '../Terminal/Terminal';
@@ -18,7 +18,7 @@ function SimpleIDE() {
   const { refreshStatus } = useGit();
   const { isPanelOpen, togglePanel } = useChat();
 
-  const handleFileOpen = useCallback(async (file: FileInfo) => {
+  const handleFileOpen = async (file: FileInfo) => {
     setLoading(true);
     setOpenFile(file);
     
@@ -36,11 +36,11 @@ function SimpleIDE() {
       setLoading(false);
       refreshStatus();
     }
-  }, [refreshStatus]);
+  };
 
-  const handleContentChange = useCallback((content: string) => {
+  const handleContentChange = (content: string) => {
     setFileContent(content);
-  }, []);
+  };
 
   return (
     <SkillProvider>

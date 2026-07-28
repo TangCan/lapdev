@@ -21,3 +21,7 @@
 - [x] [Review][Defer] eslint-plugin-react-compiler uses RC pre-release version — `^19.1.0-rc.2` is a release candidate, not stable GA. Acceptable during development but should be updated before production merge. [package.json:53] — deferred, pre-existing
 - [x] [Review][Defer] compilationMode: 'infer' may conflict with existing manual memoization — With 'infer' mode, React Compiler auto-memoizes all components, potentially conflicting with the 159 existing `useMemo`/`useCallback` call sites. Double-memoization could cause stale closures or missed updates. Should be addressed in EPI1.03 when removing manual memoization. [vite.config.ts:14] — deferred, tracked in EPI1.03
 - [x] [Review][Defer] Tests verify config files only, not actual behavior — Unit tests use `fs.readFileSync` + string matching only. No test verifies ESLint actually runs, Vite builds, or the babel plugin produces correct output. A misconfigured plugin would pass all tests but fail in production. [eslint-react-compiler.test.ts] — deferred, improvement opportunity
+
+## Deferred from: code review of epi1-03-remove-manual-memoization (2026-03-27)
+
+- [x] [Review][Defer] Terminal.tsx handleRestart 原 useCallback 依赖了不存在的 componentName — 预存问题，移除 useCallback 后已自然修复。延后处理，需单独评估是否需要恢复 useCallback 并修复依赖。[Terminal.tsx:562] — deferred, pre-existing

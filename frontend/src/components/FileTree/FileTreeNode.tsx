@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import type { FileInfo } from '../../types/file';
 import { useGit } from '../../context/GitContext';
 
@@ -16,16 +16,10 @@ export function FileTreeNode({ file, depth, onFileClick, onContextMenu, expanded
 
   const isExpanded = expandedPaths.has(file.path);
 
-  const gitStatus = useMemo(() => {
-    if (!status) return null;
-    
-    const fileChange = status.changes.find(c => c.path === file.path);
-    if (fileChange) return fileChange.status;
-    
-    if (status.untracked.includes(file.path)) return 'untracked';
-    
-    return null;
-  }, [status, file.path]);
+  const gitStatus = !status
+    ? null
+    : (status.changes.find(c => c.path === file.path)?.status
+        ?? (status.untracked.includes(file.path) ? 'untracked' : null));
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();

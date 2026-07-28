@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 
 interface Diagnostic {
   line: number;
@@ -108,7 +108,7 @@ export function MockCodeEditor() {
   }, [content]);
 
   // Handle keyboard input for Playwright tests
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       setContent(prev => prev + '\n');
@@ -120,7 +120,7 @@ export function MockCodeEditor() {
     } else if (e.key.length === 1) {
       setContent(prev => prev + e.key);
     }
-  }, []);
+  };
 
   // Generate error squiggles
   const renderSquiggles = () => {

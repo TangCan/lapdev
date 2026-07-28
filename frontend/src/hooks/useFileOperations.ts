@@ -49,7 +49,7 @@ export function useFileOperations({
     } finally {
       setIsSaving(false);
     }
-  }, [tabs, activeTabId, markSaved, showError, refreshGitStatus]);
+  }, [tabs, activeTabId, markSaved, refreshGitStatus, showError]);
 
   const handleFormat = useCallback(async () => {
     const activeTab = tabs.find(tab => tab.id === activeTabId);
@@ -86,7 +86,7 @@ export function useFileOperations({
     } finally {
       setIsSaving(false);
     }
-  }, [markSaved, showError, refreshGitStatus]);
+  }, [markSaved, refreshGitStatus, showError]);
 
   return {
     isSaving,

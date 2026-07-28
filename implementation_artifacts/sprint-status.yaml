@@ -1,5 +1,5 @@
 # generated: 2026-07-27
-# last_updated: 2026-07-27 (epi1-01 in review; testing-library upgraded to v16, ESLint warnings fixed)
+# last_updated: 2026-07-27 (epi1-02 done; epi1-03 ready-for-dev; aiService immutability fix)
 # project: lapdev
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-07-27
-last_updated: 2026-07-27 (epi1-02 done; code review completed, 4 patches applied, all tests pass)
+# last_updated: 2026-03-27 (epi1-03 review: memoization reduced 159→89, -44%)
 project: lapdev
 project_key: NOKEY
 tracking_system: file-system
@@ -118,7 +118,7 @@ development_status:
   epi1: in-progress
   epi1-01-react-19-dependency-upgrade: done
   epi1-02-enable-react-compiler: done
-  epi1-03-remove-manual-memoization: in-progress
+  epi1-03-remove-manual-memoization: review
   epi1-retrospective: optional
 
   # Epic EPI2: 性能优化 - Monaco Editor 深度优化 (3 stories)
@@ -164,9 +164,9 @@ summary:
   epics_done: 11
   epics_in_progress: 6
   stories_done: 28
-  stories_in_progress: 15
-  stories_ready_for_dev: 1
-  stories_in_review: 0
+  stories_in_progress: 14
+  stories_ready_for_dev: 2
+  stories_in_review: 1
 
 story_mapping:
   # Phase 1: 基础功能
@@ -290,7 +290,7 @@ story_mapping:
       title: "移除手动 Memoization 代码"
       key: "epi1-03-remove-manual-memoization"
       frs: []
-      status_note: "全项目仍有 159 处 useMemo/useCallback 未清理"
+      status_note: "memoization 159→89 (-44%), 11 files modified, 70 calls removed"
   epi2:
     - id: "EPI2.01"
       title: "Monaco Editor 懒加载"
@@ -397,5 +397,5 @@ integration_gap_analysis:
     - "集成 EPI4（Zustand 替换 Context）—— 与 EPI5 并行"
     - "集成 EPI2（编辑器优化）—— 替换 LspCodeEditor 为 LazyCodeEditor"
     - "集成 EPI3（并发渲染 + 虚拟滚动）—— 接入 useFileSearch 和 VirtualList"
-    - "配置 EPI1（React Compiler + 清理 useMemo）"
+    - "EPI1（React Compiler + 清理 useMemo）—— 已完成，159→89 (-44%)"
     - "集成 EPI6（DI 容器）—— 重构服务层"

@@ -103,7 +103,7 @@ export function useEditor() {
     } finally {
       setIsLoading(false);
     }
-  }, [content, language, currentFile]);
+  }, [content, currentFile, language]);
 
   const closeFile = useCallback(() => {
     setCurrentFile(null);
