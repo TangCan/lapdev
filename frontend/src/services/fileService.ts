@@ -2,10 +2,22 @@ import type { FileTreeResult, FileContentResult, OperationResult, CreateFileRequ
 
 const BASE_URL = '';
 
+async function parseJsonResponse<T>(response: Response): Promise<T> {
+  const text = await response.text();
+  if (!text) {
+    throw new Error(`Empty response (status ${response.status})`);
+  }
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error(`Invalid JSON response (status ${response.status}): ${text.substring(0, 200)}`);
+  }
+}
+
 export async function fetchFileTree(path: string = '/workspace', depth: number = 3): Promise<FileTreeResult> {
   console.log('[fileService] fetchFileTree called, path:', path, 'depth:', depth);
   const response = await fetch(`${BASE_URL}/api/v1/files/tree?path=${encodeURIComponent(path)}&depth=${depth}`);
-  const result = await response.json();
+  const result = await parseJsonResponse<FileTreeResult>(response);
   console.log('[fileService] fetchFileTree result:', JSON.stringify(result));
   return result;
 }
@@ -13,7 +25,7 @@ export async function fetchFileTree(path: string = '/workspace', depth: number =
 export async function readFile(path: string): Promise<FileContentResult> {
   console.log('[fileService] readFile called, path:', path);
   const response = await fetch(`${BASE_URL}/api/v1/files/read?path=${encodeURIComponent(path)}`);
-  const result = await response.json();
+  const result = await parseJsonResponse<FileContentResult>(response);
   console.log('[fileService] readFile result:', JSON.stringify(result));
   return result;
 }
@@ -27,7 +39,7 @@ export async function writeFile(path: string, content: string): Promise<Operatio
       'Content-Type': 'application/json'
     }
   });
-  const result = await response.json();
+  const result = await parseJsonResponse<OperationResult>(response);
   console.log('[fileService] writeFile result:', JSON.stringify(result));
   return result;
 }
@@ -41,7 +53,7 @@ export async function createFile(request: CreateFileRequest): Promise<OperationR
       'Content-Type': 'application/json'
     }
   });
-  const result = await response.json();
+  const result = await parseJsonResponse<OperationResult>(response);
   console.log('[fileService] createFile result:', JSON.stringify(result));
   return result;
 }
@@ -55,7 +67,7 @@ export async function renameFile(request: RenameRequest): Promise<OperationResul
       'Content-Type': 'application/json'
     }
   });
-  const result = await response.json();
+  const result = await parseJsonResponse<OperationResult>(response);
   console.log('[fileService] renameFile result:', JSON.stringify(result));
   return result;
 }
@@ -69,7 +81,7 @@ export async function deleteFile(request: DeleteRequest): Promise<OperationResul
       'Content-Type': 'application/json'
     }
   });
-  const result = await response.json();
+  const result = await parseJsonResponse<OperationResult>(response);
   console.log('[fileService] deleteFile result:', JSON.stringify(result));
   return result;
 }
@@ -91,7 +103,7 @@ export async function formatCode(content: string, language: string): Promise<For
       'Content-Type': 'application/json'
     }
   });
-  const result = await response.json();
+  const result = await parseJsonResponse<FormatResult>(response);
   console.log('[fileService] formatCode result:', JSON.stringify(result));
   return result;
 }
@@ -105,7 +117,7 @@ export interface LanguagesResult {
 export async function getSupportedLanguages(): Promise<LanguagesResult> {
   console.log('[fileService] getSupportedLanguages called');
   const response = await fetch(`${BASE_URL}/api/v1/languages`);
-  const result = await response.json();
+  const result = await parseJsonResponse<LanguagesResult>(response);
   console.log('[fileService] getSupportedLanguages result:', JSON.stringify(result));
   return result;
 }
