@@ -1,11 +1,12 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useSkill } from '../context/SkillContext';
 import { SkillMatchService } from '../services/skillMatchService';
 import type { AIRequest } from '../types/skill';
 
 export function useSkillMatch() {
   const { skills, findMatchingSkills, getActiveSkills } = useSkill();
-  const matchService = new SkillMatchService();
+  const matchServiceRef = useRef(new SkillMatchService());
+  const matchService = matchServiceRef.current;
 
   const matchAndActivate = useCallback((request: AIRequest) => {
     // 使用服务计算匹配度
