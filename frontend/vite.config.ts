@@ -41,8 +41,11 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id: string) {
-          if (id.includes('monaco-editor')) {
-            return 'monaco';
+          if (id.includes('monaco-editor') || id.includes('@monaco-editor/loader')) {
+            return 'monaco-async';
+          }
+          if (id.includes('monaco-editor/esm/vs/language') || id.includes('monaco-editor/esm/vs/editor')) {
+            return 'monaco-async';
           }
           if (id.includes('@xterm')) {
             return 'xterm';

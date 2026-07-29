@@ -1,4 +1,11 @@
-import * as monaco from 'monaco-editor';
+import type { editor } from 'monaco-editor';
+import { getMonacoSync } from '../services/monacoLoader';
+
+function getMonacoMod() {
+  const mod = getMonacoSync();
+  if (!mod) throw new Error('Monaco not loaded yet. Call getMonaco() first.');
+  return mod;
+}
 
 /** 大文件行数阈值 */
 export const LARGE_FILE_THRESHOLD = 10000;
@@ -34,13 +41,13 @@ export function isHugeFile(content: string): boolean {
  */
 export function getOptimizedEditorOptions(
   content: string,
-  baseOptions?: monaco.editor.IStandaloneEditorConstructionOptions
-): monaco.editor.IStandaloneEditorConstructionOptions {
+  baseOptions?: editor.IStandaloneEditorConstructionOptions
+): editor.IStandaloneEditorConstructionOptions {
   const lineCount = content.split('\n').length;
   const isLarge = lineCount > LARGE_FILE_THRESHOLD;
   const isHuge = lineCount > HUGE_FILE_THRESHOLD;
 
-  const optimizedOptions: monaco.editor.IStandaloneEditorConstructionOptions = {
+  const optimizedOptions: editor.IStandaloneEditorConstructionOptions = {
     ...baseOptions,
     // 大文件禁用 minimap 以提升性能
     minimap: { enabled: !isLarge },
@@ -83,8 +90,8 @@ export function createOptimizedEditor(
   container: HTMLElement,
   content: string,
   language: string,
-  baseOptions?: monaco.editor.IStandaloneEditorConstructionOptions
-): monaco.editor.IStandaloneCodeEditor {
+  baseOptions?: editor.IStandaloneEditorConstructionOptions
+): editor.IStandaloneCodeEditor {
   const options = getOptimizedEditorOptions(content, {
     ...baseOptions,
     value: content,
@@ -92,5 +99,5 @@ export function createOptimizedEditor(
     automaticLayout: true,
   });
 
-  return monaco.editor.create(container, options);
+  return getMonacoMod().editor.create(container, options);
 }

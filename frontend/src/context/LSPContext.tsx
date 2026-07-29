@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useCallback, useState } from 'react';
-import { Monaco } from '../services/monacoLoader';
+import { getMonacoSync } from '../services/monacoLoader';
+import type { editor, languages, Range as MonacoRange, IMarkdownString } from 'monaco-editor';
 import { lspService, LspDiagnostic, LspConfig } from '../services/lspService';
 import { Position } from 'vscode-languageserver-types';
 
@@ -8,41 +9,63 @@ interface LSPContextType {
   connect: (config: LspConfig) => Promise<void>;
   disconnect: () => void;
   getDiagnostics: (uri: string) => LspDiagnostic[];
-  registerEditor: (editor: Monaco.editor.IStandaloneCodeEditor, uri: string) => void;
+  registerEditor: (editor: editor.IStandaloneCodeEditor, uri: string) => void;
   unregisterEditor: (uri: string) => void;
   subscribeToDiagnostics: (callback: () => void) => () => void;
 }
 
 const LSPContext = createContext<LSPContextType | null>(null);
 
-const convertCompletionKind = (kind: number): Monaco.languages.CompletionItemKind => {
-  const kindMap: Record<number, Monaco.languages.CompletionItemKind> = {
-    1: Monaco.languages.CompletionItemKind.Text,
-    2: Monaco.languages.CompletionItemKind.Method,
-    3: Monaco.languages.CompletionItemKind.Function,
-    4: Monaco.languages.CompletionItemKind.Constructor,
-    5: Monaco.languages.CompletionItemKind.Field,
-    6: Monaco.languages.CompletionItemKind.Variable,
-    7: Monaco.languages.CompletionItemKind.Class,
-    8: Monaco.languages.CompletionItemKind.Interface,
-    9: Monaco.languages.CompletionItemKind.Module,
-    10: Monaco.languages.CompletionItemKind.Property,
-    11: Monaco.languages.CompletionItemKind.Unit,
-    12: Monaco.languages.CompletionItemKind.Value,
-    13: Monaco.languages.CompletionItemKind.Enum,
-    14: Monaco.languages.CompletionItemKind.Keyword,
-    15: Monaco.languages.CompletionItemKind.Snippet,
-    16: Monaco.languages.CompletionItemKind.Color,
-    17: Monaco.languages.CompletionItemKind.File,
-    18: Monaco.languages.CompletionItemKind.Reference,
+const COMPLETION_ITEM_KIND = {
+  Text: 1,
+  Method: 2,
+  Function: 3,
+  Constructor: 4,
+  Field: 5,
+  Variable: 6,
+  Class: 7,
+  Interface: 8,
+  Module: 9,
+  Property: 10,
+  Unit: 11,
+  Value: 12,
+  Enum: 13,
+  Keyword: 14,
+  Snippet: 15,
+  Color: 16,
+  File: 17,
+  Reference: 18,
+};
+
+const convertCompletionKind = (kind: number): number => {
+  const kindMap: Record<number, number> = {
+    1: COMPLETION_ITEM_KIND.Text,
+    2: COMPLETION_ITEM_KIND.Method,
+    3: COMPLETION_ITEM_KIND.Function,
+    4: COMPLETION_ITEM_KIND.Constructor,
+    5: COMPLETION_ITEM_KIND.Field,
+    6: COMPLETION_ITEM_KIND.Variable,
+    7: COMPLETION_ITEM_KIND.Class,
+    8: COMPLETION_ITEM_KIND.Interface,
+    9: COMPLETION_ITEM_KIND.Module,
+    10: COMPLETION_ITEM_KIND.Property,
+    11: COMPLETION_ITEM_KIND.Unit,
+    12: COMPLETION_ITEM_KIND.Value,
+    13: COMPLETION_ITEM_KIND.Enum,
+    14: COMPLETION_ITEM_KIND.Keyword,
+    15: COMPLETION_ITEM_KIND.Snippet,
+    16: COMPLETION_ITEM_KIND.Color,
+    17: COMPLETION_ITEM_KIND.File,
+    18: COMPLETION_ITEM_KIND.Reference,
   };
-  return kindMap[kind] || Monaco.languages.CompletionItemKind.Text;
+  return kindMap[kind] || COMPLETION_ITEM_KIND.Text;
 };
 
 export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
-  const editorsRef = useRef<Map<string, Monaco.editor.IStandaloneCodeEditor>>(new Map());
+  const editorsRef = useRef<Map<string, editor.IStandaloneCodeEditor>>(new Map());
   const diagnosticSubscribersRef = useRef<Set<() => void>>(new Set());
+  const disposersRef = useRef<Map<string, Array<{ dispose: () => void }>>>(new Map());
 
   const notifyDiagnosticSubscribers = useCallback(() => {
     diagnosticSubscribersRef.current.forEach((callback) => {
@@ -55,17 +78,20 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const handleDiagnosticsChange = useCallback((uri: string, diagnostics: LspDiagnostic[]) => {
-    const editor = editorsRef.current.get(uri);
-    if (editor) {
+    const monacoMod = getMonacoSync();
+    if (!monacoMod) return;
+
+    const editorInstance = editorsRef.current.get(uri);
+    if (editorInstance) {
       const markers = diagnostics.map((d) => ({
         ...d,
         code: String(d.code || ''),
       }));
 
-      Monaco.editor.setModelMarkers(
-        editor.getModel()!,
+      monacoMod.editor.setModelMarkers(
+        editorInstance.getModel()!,
         'lsp',
-        markers as unknown as Monaco.editor.IMarkerData[]
+        markers as unknown as editor.IMarkerData[]
       );
     }
     notifyDiagnosticSubscribers();
@@ -92,11 +118,15 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return lspService.getDiagnostics(uri);
   }, []);
 
-  const registerEditor = useCallback((editor: Monaco.editor.IStandaloneCodeEditor, uri: string) => {
-    editorsRef.current.set(uri, editor);
+  const registerEditor = useCallback((editorInstance: editor.IStandaloneCodeEditor, uri: string) => {
+    editorsRef.current.set(uri, editorInstance);
 
-    // Setup completion provider
-    Monaco.languages.registerCompletionItemProvider(uri, {
+    const monacoMod = getMonacoSync();
+    if (!monacoMod) return;
+
+    const disposers: Array<{ dispose: () => void }> = [];
+
+    disposers.push(monacoMod.languages.registerCompletionItemProvider(uri, {
       provideCompletionItems: async (model, position) => {
         const lspPosition: Position = {
           line: position.lineNumber - 1,
@@ -114,12 +144,11 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             insertText: item.insertText,
             sortText: item.sortText,
           })),
-        } as unknown as Monaco.languages.CompletionList;
+        } as unknown as languages.CompletionList;
       },
-    });
+    }));
 
-    // Setup definition provider
-    Monaco.languages.registerDefinitionProvider(uri, {
+    disposers.push(monacoMod.languages.registerDefinitionProvider(uri, {
       provideDefinition: async (model, position) => {
         const lspPosition: Position = {
           line: position.lineNumber - 1,
@@ -130,8 +159,8 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (!locations) return [];
 
         return locations.map((loc) => ({
-          uri: Monaco.Uri.parse(loc.uri),
-          range: new Monaco.Range(
+          uri: monacoMod.Uri.parse(loc.uri),
+          range: new monacoMod.Range(
             loc.range.start.line + 1,
             loc.range.start.character + 1,
             loc.range.end.line + 1,
@@ -139,10 +168,9 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           ),
         }));
       },
-    });
+    }));
 
-    // Setup reference provider
-    Monaco.languages.registerReferenceProvider(uri, {
+    disposers.push(monacoMod.languages.registerReferenceProvider(uri, {
       provideReferences: async (model, position) => {
         const lspPosition: Position = {
           line: position.lineNumber - 1,
@@ -153,8 +181,8 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (!locations) return [];
 
         return locations.map((loc) => ({
-          uri: Monaco.Uri.parse(loc.uri),
-          range: new Monaco.Range(
+          uri: monacoMod.Uri.parse(loc.uri),
+          range: new monacoMod.Range(
             loc.range.start.line + 1,
             loc.range.start.character + 1,
             loc.range.end.line + 1,
@@ -162,10 +190,9 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           ),
         }));
       },
-    });
+    }));
 
-    // Setup rename provider
-    Monaco.languages.registerRenameProvider(uri, {
+    disposers.push(monacoMod.languages.registerRenameProvider(uri, {
       provideRenameEdits: async (model, position, newName) => {
         const lspPosition: Position = {
           line: position.lineNumber - 1,
@@ -180,10 +207,10 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         result.changes?.forEach((change) => {
           change.edits.forEach((edit) => {
             edits.push({
-              resource: Monaco.Uri.parse(change.uri),
+              resource: monacoMod.Uri.parse(change.uri),
               edits: [
                 {
-                  range: new Monaco.Range(
+                  range: new monacoMod.Range(
                     edit.range.start.line + 1,
                     edit.range.start.character + 1,
                     edit.range.end.line + 1,
@@ -199,16 +226,15 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return { edits } as any;
       },
-    });
+    }));
 
-    // Setup document formatter
-    Monaco.languages.registerDocumentFormattingEditProvider(uri, {
+    disposers.push(monacoMod.languages.registerDocumentFormattingEditProvider(uri, {
       provideDocumentFormattingEdits: async () => {
         const result = await lspService.formatDocument(uri);
         if (!result) return [];
 
         return result.map((edit) => ({
-          range: new Monaco.Range(
+          range: new monacoMod.Range(
             edit.range.start.line + 1,
             edit.range.start.character + 1,
             edit.range.end.line + 1,
@@ -217,10 +243,9 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           text: edit.newText,
         }));
       },
-    });
+    }));
 
-    // Setup signature help provider
-    Monaco.languages.registerSignatureHelpProvider(uri, {
+    disposers.push(monacoMod.languages.registerSignatureHelpProvider(uri, {
       provideSignatureHelp: async (model, position) => {
         const lspPosition: Position = {
           line: position.lineNumber - 1,
@@ -252,12 +277,11 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             activeParameter: result.activeParameter,
           },
           dispose: () => {},
-        } as Monaco.languages.SignatureHelpResult;
+        } as languages.SignatureHelpResult;
       },
-    });
+    }));
 
-    // Setup hover provider
-    Monaco.languages.registerHoverProvider(uri, {
+    disposers.push(monacoMod.languages.registerHoverProvider(uri, {
       provideHover: async (model, position) => {
         const lspPosition: Position = {
           line: position.lineNumber - 1,
@@ -267,27 +291,27 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const result = await lspService.getHover(uri, lspPosition);
         if (!result) return null;
 
-        const contents: Monaco.IMarkdownString[] = [];
-        
+        const contents: IMarkdownString[] = [];
+
         if (result.contents) {
           if (Array.isArray(result.contents)) {
             result.contents.forEach((content) => {
               if (typeof content === 'string') {
-                contents.push({ value: content } as Monaco.IMarkdownString);
+                contents.push({ value: content });
               } else {
-                contents.push({ value: content.value } as Monaco.IMarkdownString);
+                contents.push({ value: content.value });
               }
             });
           } else if (typeof result.contents === 'string') {
-            contents.push({ value: result.contents } as Monaco.IMarkdownString);
+            contents.push({ value: result.contents });
           } else {
-            contents.push({ value: result.contents.value } as Monaco.IMarkdownString);
+            contents.push({ value: result.contents.value });
           }
         }
 
-        let range: Monaco.Range | undefined;
+        let range: MonacoRange | undefined;
         if (result.range) {
-          range = new Monaco.Range(
+          range = new monacoMod.Range(
             result.range.start.line + 1,
             result.range.start.character + 1,
             result.range.end.line + 1,
@@ -300,10 +324,17 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           range,
         };
       },
-    });
+    }));
+
+    disposersRef.current.set(uri, disposers);
   }, []);
 
   const unregisterEditor = useCallback((uri: string) => {
+    const disposers = disposersRef.current.get(uri);
+    if (disposers) {
+      disposers.forEach(d => d.dispose());
+      disposersRef.current.delete(uri);
+    }
     editorsRef.current.delete(uri);
   }, []);
 

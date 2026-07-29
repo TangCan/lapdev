@@ -5,7 +5,7 @@ import { ThemeProvider } from '../theme/ThemeContext';
 import { AIProvider } from '../context/AIContext';
 import { InlineCompletionProvider } from '../context/InlineCompletionContext';
 import { GitProvider } from '../context/GitContext';
-import * as Monaco from 'monaco-editor';
+import type { MonacoModule } from '../services/monacoLoader';
 
 export interface MockEditor {
   onDidChangeModelContent: Mock;
@@ -22,6 +22,19 @@ export interface MockEditor {
   getSelection: Mock;
 }
 
+let mockEditorInstance: MockEditor | null = null;
+let mockMonacoModule: MonacoModule | null = null;
+
+vi.mock('../services/monacoLoader', () => {
+  const mod = {
+    getMonaco: vi.fn(),
+    getMonacoSync: vi.fn(),
+  };
+  mod.getMonaco.mockImplementation(() => Promise.resolve(mockMonacoModule));
+  mod.getMonacoSync.mockImplementation(() => mockMonacoModule);
+  return mod;
+});
+
 export const createMockEditor = (initialValue: string = ''): MockEditor => ({
   onDidChangeModelContent: vi.fn(),
   setValue: vi.fn(),
@@ -30,6 +43,8 @@ export const createMockEditor = (initialValue: string = ''): MockEditor => ({
     getValue: vi.fn().mockReturnValue(initialValue),
     getOffsetAt: vi.fn().mockReturnValue(initialValue.length),
     setLanguage: vi.fn(),
+    getLineCount: vi.fn().mockReturnValue(1),
+    getLineLength: vi.fn().mockReturnValue(initialValue.length),
   }),
   deltaDecorations: vi.fn().mockReturnValue([]),
   dispose: vi.fn(),
@@ -41,24 +56,55 @@ export const createMockEditor = (initialValue: string = ''): MockEditor => ({
   getSelection: vi.fn(),
 });
 
-let currentMockEditor: MockEditor | null = null;
-
 export const setupMonacoMock = (initialValue: string = ''): MockEditor => {
-  currentMockEditor = createMockEditor(initialValue);
-  
-  vi.mocked(Monaco.editor.create).mockReturnValue(currentMockEditor as unknown as Monaco.editor.IStandaloneCodeEditor);
-  vi.mocked(Monaco.editor.setModelLanguage).mockReset();
-  vi.mocked(Monaco.editor.setTheme).mockReset();
-  vi.mocked(Monaco.Range).mockReset().mockReturnValue({} as unknown as Monaco.Range);
-  
-  return currentMockEditor;
+  mockEditorInstance = createMockEditor(initialValue);
+
+  const mockRange = vi.fn().mockReturnValue({
+    startLineNumber: 1,
+    startColumn: 1,
+    endLineNumber: 1,
+    endColumn: 1,
+  });
+
+  const mockUriParse = vi.fn().mockReturnValue({ toString: () => 'file:///test.ts' });
+
+  mockMonacoModule = {
+    editor: {
+      create: vi.fn().mockReturnValue(mockEditorInstance),
+      setModelLanguage: vi.fn(),
+      setTheme: vi.fn(),
+      setModelMarkers: vi.fn(),
+      getModels: vi.fn().mockReturnValue([]),
+      OverviewRulerLane: { Right: 4 },
+    },
+    languages: {
+      registerCompletionItemProvider: vi.fn(),
+      registerDefinitionProvider: vi.fn(),
+      registerReferenceProvider: vi.fn(),
+      registerRenameProvider: vi.fn(),
+      registerDocumentFormattingEditProvider: vi.fn(),
+      registerSignatureHelpProvider: vi.fn(),
+      registerHoverProvider: vi.fn(),
+      CompletionItemKind: { Text: 1, Method: 2, Function: 3, Constructor: 4, Field: 5, Variable: 6, Class: 7, Interface: 8, Module: 9, Property: 10, Unit: 11, Value: 12, Enum: 13, Keyword: 14, Snippet: 15, Color: 16, File: 17, Reference: 18 },
+    },
+    Range: mockRange,
+    Uri: { parse: mockUriParse },
+    Position: vi.fn().mockReturnValue({ lineNumber: 1, column: 1 }),
+    MarkerSeverity: { Error: 8, Warning: 4, Info: 2, Hint: 1 },
+  } as unknown as MonacoModule;
+
+  return mockEditorInstance;
 };
 
 export const getMockEditor = (): MockEditor => {
-  if (!currentMockEditor) {
+  if (!mockEditorInstance) {
     throw new Error('Monaco mock not initialized. Call setupMonacoMock() first.');
   }
-  return currentMockEditor;
+  return mockEditorInstance;
+};
+
+export const getMockMonacoModule = (): MonacoModule | null => {
+  return mockMonacoModule;
 };
 
 export const renderWithProviders = (
@@ -87,10 +133,10 @@ export const renderWithMonaco = (
   }
 ) => {
   const { initialValue = '', renderOptions } = options || {};
-  
+
   const mockEditor = setupMonacoMock(initialValue);
   const renderResult = renderWithProviders(ui, renderOptions);
-  
+
   return {
     ...renderResult,
     mockEditor,
@@ -105,16 +151,16 @@ export const renderWithMonacoAsync = async (
   }
 ) => {
   const { initialValue = '', renderOptions } = options || {};
-  
+
   const mockEditor = setupMonacoMock(initialValue);
-  
+
   let renderResult: ReturnType<typeof render>;
-  
+
   await act(async () => {
     renderResult = renderWithProviders(ui, renderOptions);
     await waitFor(() => {}, { timeout: 100 });
   });
-  
+
   return {
     ...renderResult!,
     mockEditor,
@@ -126,7 +172,7 @@ export const simulateEditorChange = (
   newValue: string
 ): void => {
   editor.getValue.mockReturnValue(newValue);
-  
+
   const onChangeHandler = editor.onDidChangeModelContent.mock.calls[0]?.[0];
   if (onChangeHandler) {
     onChangeHandler();

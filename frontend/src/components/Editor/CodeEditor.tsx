@@ -1,14 +1,12 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { Monaco } from '../../services/monacoLoader';
+import { getMonaco, getMonacoSync, type MonacoModule } from '../../services/monacoLoader';
+import type { editor, Range as MonacoRange } from 'monaco-editor';
 import { aiService } from '../../services/aiService';
 import { useAI } from '../../context/AIContext';
 import { useInlineCompletion } from '../../context/InlineCompletionContext';
 import { useTheme } from '../../theme/ThemeContext';
 
-export interface DiffLine {
-  lineNumber: number;
-  type: 'added' | 'modified' | 'deleted';
-}
+import type { DiffLine } from '../../types/diff';
 
 interface CodeEditorProps {
   value: string;
@@ -35,7 +33,8 @@ export function CodeEditor({
   diffLines = []
 }: CodeEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const monacoModuleRef = useRef<MonacoModule | null>(null);
   const decorationRef = useRef<string[]>([] as string[]);
   const ghostTextDecorationRef = useRef<string[]>([]);
   const debounceTimerRef = useRef<number | null>(null);
@@ -45,7 +44,6 @@ export function CodeEditor({
   const { inlineCompletionEnabled, inlineCompletionVisible, setInlineCompletionVisible, ghostText, setGhostText } = useInlineCompletion();
   const { themeName } = useTheme();
 
-  // 使用 ref 存储最新版本的值，避免闭包问题
   const inlineCompletionEnabledRef = useRef(inlineCompletionEnabled);
   const isConnectedRef = useRef(isConnected);
 
@@ -84,10 +82,13 @@ export function CodeEditor({
     const editor = editorRef.current;
     if (!editor) return;
 
+    const monacoMod = monacoModuleRef.current || getMonacoSync();
+    if (!monacoMod) return;
+
     const position = editor.getPosition();
     if (!position) return;
 
-    const range = new Monaco.Range(
+    const range = new monacoMod.Range(
       position.lineNumber,
       position.column,
       position.lineNumber,
@@ -112,13 +113,12 @@ export function CodeEditor({
       return;
     }
 
-    // 使用 ref 访问最新值，避免闭包问题
     if (!inlineCompletionEnabledRef.current) {
       console.log('triggerCompletion: inlineCompletionEnabled is false');
       clearGhostText();
       return;
     }
-    
+
     if (!isConnectedRef.current) {
       console.log('triggerCompletion: isConnected is false');
       clearGhostText();
@@ -149,7 +149,6 @@ export function CodeEditor({
     currentCompletionRequestRef.current = currentCompletion;
 
     debounceTimerRef.current = window.setTimeout(() => {
-      // 使用 IIFE 包裹异步操作，确保所有 Promise rejection 都被正确处理
       (async () => {
         try {
           const result = await aiService.getInlineCompletion({
@@ -166,7 +165,10 @@ export function CodeEditor({
           if (result.completion && result.completion.trim()) {
             setGhostText(result.completion.trim());
 
-            const ghostTextPosition = new Monaco.Range(
+            const monacoMod = monacoModuleRef.current || getMonacoSync();
+            if (!monacoMod) return;
+
+            const ghostTextPosition = new monacoMod.Range(
               position.lineNumber,
               position.column,
               position.lineNumber,
@@ -190,15 +192,12 @@ export function CodeEditor({
             setInlineCompletionVisible(true);
           }
         } catch (error) {
-          // 处理中止错误
           if (error instanceof Error && error.message.includes('aborted')) {
             return;
           }
-          // 处理其他错误
           console.error('Inline completion error:', error);
         }
       })().catch((error) => {
-        // 兜底捕获所有未处理的 Promise rejection
         console.error('Unhandled inline completion error:', error);
       });
     }, DEBOUNCE_DELAY);
@@ -233,7 +232,6 @@ export function CodeEditor({
     }
 
     if (e.key === 'Enter' && inlineCompletionVisible) {
-      // Let the completion be cleared by the content change
     }
   }, [inlineCompletionVisible, acceptCompletion, clearGhostText]);
 
@@ -244,6 +242,9 @@ export function CodeEditor({
       editorRef.current.deltaDecorations(decorationRef.current, []);
       decorationRef.current = [];
     }
+
+    const monacoMod = monacoModuleRef.current || getMonacoSync();
+    if (!monacoMod) return;
 
     const getDiffColor = (type: string): string => {
       switch (type) {
@@ -258,13 +259,13 @@ export function CodeEditor({
       }
     };
 
-    const decorations: Monaco.editor.IModelDeltaDecoration[] = [];
+    const decorations: editor.IModelDeltaDecoration[] = [];
 
     diffLines.forEach((diffLine) => {
       if (diffLine.type === 'deleted') return;
 
       decorations.push({
-        range: new Monaco.Range(diffLine.lineNumber, 1, diffLine.lineNumber, 1),
+        range: new monacoMod.Range(diffLine.lineNumber, 1, diffLine.lineNumber, 1),
         options: {
           isWholeLine: true,
           className: `diff-${diffLine.type}`,
@@ -274,7 +275,7 @@ export function CodeEditor({
             color: getDiffColor(diffLine.type)
           },
           overviewRuler: {
-            position: Monaco.editor.OverviewRulerLane.Right,
+            position: monacoMod.editor.OverviewRulerLane.Right,
             color: getDiffColor(diffLine.type)
           }
         }
@@ -292,75 +293,97 @@ export function CodeEditor({
       return;
     }
 
-    console.log('CodeEditor: initializing Monaco editor');
-    
-    const editorOptions: Monaco.editor.IStandaloneEditorConstructionOptions = {
-      value: value || '',
-      language: language,
-      minimap: { enabled: minimap },
-      fontSize,
-      lineNumbers: 'on',
-      scrollBeyondLastLine: false,
-      automaticLayout: true,
-      theme: themeName === 'dark' ? 'vs-dark' : 'vs',
-      folding: true,
-      foldingHighlight: true,
-      bracketPairColorization: { enabled: true },
-      tabSize: 2,
-      insertSpaces: true,
-      wordWrap: 'on',
-      padding: { top: 16 },
-      renderLineHighlight: 'line',
-      cursorBlinking: 'smooth',
-      cursorSmoothCaretAnimation: 'on',
-      smoothScrolling: true,
-      contextmenu: true,
-      fontFamily: "'Fira Code', 'Monaco', 'Consolas', monospace",
-      fontLigatures: true,
-      overviewRulerBorder: false,
-      overviewRulerLanes: 2,
-      glyphMargin: true,
-    };
+    let cancelled = false;
+    let cleanup: (() => void) | null = null;
 
-    editorRef.current = Monaco.editor.create(containerRef.current, editorOptions);
-    console.log('CodeEditor: Monaco editor created successfully');
+    const init = async () => {
+      try {
+        const monacoMod = await getMonaco();
+        if (cancelled) return;
 
-    const editor = editorRef.current;
-    
-    console.log('CodeEditor: attaching onDidChangeModelContent listener');
+        monacoModuleRef.current = monacoMod;
 
-    editor.onDidChangeModelContent(() => {
-      console.log('onDidChangeModelContent: called');
-      const newValue = editor.getValue() || '';
-      onChange(newValue);
+        const editorOptions: editor.IStandaloneEditorConstructionOptions = {
+          value: value || '',
+          language: language,
+          minimap: { enabled: minimap },
+          fontSize,
+          lineNumbers: 'on',
+          scrollBeyondLastLine: false,
+          automaticLayout: true,
+          theme: themeName === 'dark' ? 'vs-dark' : 'vs',
+          folding: true,
+          foldingHighlight: true,
+          bracketPairColorization: { enabled: true },
+          tabSize: 2,
+          insertSpaces: true,
+          wordWrap: 'on',
+          padding: { top: 16 },
+          renderLineHighlight: 'line',
+          cursorBlinking: 'smooth',
+          cursorSmoothCaretAnimation: 'on',
+          smoothScrolling: true,
+          contextmenu: true,
+          fontFamily: "'Fira Code', 'Monaco', 'Consolas', monospace",
+          fontLigatures: true,
+          overviewRulerBorder: false,
+          overviewRulerLanes: 2,
+          glyphMargin: true,
+        };
 
-      if (inlineCompletionVisible) {
-        clearGhostText();
+        editorRef.current = monacoMod.editor.create(containerRef.current!, editorOptions);
+        console.log('CodeEditor: Monaco editor created successfully');
+
+        const editor = editorRef.current;
+
+        console.log('CodeEditor: attaching onDidChangeModelContent listener');
+
+        editor.onDidChangeModelContent(() => {
+          console.log('onDidChangeModelContent: called');
+          const newValue = editor.getValue() || '';
+          onChange(newValue);
+
+          if (inlineCompletionVisible) {
+            clearGhostText();
+          }
+
+          console.log('onDidChangeModelContent: calling triggerCompletion');
+          triggerCompletion();
+        });
+
+        document.addEventListener('keydown', handleKeyDown);
+
+        window.__test_triggerCompletion = () => {
+          console.log('Global triggerCompletion called');
+          triggerCompletion();
+        };
+
+        window.__test_setEditorValue = (val: string) => {
+          editor.setValue(val);
+          console.log('Global setEditorValue called:', val);
+        };
+
+        cleanup = () => {
+          cancelCurrentCompletion();
+          editor.dispose();
+          document.removeEventListener('keydown', handleKeyDown);
+          delete window.__test_triggerCompletion;
+          delete window.__test_setEditorValue;
+        };
+      } catch (error) {
+        console.error('Failed to load Monaco editor:', error);
       }
-
-      console.log('onDidChangeModelContent: calling triggerCompletion');
-      triggerCompletion();
-    });
-
-    document.addEventListener('keydown', handleKeyDown);
-
-    // 为测试暴露全局方法
-    window.__test_triggerCompletion = () => {
-      console.log('Global triggerCompletion called');
-      triggerCompletion();
     };
 
-    window.__test_setEditorValue = (value: string) => {
-      editor.setValue(value);
-      console.log('Global setEditorValue called:', value);
-    };
+    init();
 
     return () => {
-      cancelCurrentCompletion();
-      editor.dispose();
-      document.removeEventListener('keydown', handleKeyDown);
-      delete window.__test_triggerCompletion;
-      delete window.__test_setEditorValue;
+      cancelled = true;
+      cleanup?.();
+      if (editorRef.current) {
+        editorRef.current.dispose();
+        editorRef.current = null;
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -374,8 +397,9 @@ export function CodeEditor({
   useEffect(() => {
     if (editorRef.current) {
       const model = editorRef.current.getModel();
-      if (model) {
-        Monaco.editor.setModelLanguage(model, language);
+      const monacoMod = monacoModuleRef.current || getMonacoSync();
+      if (model && monacoMod) {
+        monacoMod.editor.setModelLanguage(model, language);
       }
     }
   }, [language]);
@@ -385,9 +409,12 @@ export function CodeEditor({
   }, [updateDiffDecorations]);
 
   useEffect(() => {
-    if (editorRef.current && Monaco.editor.setTheme) {
-      const monacoTheme = themeName === 'dark' ? 'vs-dark' : 'vs';
-      Monaco.editor.setTheme(monacoTheme);
+    if (editorRef.current) {
+      const monacoMod = monacoModuleRef.current || getMonacoSync();
+      if (monacoMod && monacoMod.editor.setTheme) {
+        const monacoTheme = themeName === 'dark' ? 'vs-dark' : 'vs';
+        monacoMod.editor.setTheme(monacoTheme);
+      }
     }
   }, [themeName]);
 

@@ -1,8 +1,7 @@
 import { screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { getMockMonacoModule, renderWithMonacoAsync } from '../../test/monacoTestUtils';
 import { CodeEditor } from './CodeEditor';
-import * as Monaco from 'monaco-editor';
-import { renderWithMonacoAsync } from '../../test/monacoTestUtils';
 
 describe('CodeEditor Component', () => {
   const mockOnChange = vi.fn();
@@ -37,7 +36,8 @@ describe('CodeEditor Component', () => {
       />
     );
 
-    expect(Monaco.editor.create).toHaveBeenCalled();
+    const mockMonaco = getMockMonacoModule();
+    expect(mockMonaco?.editor.create).toHaveBeenCalled();
   });
 
   it('should apply diff decorations', async () => {

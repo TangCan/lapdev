@@ -25,3 +25,10 @@
 ## Deferred from: code review of epi1-03-remove-manual-memoization (2026-03-27)
 
 - [x] [Review][Defer] Terminal.tsx handleRestart 原 useCallback 依赖了不存在的 componentName — 预存问题，移除 useCallback 后已自然修复。延后处理，需单独评估是否需要恢复 useCallback 并修复依赖。[Terminal.tsx:562] — deferred, pre-existing
+
+## Deferred from: code review of epi2-01-monaco-editor-lazy-loading (2026-07-29)
+
+- [x] [Review][Defer] LSP 连接竞态：快速 Tab 切换时 LSP 诊断结果丢失 — 预存问题，涉及 LSP 架构设计，不在本次故事范围内 [LspCodeEditor.tsx:446-463]
+- [x] [Review][Defer] 旧版 CodeEditor.tsx (components/) 未清理 — 文件路径与新版重复，预存问题 [CodeEditor.tsx]
+- [x] [Review][Defer] Python 语言服务特殊处理被移除 — 如需 Python 支持应在 EPI3/EPI4 中处理 [monacoLoader.ts]
+- [x] [Review][Defer] registerLanguageCallbacks 导出函数为死代码 — 仅在内部被调用，外部无使用方 [monacoLoader.ts:160-162]

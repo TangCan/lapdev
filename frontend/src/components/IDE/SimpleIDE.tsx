@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { FileTree } from '../FileTree/FileTree';
-import { CodeEditor } from '../Editor/CodeEditor';
+import { LazyCodeEditor } from '../Editor/LazyCodeEditor';
 import { Terminal } from '../Terminal/Terminal';
 import GitPanel from '../Git/GitPanel';
 import AIChatPanel from '../AI/AIChatPanel';
@@ -67,10 +67,15 @@ function SimpleIDE() {
               loading ? (
                 <div className="loading">Loading...</div>
               ) : (
-                <CodeEditor
+                <LazyCodeEditor
                   value={fileContent}
                   language={openFile.name.split('.').pop() || 'plaintext'}
                   onChange={handleContentChange}
+                  uri={`file://${openFile.path}`}
+                  diffLines={[]}
+                  fontSize={14}
+                  minimap={true}
+                  readOnly={false}
                 />
               )
             ) : (

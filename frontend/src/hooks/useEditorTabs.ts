@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import type { FileInfo } from '../types/file';
 import { readFile } from '../services/fileService';
 import { fetchGitDiff } from '../services/gitService';
-import type { DiffLine } from '../components/Editor/CodeEditor';
+import type { DiffLine } from '../types/diff';
 
 export interface Tab {
   id: string;

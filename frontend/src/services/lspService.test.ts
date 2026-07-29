@@ -1,11 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('monaco-editor', () => ({
-  editor: {
-    getModels: vi.fn().mockReturnValue([]),
-  }
-}));
-
 import { lspService } from './lspService';
 
 describe('lspService', () => {

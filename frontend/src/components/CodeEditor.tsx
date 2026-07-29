@@ -1,10 +1,6 @@
-/**
- * CodeEditor Component
- * Monaco-based code editor with syntax highlighting and LSP support
- */
-
 import React, { useEffect, useRef } from 'react';
-import { Monaco } from '../services/monacoLoader';
+import { getMonaco, getMonacoSync, type MonacoModule } from '../services/monacoLoader';
+import type { editor } from 'monaco-editor';
 
 interface CodeEditorProps {
   modelUri?: string;
@@ -20,7 +16,8 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   readOnly = false
 }) => {
   const editorContainer = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const monacoModuleRef = useRef<MonacoModule | null>(null);
 
   const loadFile = async (uri: string) => {
     try {
@@ -37,40 +34,58 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   useEffect(() => {
     if (!editorContainer.current) return;
 
-    // Initialize Monaco editor
-    editorRef.current = Monaco.editor.create(editorContainer.current, {
-      value: '',
-      language,
-      theme: 'vs-dark',
-      readOnly,
-      fontSize: 14,
-      fontFamily: 'JetBrains Mono, Fira Code, Consolas, monospace',
-      tabSize: 2,
-      insertSpaces: true,
-      automaticLayout: true,
-      scrollBeyondLastLine: false,
-      wordWrap: 'on',
-      folding: true,
-      bracketPairColorization: { enabled: true },
-      minimap: {
-        enabled: true,
-        showSlider: 'always'
+    let cancelled = false;
+    let cleanup: (() => void) | null = null;
+
+    const init = async () => {
+      try {
+        const monacoMod = await getMonaco();
+        if (cancelled) return;
+
+        monacoModuleRef.current = monacoMod;
+
+        editorRef.current = monacoMod.editor.create(editorContainer.current!, {
+          value: '',
+          language,
+          theme: 'vs-dark',
+          readOnly,
+          fontSize: 14,
+          fontFamily: 'JetBrains Mono, Fira Code, Consolas, monospace',
+          tabSize: 2,
+          insertSpaces: true,
+          automaticLayout: true,
+          scrollBeyondLastLine: false,
+          wordWrap: 'on',
+          folding: true,
+          bracketPairColorization: { enabled: true },
+          minimap: {
+            enabled: true,
+            showSlider: 'always'
+          }
+        });
+
+        if (modelUri) {
+          loadFile(modelUri);
+        }
+
+        editorRef.current.onDidChangeModelContent(() => {
+          const content = editorRef.current?.getValue() || '';
+          onSave?.(content);
+        });
+
+        cleanup = () => {
+          editorRef.current?.dispose();
+        };
+      } catch (error) {
+        console.error('Failed to load Monaco editor:', error);
       }
-    });
+    };
 
-    // Load file if modelUri is provided
-    if (modelUri) {
-      loadFile(modelUri);
-    }
-
-    // Handle save
-    editorRef.current.onDidChangeModelContent(() => {
-      const content = editorRef.current?.getValue() || '';
-      onSave?.(content);
-    });
+    init();
 
     return () => {
-      editorRef.current?.dispose();
+      cancelled = true;
+      cleanup?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

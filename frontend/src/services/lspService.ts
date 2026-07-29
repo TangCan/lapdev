@@ -1,4 +1,5 @@
-import { Monaco } from './monacoLoader';
+import { getMonacoSync, type MonacoModule } from './monacoLoader';
+import type { Range as MonacoRange, MarkerSeverity } from 'monaco-editor';
 import {
   CompletionItem,
   CompletionItemKind,
@@ -17,8 +18,8 @@ export interface LspConfig {
 }
 
 export interface LspDiagnostic {
-  range: Monaco.Range;
-  severity: Monaco.MarkerSeverity;
+  range: MonacoRange;
+  severity: MarkerSeverity;
   message: string;
   code?: string | number;
   source: string;
@@ -35,6 +36,13 @@ export interface LspCompletionItem {
 
 const API_BASE_URL = `${API_URL}/v1/lsp`;
 
+const MARKER_SEVERITY = {
+  Error: 8,
+  Warning: 4,
+  Info: 2,
+  Hint: 1,
+};
+
 class LspService {
   private diagnostics: Map<string, LspDiagnostic[]> = new Map();
   private onDiagnosticsChange?: (uri: string, diagnostics: LspDiagnostic[]) => void;
@@ -48,7 +56,7 @@ class LspService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ language: config.language }),
       });
-      
+
       if (response.ok) {
         this.isConnected = true;
         this.currentLanguage = config.language;
@@ -73,18 +81,18 @@ class LspService {
     this.diagnostics.clear();
   }
 
-  private convertSeverity(severity?: number): Monaco.MarkerSeverity {
+  private convertSeverity(severity?: number): MarkerSeverity {
     switch (severity) {
-      case 1: // Error
-        return Monaco.MarkerSeverity.Error;
-      case 2: // Warning
-        return Monaco.MarkerSeverity.Warning;
-      case 3: // Info
-        return Monaco.MarkerSeverity.Info;
-      case 4: // Hint
-        return Monaco.MarkerSeverity.Hint;
+      case 1:
+        return MARKER_SEVERITY.Error as MarkerSeverity;
+      case 2:
+        return MARKER_SEVERITY.Warning as MarkerSeverity;
+      case 3:
+        return MARKER_SEVERITY.Info as MarkerSeverity;
+      case 4:
+        return MARKER_SEVERITY.Hint as MarkerSeverity;
       default:
-        return Monaco.MarkerSeverity.Error;
+        return MARKER_SEVERITY.Error as MarkerSeverity;
     }
   }
 
@@ -95,11 +103,38 @@ class LspService {
     return uri;
   }
 
+  private getMonacoMod() {
+    const mod = getMonacoSync();
+    if (mod) return mod;
+    
+    return {
+      Range: class {
+        constructor(public startLineNumber: number, public startColumn: number, public endLineNumber: number, public endColumn: number) {}
+      },
+      Position: class {
+        constructor(public lineNumber: number, public column: number) {}
+      },
+      MarkerSeverity: { Error: 8, Warning: 4, Info: 2, Hint: 1 },
+      Uri: { parse: () => ({ toString: () => '', scheme: '', authority: '', path: '' }) },
+      editor: {
+        getModels: () => [],
+        setModelMarkers: () => {},
+        create: () => ({ dispose: () => {}, getModel: () => null, onDidChangeModelContent: () => ({ dispose: () => {} }) }),
+      },
+      languages: {
+        register: () => {},
+        setLanguageConfiguration: () => {},
+        onLanguage: () => {},
+      },
+    } as unknown as MonacoModule;
+  }
+
   async getCompletions(
     uri: string,
     position: Position
   ): Promise<LspCompletionItem[]> {
-    const model = Monaco.editor.getModels().find(m => m.uri.toString() === uri);
+    const monacoMod = this.getMonacoMod();
+    const model = monacoMod.editor.getModels().find(m => m.uri.toString() === uri);
     const content = model?.getValue() || '';
 
     try {
@@ -114,7 +149,7 @@ class LspService {
       });
 
       const result = await response.json();
-      
+
       if (result.status === 'success' && result.items) {
         return result.items.map((item: CompletionItem) => ({
           label: item.label,
@@ -140,7 +175,8 @@ class LspService {
     uri: string,
     position: Position
   ): Promise<SignatureHelp | null> {
-    const model = Monaco.editor.getModels().find(m => m.uri.toString() === uri);
+    const monacoMod = this.getMonacoMod();
+    const model = monacoMod.editor.getModels().find(m => m.uri.toString() === uri);
     const content = model?.getValue() || '';
 
     try {
@@ -155,7 +191,7 @@ class LspService {
       });
 
       const result = await response.json();
-      
+
       if (result.status === 'success' && result.signatures) {
         return result.signatures;
       }
@@ -170,7 +206,8 @@ class LspService {
     uri: string,
     position: Position
   ): Promise<Location[] | null> {
-    const model = Monaco.editor.getModels().find(m => m.uri.toString() === uri);
+    const monacoMod = this.getMonacoMod();
+    const model = monacoMod.editor.getModels().find(m => m.uri.toString() === uri);
     const content = model?.getValue() || '';
 
     try {
@@ -185,7 +222,7 @@ class LspService {
       });
 
       const result = await response.json();
-      
+
       if (result.status === 'success' && result.locations) {
         return result.locations;
       }
@@ -200,7 +237,8 @@ class LspService {
     uri: string,
     position: Position
   ): Promise<Location[] | null> {
-    const model = Monaco.editor.getModels().find(m => m.uri.toString() === uri);
+    const monacoMod = this.getMonacoMod();
+    const model = monacoMod.editor.getModels().find(m => m.uri.toString() === uri);
     const content = model?.getValue() || '';
 
     try {
@@ -215,7 +253,7 @@ class LspService {
       });
 
       const result = await response.json();
-      
+
       if (result.status === 'success' && result.locations) {
         return result.locations;
       }
@@ -230,7 +268,8 @@ class LspService {
     uri: string,
     position: Position
   ): Promise<Location[] | null> {
-    const model = Monaco.editor.getModels().find(m => m.uri.toString() === uri);
+    const monacoMod = this.getMonacoMod();
+    const model = monacoMod.editor.getModels().find(m => m.uri.toString() === uri);
     const content = model?.getValue() || '';
 
     try {
@@ -245,7 +284,7 @@ class LspService {
       });
 
       const result = await response.json();
-      
+
       if (result.status === 'success' && result.locations) {
         return result.locations;
       }
@@ -260,7 +299,8 @@ class LspService {
     uri: string,
     position: Position
   ): Promise<Hover | null> {
-    const model = Monaco.editor.getModels().find(m => m.uri.toString() === uri);
+    const monacoMod = this.getMonacoMod();
+    const model = monacoMod.editor.getModels().find(m => m.uri.toString() === uri);
     const content = model?.getValue() || '';
 
     try {
@@ -275,7 +315,7 @@ class LspService {
       });
 
       const result = await response.json();
-      
+
       if (result.status === 'success' && result.hover) {
         return result.hover;
       }
@@ -291,7 +331,8 @@ class LspService {
     position: Position,
     newName: string
   ): Promise<{ changes: { uri: string; edits: { range: Range; newText: string }[] }[] } | null> {
-    const model = Monaco.editor.getModels().find(m => m.uri.toString() === uri);
+    const monacoMod = this.getMonacoMod();
+    const model = monacoMod.editor.getModels().find(m => m.uri.toString() === uri);
     const content = model?.getValue() || '';
 
     try {
@@ -307,7 +348,7 @@ class LspService {
       });
 
       const result = await response.json();
-      
+
       if (result.status === 'success' && result.edits) {
         return result.edits;
       }
@@ -319,7 +360,8 @@ class LspService {
   }
 
   async formatDocument(uri: string): Promise<{ range: Range; newText: string }[] | null> {
-    const model = Monaco.editor.getModels().find(m => m.uri.toString() === uri);
+    const monacoMod = this.getMonacoMod();
+    const model = monacoMod.editor.getModels().find(m => m.uri.toString() === uri);
     const content = model?.getValue() || '';
 
     try {
@@ -333,7 +375,7 @@ class LspService {
       });
 
       const result = await response.json();
-      
+
       if (result.status === 'success') {
         const formattedContent = result.content;
         if (formattedContent !== content) {
@@ -356,8 +398,9 @@ class LspService {
   async getCodeActions(
     uri: string,
     range: Range
-  ): Promise<Monaco.languages.CodeAction[]> {
-    const model = Monaco.editor.getModels().find(m => m.uri.toString() === uri);
+  ): Promise<MonacoRange[]> {
+    const monacoMod = this.getMonacoMod();
+    const model = monacoMod.editor.getModels().find(m => m.uri.toString() === uri);
     const content = model?.getValue() || '';
 
     try {
@@ -372,7 +415,7 @@ class LspService {
       });
 
       const result = await response.json();
-      
+
       if (result.status === 'success' && result.actions) {
         return result.actions;
       }
@@ -410,10 +453,12 @@ class LspService {
       });
 
       const result = await response.json();
-      
+
       if (result.status === 'success' && result.diagnostics) {
+        const monacoMod = this.getMonacoMod();
+
         const lspDiagnostics: LspDiagnostic[] = result.diagnostics.map((d: Diagnostic) => ({
-          range: new Monaco.Range(
+          range: new monacoMod.Range(
             d.range.start.line + 1,
             d.range.start.character + 1,
             d.range.end.line + 1,

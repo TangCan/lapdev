@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FileTree } from '../FileTree';
-import type { DiffLine } from '../Editor/CodeEditor';
-import { LspCodeEditor } from '../Editor/LspCodeEditor';
+import type { DiffLine } from '../../types/diff';
+import { LazyCodeEditor } from '../Editor/LazyCodeEditor';
 import { Terminal } from '../Terminal/Terminal';
 import GitPanel from '../Git/GitPanel';
 import ProblemsPanel from '../Problems/ProblemsPanel';
@@ -453,8 +453,7 @@ function IDE() {
                 {loadingFiles.has(activeTab.file.path) ? (
                   <div className="loading-editor">Loading...</div>
                 ) : (
-                  <LspCodeEditor
-                    key={activeTab.file.path}
+                  <LazyCodeEditor
                     value={activeTab.content}
                     language={activeTab.language}
                     onChange={(value) => handleContentChange(activeTab.id, value)}

@@ -1,6 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Monaco } from '../../services/monacoLoader';
+import { getMonacoSync } from '../../services/monacoLoader';
 import { useLSP } from '../../context/LSPContext';
+
+const MARKER_SEVERITY = {
+  Error: 8,
+  Warning: 4,
+  Info: 2,
+  Hint: 1,
+};
 
 interface ProblemsPanelProps {
   onSelectProblem: (line: number, column: number) => void;
@@ -18,29 +25,35 @@ const ProblemsPanel: React.FC<ProblemsPanelProps> = ({ onSelectProblem }) => {
 
   const updateProblems = useCallback(() => {
     const allProblems: typeof problems = [];
-    
-    const model = Monaco.editor.getModels()[0];
+
+    const monacoMod = getMonacoSync();
+    if (!monacoMod) {
+      setProblems([]);
+      return;
+    }
+
+    const model = monacoMod.editor.getModels()[0];
     if (model) {
       const uri = model.uri.toString();
       const diagnostics = getDiagnostics(uri);
-      
+
       diagnostics.forEach((d) => {
+        const severityValue = d.severity as unknown as number;
         allProblems.push({
           line: d.range.startLineNumber,
           column: d.range.startColumn,
-          severity: d.severity === Monaco.MarkerSeverity.Error ? 'error' :
-                    d.severity === Monaco.MarkerSeverity.Warning ? 'warning' : 'info',
+          severity: severityValue === MARKER_SEVERITY.Error ? 'error' :
+                    severityValue === MARKER_SEVERITY.Warning ? 'warning' : 'info',
           message: d.message,
           source: d.source,
         });
       });
     }
-    
+
     setProblems(allProblems);
   }, [getDiagnostics]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- TODO: Refactor with useEffectEvent in EPI5
     updateProblems();
 
     const unsubscribe = subscribeToDiagnostics(updateProblems);

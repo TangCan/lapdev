@@ -2,13 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import ProblemsPanel from './ProblemsPanel';
-import { Monaco } from '../../services/monacoLoader';
 
-const { mockOnSelectProblem, mockGetDiagnostics, mockSubscribeToDiagnostics, mockUseLSP } = vi.hoisted(() => ({
+const { mockOnSelectProblem, mockGetDiagnostics, mockSubscribeToDiagnostics, mockUseLSP, mockGetMonacoSync } = vi.hoisted(() => ({
   mockOnSelectProblem: vi.fn(),
   mockGetDiagnostics: vi.fn(),
   mockSubscribeToDiagnostics: vi.fn(() => vi.fn()),
   mockUseLSP: vi.fn(),
+  mockGetMonacoSync: vi.fn(),
 }));
 
 vi.mock('../../context/LSPContext', () => ({
@@ -17,19 +17,15 @@ vi.mock('../../context/LSPContext', () => ({
 }));
 
 vi.mock('../../services/monacoLoader', () => ({
-  Monaco: {
-    editor: {
-      getModels: vi.fn().mockReturnValue([{
-        uri: { toString: () => 'file:///test.ts' },
-      }]),
-    },
-    MarkerSeverity: {
-      Error: 8,
-      Warning: 4,
-      Info: 2,
-    },
-  },
+  getMonacoSync: mockGetMonacoSync,
 }));
+
+const MARKER_SEVERITY = {
+  Error: 8,
+  Warning: 4,
+  Info: 2,
+  Hint: 1,
+};
 
 describe('ProblemsPanel Component', () => {
   beforeEach(() => {
@@ -45,6 +41,14 @@ describe('ProblemsPanel Component', () => {
       registerEditor: vi.fn(),
       unregisterEditor: vi.fn(),
       subscribeToDiagnostics: mockSubscribeToDiagnostics,
+    });
+
+    mockGetMonacoSync.mockReturnValue({
+      editor: {
+        getModels: () => [{
+          uri: { toString: () => 'file:///test.ts' },
+        }],
+      },
     });
   });
 
@@ -63,7 +67,7 @@ describe('ProblemsPanel Component', () => {
     mockGetDiagnostics.mockReturnValue([
       {
         range: { startLineNumber: 1, startColumn: 1, endLineNumber: 1, endColumn: 10 },
-        severity: Monaco.MarkerSeverity.Error,
+        severity: MARKER_SEVERITY.Error as any,
         message: 'Type error',
         source: 'ts',
       },
@@ -77,7 +81,7 @@ describe('ProblemsPanel Component', () => {
     mockGetDiagnostics.mockReturnValue([
       {
         range: { startLineNumber: 1, startColumn: 1, endLineNumber: 1, endColumn: 10 },
-        severity: Monaco.MarkerSeverity.Warning,
+        severity: MARKER_SEVERITY.Warning as any,
         message: 'Unused variable',
         source: 'ts',
       },
@@ -91,7 +95,7 @@ describe('ProblemsPanel Component', () => {
     mockGetDiagnostics.mockReturnValue([
       {
         range: { startLineNumber: 5, startColumn: 3, endLineNumber: 5, endColumn: 20 },
-        severity: Monaco.MarkerSeverity.Error,
+        severity: MARKER_SEVERITY.Error as any,
         message: 'Cannot find name "foo"',
         source: 'ts',
       },
@@ -106,7 +110,7 @@ describe('ProblemsPanel Component', () => {
     mockGetDiagnostics.mockReturnValue([
       {
         range: { startLineNumber: 10, startColumn: 5, endLineNumber: 10, endColumn: 15 },
-        severity: Monaco.MarkerSeverity.Error,
+        severity: MARKER_SEVERITY.Error as any,
         message: 'Test error',
         source: 'ts',
       },
@@ -124,7 +128,7 @@ describe('ProblemsPanel Component', () => {
     mockGetDiagnostics.mockReturnValue([
       {
         range: { startLineNumber: 1, startColumn: 1, endLineNumber: 1, endColumn: 5 },
-        severity: Monaco.MarkerSeverity.Error,
+        severity: MARKER_SEVERITY.Error as any,
         message: 'Error test',
         source: 'ts',
       },
@@ -139,7 +143,7 @@ describe('ProblemsPanel Component', () => {
     mockGetDiagnostics.mockReturnValue([
       {
         range: { startLineNumber: 1, startColumn: 1, endLineNumber: 1, endColumn: 5 },
-        severity: Monaco.MarkerSeverity.Warning,
+        severity: MARKER_SEVERITY.Warning as any,
         message: 'Warning test',
         source: 'ts',
       },
@@ -148,5 +152,13 @@ describe('ProblemsPanel Component', () => {
     const { container } = render(<ProblemsPanel onSelectProblem={mockOnSelectProblem} />);
     const warningIcons = container.querySelectorAll('.text-yellow-500');
     expect(warningIcons.length).toBeGreaterThan(0);
+  });
+
+  it('[P0] should handle case when Monaco is not loaded yet', () => {
+    mockGetMonacoSync.mockReturnValue(null);
+
+    render(<ProblemsPanel onSelectProblem={mockOnSelectProblem} />);
+    expect(screen.getByText('No problems')).toBeTruthy();
+    expect(screen.getByText('No problems detected')).toBeTruthy();
   });
 });
