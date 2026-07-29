@@ -26,6 +26,11 @@
 
 - [x] [Review][Defer] Terminal.tsx handleRestart 原 useCallback 依赖了不存在的 componentName — 预存问题，移除 useCallback 后已自然修复。延后处理，需单独评估是否需要恢复 useCallback 并修复依赖。[Terminal.tsx:562] — deferred, pre-existing
 
+## Deferred from: code review of epi2-02-large-file-optimization (2026-07-29)
+
+- [x] [Review][Defer] 空字符串 `split` 边界不一致 — `isLargeFile`/`isHugeFile` 用早期返回 `if (!content) return false`，`getOptimizedEditorOptions` 用三元 `content ? ... : 0`。行为一致但路径不同。预存代码风格问题。[`monacoOptimizer.ts`]
+- [x] [Review][Defer] `baseOptions` 可选参数存在公共 API 误用风险 — 调用者若忘记传入 baseOptions 将导致编辑器创建失败。当前两处调用均正确传入。预存 API 设计问题。[`monacoOptimizer.ts:52`]
+
 ## Deferred from: code review of epi2-01-monaco-editor-lazy-loading (2026-07-29)
 
 - [x] [Review][Defer] LSP 连接竞态：快速 Tab 切换时 LSP 诊断结果丢失 — 预存问题，涉及 LSP 架构设计，不在本次故事范围内 [LspCodeEditor.tsx:446-463]

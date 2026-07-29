@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-07-27
-last_updated: 2026-07-29 (epi1-03 done; clean review, 0 actionable findings; epi2-01 done after code review, 21 patches applied)
+# last_updated: 2026-07-29 (epi1-03 done; clean review, 0 actionable findings; epi2-01 done after code review, 21 patches applied; epi2-02 ready-for-dev)
 project: lapdev
 project_key: NOKEY
 tracking_system: file-system
@@ -124,7 +124,7 @@ development_status:
   # Epic EPI2: 性能优化 - Monaco Editor 深度优化 (3 stories)
   epi2: in-progress
   epi2-01-monaco-editor-lazy-loading: done
-  epi2-02-large-file-optimization: in-progress
+  epi2-02-large-file-optimization: done
   epi2-03-range-formatting-incremental-update: in-progress
   epi2-retrospective: optional
 
@@ -163,8 +163,8 @@ summary:
   total_stories: 45
   epics_done: 11
   epics_in_progress: 6
-  stories_done: 29
-  stories_in_progress: 14
+  stories_done: 30
+  stories_in_progress: 13
   stories_ready_for_dev: 2
   stories_in_review: 0
 
@@ -301,7 +301,7 @@ story_mapping:
       title: "大文件优化配置"
       key: "epi2-02-large-file-optimization"
       frs: ["UX-DR2"]
-      status_note: "monacoOptimizer.ts 已创建但未集成"
+      status_note: "done: monacoOptimizer.ts 集成到 LspCodeEditor.tsx，29 个单元测试全部通过，464 个回归测试无失败"
     - id: "EPI2.03"
       title: "范围格式化与增量更新"
       key: "epi2-03-range-formatting-incremental-update"

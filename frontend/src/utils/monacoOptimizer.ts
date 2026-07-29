@@ -14,65 +14,75 @@ export const LARGE_FILE_THRESHOLD = 10000;
 export const HUGE_FILE_THRESHOLD = 50000;
 
 /**
+ * 计算文件内容的行数
+ * @param content 文件内容
+ * @returns 行数（空字符串返回 0）
+ */
+export function getLineCount(content: string): number {
+  if (!content) return 0;
+  return content.split('\n').length;
+}
+
+/**
  * 检测文件是否为大文件
  * @param content 文件内容
- * @returns 是否为大文件
+ * @returns 是否为大文件（行数 > 10,000）
  */
 export function isLargeFile(content: string): boolean {
-  const lineCount = content.split('\n').length;
-  return lineCount > LARGE_FILE_THRESHOLD;
+  return getLineCount(content) > LARGE_FILE_THRESHOLD;
 }
 
 /**
  * 检测文件是否为超大文件
  * @param content 文件内容
- * @returns 是否为超大文件
+ * @returns 是否为超大文件（行数 > 50,000）
  */
 export function isHugeFile(content: string): boolean {
-  const lineCount = content.split('\n').length;
-  return lineCount > HUGE_FILE_THRESHOLD;
+  return getLineCount(content) > HUGE_FILE_THRESHOLD;
 }
 
 /**
- * 根据文件内容生成优化的 Monaco 编辑器选项
+ * 根据文件内容生成优化的 Monaco 编辑器选项。
+ *
+ * 覆盖策略：当文件为大文件或超大文件时，优化器以性能优先，
+ * 会覆盖 baseOptions 中的以下字段：minimap、folding、hover、
+ * codeLens、links、inlineSuggest、fontLigatures、smoothScrolling、
+ * scrollBeyondLastLine、multiCursorLimit、lineNumbers、renderWhitespace、
+ * glyphMargin、suggest。
+ * 其他字段（如 fontSize、readOnly、theme 等）原样保留。
+ *
+ * 小文件下，minimap 尊重用户显式意图（baseOptions 中的设置）。
+ *
  * @param content 文件内容
- * @param baseOptions 基础选项
+ * @param baseOptions 基础选项（用户显式传入的选项）
  * @returns 优化后的编辑器选项
  */
 export function getOptimizedEditorOptions(
   content: string,
   baseOptions?: editor.IStandaloneEditorConstructionOptions
 ): editor.IStandaloneEditorConstructionOptions {
-  const lineCount = content.split('\n').length;
+  const lineCount = getLineCount(content);
   const isLarge = lineCount > LARGE_FILE_THRESHOLD;
   const isHuge = lineCount > HUGE_FILE_THRESHOLD;
 
+  const userMinimapEnabled = baseOptions?.minimap?.enabled ?? true;
+
   const optimizedOptions: editor.IStandaloneEditorConstructionOptions = {
     ...baseOptions,
-    // 大文件禁用 minimap 以提升性能
-    minimap: { enabled: !isLarge },
-    // 大文件禁用代码折叠
+    minimap: { enabled: isLarge ? false : userMinimapEnabled },
     folding: !isLarge,
-    // 大文件禁用行内提示
     inlineSuggest: { enabled: !isLarge },
-    // 大文件减少滚动时渲染的额外行数
-    scrollBeyondLastLine: !isLarge,
-    // 超大文件禁用平滑滚动
+    scrollBeyondLastLine: isLarge ? false : true,
     smoothScrolling: !isHuge,
-    // 大文件禁用代码镜头
     codeLens: !isLarge,
-    // 大文件禁用悬停提示
     hover: { enabled: !isLarge },
-    // 大文件禁用链接检测
     links: !isLarge,
-    // 大文件限制多光标
-    multiCursorLimit: isLarge ? 1 : 10000,
-    // 超大文件使用固定行高以优化滚动
+    multiCursorLimit: isHuge ? 1 : 10000,
     lineNumbers: isHuge ? 'off' : 'on',
-    // 大文件减少渲染优化
     renderWhitespace: isLarge ? 'none' : 'selection',
-    // 大文件禁用字体连字
     fontLigatures: !isLarge,
+    glyphMargin: !isLarge,
+    ...(isLarge ? { quickSuggestions: false } : {}),
   };
 
   return optimizedOptions;

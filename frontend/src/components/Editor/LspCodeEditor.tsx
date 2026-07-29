@@ -5,6 +5,7 @@ import { useLSP } from '../../context/LSPContext';
 import { aiService } from '../../services/aiService';
 import { useAI } from '../../context/AIContext';
 import { useInlineCompletion } from '../../context/InlineCompletionContext';
+import { getOptimizedEditorOptions, getLineCount, LARGE_FILE_THRESHOLD, HUGE_FILE_THRESHOLD } from '../../utils/monacoOptimizer';
 
 import type { DiffLine } from '../../types/diff';
 
@@ -30,6 +31,69 @@ const SUPPORTED_LANGUAGES = ['javascript', 'typescript', 'python', 'rust', 'go',
 
 const DEBOUNCE_DELAY = 500;
 
+function buildBaseOptions(params: {
+  value: string;
+  language: string;
+  readOnly: boolean;
+  minimap: boolean;
+  fontSize: number;
+}): editor.IStandaloneEditorConstructionOptions {
+  const { value, language, readOnly, minimap, fontSize } = params;
+  return {
+    value,
+    language,
+    readOnly,
+    minimap: { enabled: minimap },
+    fontSize,
+    lineNumbers: 'on',
+    automaticLayout: true,
+    theme: 'vs-dark',
+    folding: true,
+    foldingHighlight: true,
+    bracketPairColorization: { enabled: true },
+    tabSize: 2,
+    insertSpaces: true,
+    wordWrap: 'on',
+    padding: { top: 16 },
+    renderLineHighlight: 'line',
+    cursorBlinking: 'smooth',
+    cursorSmoothCaretAnimation: 'on',
+    smoothScrolling: true,
+    contextmenu: true,
+    fontFamily: "'Fira Code', 'Monaco', 'Consolas', monospace",
+    fontLigatures: true,
+    overviewRulerBorder: false,
+    overviewRulerLanes: 2,
+    glyphMargin: true,
+    suggest: {
+      showWords: true,
+      showFunctions: true,
+      showMethods: true,
+      showVariables: true,
+      showClasses: true,
+      showInterfaces: true,
+      showModules: true,
+      showProperties: true,
+      showEvents: true,
+      showOperators: true,
+      showConstructors: true,
+      showEnumMembers: true,
+      showKeywords: true,
+      showTypeParameters: true,
+      showSnippets: true,
+      showFiles: true,
+      showReferences: true,
+    },
+    quickSuggestions: {
+      other: true,
+      comments: false,
+      strings: false,
+    },
+    acceptSuggestionOnCommitCharacter: true,
+    acceptSuggestionOnEnter: 'on',
+  };
+}
+
 function LspCodeEditorComponent(props: LspCodeEditorProps, ref: React.ForwardedRef<LspCodeEditorHandle>) {
   const {
     value,
@@ -47,6 +111,10 @@ function LspCodeEditorComponent(props: LspCodeEditorProps, ref: React.ForwardedR
   const monacoModuleRef = useRef<MonacoModule | null>(null);
   const [monacoReady, setMonacoReady] = useState(false);
   const [initError, setInitError] = useState(false);
+  const prevIsLargeRef = useRef(false);
+  const prevIsHugeRef = useRef(false);
+  const thresholdInitRef = useRef(false);
+  const thresholdDebounceRef = useRef<number | null>(null);
   const { connect, registerEditor, unregisterEditor } = useLSP();
 
   const { isConnected } = useAI();
@@ -291,60 +359,10 @@ function LspCodeEditorComponent(props: LspCodeEditorProps, ref: React.ForwardedR
         const createEditor = () => {
           if (!containerRef.current || cancelled) return;
 
-          editorRef.current = monacoMod.editor.create(containerRef.current, {
-            value,
-            language,
-            readOnly,
-            minimap: { enabled: minimap },
-            fontSize,
-            lineNumbers: 'on',
-            scrollBeyondLastLine: false,
-            automaticLayout: true,
-            theme: 'vs-dark',
-            folding: true,
-            foldingHighlight: true,
-            bracketPairColorization: { enabled: true },
-            tabSize: 2,
-            insertSpaces: true,
-            wordWrap: 'on',
-            padding: { top: 16 },
-            renderLineHighlight: 'line',
-            cursorBlinking: 'smooth',
-            cursorSmoothCaretAnimation: 'on',
-            smoothScrolling: true,
-            contextmenu: true,
-            fontFamily: "'Fira Code', 'Monaco', 'Consolas', monospace",
-            fontLigatures: true,
-            overviewRulerBorder: false,
-            overviewRulerLanes: 2,
-            glyphMargin: true,
-            suggest: {
-              showWords: true,
-              showFunctions: true,
-              showMethods: true,
-              showVariables: true,
-              showClasses: true,
-              showInterfaces: true,
-              showModules: true,
-              showProperties: true,
-              showEvents: true,
-              showOperators: true,
-              showConstructors: true,
-              showEnumMembers: true,
-              showKeywords: true,
-              showTypeParameters: true,
-              showSnippets: true,
-              showFiles: true,
-              showReferences: true,
-            },
-            quickSuggestions: {
-              other: true,
-              comments: false,
-              strings: false,
-            },
-            acceptSuggestionOnCommitCharacter: true,
-            acceptSuggestionOnEnter: 'on',
-          });
+          const baseOptions = buildBaseOptions({ value, language, readOnly, minimap, fontSize });
+          const options = getOptimizedEditorOptions(value, baseOptions);
+
+          editorRef.current = monacoMod.editor.create(containerRef.current, options);
 
           editorRef.current.onDidChangeModelContent(() => {
             const newValue = editorRef.current?.getValue() || '';
@@ -476,6 +494,48 @@ function LspCodeEditorComponent(props: LspCodeEditorProps, ref: React.ForwardedR
   }, [value]);
 
   useEffect(() => {
+    if (!thresholdInitRef.current) {
+      thresholdInitRef.current = true;
+      const lineCount = getLineCount(value);
+      prevIsLargeRef.current = lineCount > LARGE_FILE_THRESHOLD;
+      prevIsHugeRef.current = lineCount > HUGE_FILE_THRESHOLD;
+      return;
+    }
+
+    if (thresholdDebounceRef.current !== null) {
+      window.clearTimeout(thresholdDebounceRef.current);
+    }
+
+    thresholdDebounceRef.current = window.setTimeout(() => {
+      thresholdDebounceRef.current = null;
+
+      const lineCount = getLineCount(value);
+      const isLarge = lineCount > LARGE_FILE_THRESHOLD;
+      const isHuge = lineCount > HUGE_FILE_THRESHOLD;
+      const thresholdChanged = isLarge !== prevIsLargeRef.current || isHuge !== prevIsHugeRef.current;
+
+      if (thresholdChanged && editorRef.current) {
+        const baseOptions = buildBaseOptions({ value, language, readOnly, minimap, fontSize });
+        const newOptions = getOptimizedEditorOptions(value, baseOptions);
+        requestAnimationFrame(() => {
+          if (editorRef.current) {
+            editorRef.current.updateOptions(newOptions);
+          }
+        });
+      }
+
+      prevIsLargeRef.current = isLarge;
+      prevIsHugeRef.current = isHuge;
+    }, 300);
+
+    return () => {
+      if (thresholdDebounceRef.current !== null) {
+        window.clearTimeout(thresholdDebounceRef.current);
+      }
+    };
+  }, [value, language, readOnly, minimap, fontSize]);
+
+  useEffect(() => {
     if (editorRef.current) {
       const model = editorRef.current.getModel();
       const monacoMod = monacoModuleRef.current;
@@ -520,34 +580,12 @@ function LspCodeEditorComponent(props: LspCodeEditorProps, ref: React.ForwardedR
 
       if (!containerRef.current) return;
 
-      editorRef.current = monacoMod.editor.create(containerRef.current, {
-        value,
-        language,
-        readOnly,
-        minimap: { enabled: minimap },
-        fontSize,
-        lineNumbers: 'on',
-        scrollBeyondLastLine: false,
-        automaticLayout: true,
-        theme: 'vs-dark',
-        folding: true,
-        foldingHighlight: true,
-        bracketPairColorization: { enabled: true },
-        tabSize: 2,
-        insertSpaces: true,
-        wordWrap: 'on',
-        padding: { top: 16 },
-        renderLineHighlight: 'line',
-        cursorBlinking: 'smooth',
-        cursorSmoothCaretAnimation: 'on',
-        smoothScrolling: true,
-        contextmenu: true,
-        fontFamily: "'Fira Code', 'Monaco', 'Consolas', monospace",
-        fontLigatures: true,
-        overviewRulerBorder: false,
-        overviewRulerLanes: 2,
-        glyphMargin: true,
-      });
+      editorRef.current?.dispose();
+      editorRef.current = null;
+      decorationRef.current = [];
+      ghostTextDecorationRef.current = [];
+
+      editorRef.current = monacoMod.editor.create(containerRef.current, getOptimizedEditorOptions(value, buildBaseOptions({ value, language, readOnly, minimap, fontSize })));
 
       editorRef.current.onDidChangeModelContent(() => {
         const newValue = editorRef.current?.getValue() || '';
