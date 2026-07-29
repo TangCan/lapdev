@@ -4,6 +4,7 @@ test.describe('[E2E] Code Editor', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('[data-testid="file-tree"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="file-item"]', { timeout: 10000 });
   });
 
   test('[P0] should display welcome screen on startup', async ({ page }) => {
@@ -23,122 +24,96 @@ test.describe('[E2E] Code Editor', () => {
   });
 
   test('[P0] should expand file tree and show files', async ({ page }) => {
-    // Find and expand the workspace folder (using div.file-item instead of button)
-    const workspaceFolder = page.locator('.file-item .name', { hasText: 'workspace' });
-    
-    // Click to expand (if collapsed)
+    const workspaceFolder = page.locator('[data-testid="file-item"]').filter({ hasText: 'workspace' });
     await workspaceFolder.click();
     await page.waitForTimeout(500);
-    
-    // Look for files in the expanded tree
+
     const fileTreeContent = page.getByTestId('file-tree').locator('.file-tree-content');
     await expect(fileTreeContent).toBeVisible();
   });
 
   test('[P0] should open file when clicked', async ({ page }) => {
-    // Expand workspace folder
-    const workspaceFolder = page.locator('.file-item .name', { hasText: 'workspace' });
-    await workspaceFolder.click();
-    await page.waitForTimeout(1000);
-    
-    // Look for test-file.txt in the expanded tree
-    const testFile = page.locator('.file-item .name', { hasText: 'test-file.txt' });
-    
-    if (await testFile.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await testFile.click();
-      await page.waitForTimeout(1000);
-      
-      // Check if file was opened in a tab
-      const editorTab = page.getByTestId('editor-tab');
-      await expect(editorTab).toBeVisible();
-      await expect(editorTab).toContainText('test-file.txt');
-      
-      // Check if code editor is now visible
-      const editor = page.getByTestId('code-editor');
-      await expect(editor).toBeVisible();
-    } else {
-      // If file not found, skip this test
-      test.skip();
-    }
-  });
-
-  test('[P0] should allow editing file content', async ({ page }) => {
-    // Expand workspace folder
-    const workspaceFolder = page.locator('.file-item .name', { hasText: 'workspace' });
-    await workspaceFolder.click();
-    await page.waitForTimeout(1000);
-    
-    // Look for a test file
-    const testFile = page.locator('.file-item .name', { hasText: 'test-file.txt' });
-    
-    if (await testFile.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await testFile.click();
-      await page.waitForTimeout(1000);
-      
-      // Check if code editor is visible
-      const editor = page.getByTestId('code-editor');
-      await expect(editor).toBeVisible();
-      
-      // Verify Monaco editor is loaded (it creates a .view-lines element)
-      const monacoEditor = editor.locator('.view-lines');
-      await expect(monacoEditor).toBeVisible();
-    } else {
-      test.skip();
-    }
-  });
-
-  test('[P1] should display line numbers', async ({ page }) => {
-    // Expand workspace folder using data-testid selector
     const workspaceFolder = page.locator('[data-testid="file-item"]').filter({ hasText: 'workspace' });
     await workspaceFolder.click();
     await page.waitForTimeout(500);
-    
-    // Look for a test file using data-testid selector
+
     const testFile = page.locator('[data-testid="file-item"]').filter({ hasText: 'test-file.txt' });
-    
-    if (await testFile.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await testFile.click();
-      await page.waitForTimeout(1000);
-      
-      // Check for Monaco editor
-      const editor = page.getByTestId('code-editor');
-      await expect(editor).toBeVisible({ timeout: 10000 });
-      
-      // Verify editor has content (line numbers are rendered as part of the editor)
-      // Monaco Editor renders line numbers by default (lineNumbers: 'on' in config)
-      // We verify the editor is properly initialized with content
-      const editorContent = await editor.innerText();
-      expect(editorContent.length).toBeGreaterThan(0);
-      
-      // The line number functionality is verified by the editor being properly initialized
-      // with lineNumbers: 'on' configuration
-    } else {
-      test.skip();
-    }
+    await expect(testFile).toBeVisible({ timeout: 5000 });
+    await testFile.click();
+    await page.waitForTimeout(500);
+
+    const placeholder = page.getByTestId('code-editor-placeholder');
+    await expect(placeholder).toBeVisible({ timeout: 5000 });
+    await placeholder.click();
+
+    const editor = page.getByTestId('code-editor');
+    await expect(editor).toBeVisible({ timeout: 10000 });
+
+    const editorTab = page.getByTestId('editor-tab');
+    await expect(editorTab).toBeVisible();
+    await expect(editorTab).toContainText('test-file.txt');
+  });
+
+  test('[P0] should allow editing file content', async ({ page }) => {
+    const workspaceFolder = page.locator('[data-testid="file-item"]').filter({ hasText: 'workspace' });
+    await workspaceFolder.click();
+    await page.waitForTimeout(500);
+
+    const testFile = page.locator('[data-testid="file-item"]').filter({ hasText: 'test-file.txt' });
+    await expect(testFile).toBeVisible({ timeout: 5000 });
+    await testFile.click();
+    await page.waitForTimeout(500);
+
+    const placeholder = page.getByTestId('code-editor-placeholder');
+    await expect(placeholder).toBeVisible({ timeout: 5000 });
+    await placeholder.click();
+
+    const editor = page.getByTestId('code-editor');
+    await expect(editor).toBeVisible({ timeout: 10000 });
+
+    const monacoEditor = editor.locator('.view-lines');
+    await expect(monacoEditor).toBeVisible();
+  });
+
+  test('[P1] should display line numbers', async ({ page }) => {
+    const workspaceFolder = page.locator('[data-testid="file-item"]').filter({ hasText: 'workspace' });
+    await workspaceFolder.click();
+    await page.waitForTimeout(500);
+
+    const testFile = page.locator('[data-testid="file-item"]').filter({ hasText: 'test-file.txt' });
+    await expect(testFile).toBeVisible({ timeout: 5000 });
+    await testFile.click();
+    await page.waitForTimeout(500);
+
+    const placeholder = page.getByTestId('code-editor-placeholder');
+    await expect(placeholder).toBeVisible({ timeout: 5000 });
+    await placeholder.click();
+
+    const editor = page.getByTestId('code-editor');
+    await expect(editor).toBeVisible({ timeout: 10000 });
+
+    const editorContent = await editor.innerText();
+    expect(editorContent.length).toBeGreaterThan(0);
   });
 
   test('[P2] should handle large files', async ({ page }) => {
-    // Expand workspace folder
-    const workspaceFolder = page.locator('.file-item .name', { hasText: 'workspace' });
+    const workspaceFolder = page.locator('[data-testid="file-item"]').filter({ hasText: 'workspace' });
     await workspaceFolder.click();
-    await page.waitForTimeout(1000);
-    
-    // Look for large-file.txt
-    const largeFile = page.locator('.file-item .name', { hasText: 'large-file.txt' });
-    
-    if (await largeFile.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await largeFile.click();
-      await page.waitForTimeout(1000);
-      
-      // Check if code editor is visible
-      const editor = page.getByTestId('code-editor');
-      await expect(editor).toBeVisible();
-      
-      // Verify Monaco editor is loaded
-      const monacoEditor = editor.locator('.view-lines');
-      await expect(monacoEditor).toBeVisible();
-    } else {
-      test.skip();
-    }
+    await page.waitForTimeout(500);
+
+    const largeFile = page.locator('[data-testid="file-item"]').filter({ hasText: 'large-file.txt' });
+    await expect(largeFile).toBeVisible({ timeout: 5000 });
+    await largeFile.click();
+    await page.waitForTimeout(500);
+
+    const placeholder = page.getByTestId('code-editor-placeholder');
+    await expect(placeholder).toBeVisible({ timeout: 5000 });
+    await placeholder.click();
+
+    const editor = page.getByTestId('code-editor');
+    await expect(editor).toBeVisible({ timeout: 15000 });
+
+    const monacoEditor = editor.locator('.view-lines');
+    await expect(monacoEditor).toBeVisible({ timeout: 5000 });
   });
 });

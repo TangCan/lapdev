@@ -23,6 +23,10 @@ type LoadState = 'idle' | 'loading' | 'loaded' | 'error';
 
 let editorLoadedOnce = false;
 
+export function resetEditorState() {
+  editorLoadedOnce = false;
+}
+
 class EditorErrorBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { hasError: boolean }> {
   state = { hasError: false };
   static getDerivedStateFromError() { return { hasError: true }; }

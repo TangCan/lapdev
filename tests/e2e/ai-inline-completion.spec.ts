@@ -31,7 +31,14 @@ test.describe('[P0] AI内联代码补全', () => {
       await testFile.click({ timeout: 5000 });
     }
 
-    await page.waitForSelector('[data-testid="code-editor"]', { timeout: 10000 });
+    await page.waitForTimeout(500);
+
+    // Click the lazy loading placeholder to trigger Monaco
+    const placeholder = page.getByTestId('code-editor-placeholder');
+    await expect(placeholder).toBeVisible({ timeout: 5000 });
+    await placeholder.click();
+
+    await page.waitForSelector('[data-testid="code-editor"]', { timeout: 15000 });
 
     // Monaco 编辑器的焦点在内部的 textarea 上
     await page.waitForSelector('.monaco-editor textarea', { timeout: 5000 });

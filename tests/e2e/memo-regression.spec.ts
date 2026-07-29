@@ -205,6 +205,12 @@ test.describe('EPI1.03: 移除手动 Memoization 回归测试 (ATDD Green Phase)
     const firstFile = fileTree.locator('.file-item.file').first();
     await expect(firstFile).toBeVisible({ timeout: 10000 });
     await firstFile.click();
+    await page.waitForTimeout(500);
+
+    // 点击懒加载占位符触发 Monaco 加载
+    const placeholder = page.getByTestId('code-editor-placeholder');
+    await expect(placeholder).toBeVisible({ timeout: 5000 });
+    await placeholder.click();
 
     // 验证编辑器可见
     const editorContent = page.getByTestId('editor-content');
@@ -212,7 +218,7 @@ test.describe('EPI1.03: 移除手动 Memoization 回归测试 (ATDD Green Phase)
 
     // 验证编辑器容器存在且可交互
     const codeEditor = page.getByTestId('code-editor');
-    await expect(codeEditor).toBeVisible({ timeout: 5000 });
+    await expect(codeEditor).toBeVisible({ timeout: 10000 });
   });
 
   // ═══════════════════════════════════════════════════════════════════

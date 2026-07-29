@@ -13,8 +13,14 @@ async function openTestFile(page: any) {
   const testTsFile = page.locator('[data-testid="file-item"]').filter({ hasText: 'test.ts' });
   await testTsFile.click({ timeout: 10000 });
   
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(500);
+
+  // Click the lazy loading placeholder to trigger Monaco
+  const placeholder = page.getByTestId('code-editor-placeholder');
+  await expect(placeholder).toBeVisible({ timeout: 10000 });
+  await placeholder.click();
   
+  // Wait for Monaco editor to load
   await page.waitForSelector('[data-testid="code-editor"]', { timeout: 15000 });
   
   const editor = page.locator('.monaco-editor');

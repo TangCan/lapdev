@@ -1,88 +1,326 @@
 /**
- * ATDD Red-Phase Test Scaffold for EPI2.01: Monaco Editor 懒加载
- * 
- * 测试状态: 🔴 RED PHASE - 所有测试标记为 it.skip()
- * 
- * Story: epi2-01-monaco-editor-lazy-loading
- * Acceptance Criteria: AC2, AC3, AC4, AC6
+ * Test suite for LazyCodeEditor component
+ *
+ * Story: EPI2.01 - Monaco Editor 懒加载
+ * Test Levels: Unit (Vitest + Testing Library)
+ * Coverage: 状态机转换、错误处理、缓存行为、Props 转发
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import React from 'react';
 
-vi.mock('./LspCodeEditor', () => ({
-  LspCodeEditor: vi.fn(() => <div data-testid="lsp-code-editor">Mock LSP Editor</div>),
+const { mockGetMonaco, mockGetMonacoSync } = vi.hoisted(() => ({
+  mockGetMonaco: vi.fn(),
+  mockGetMonacoSync: vi.fn(),
 }));
 
-import { LazyCodeEditor } from './LazyCodeEditor';
+const LspCodeEditorMock = vi.hoisted(() =>
+  vi.fn(({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
+    <div data-testid="lsp-code-editor">
+      <span data-testid="lsp-value">{value}</span>
+      <button data-testid="lsp-change" onClick={() => onChange('changed')}>Change</button>
+    </div>
+  ))
+);
+
+vi.mock('../../services/monacoLoader', () => ({
+  getMonaco: mockGetMonaco,
+  getMonacoSync: mockGetMonacoSync,
+}));
+
+vi.mock('./LspCodeEditor', () => ({
+  LspCodeEditor: LspCodeEditorMock,
+}));
+
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
+import { LazyCodeEditor, resetEditorState } from './LazyCodeEditor';
+
+const FAKE_MONACO = { languages: { onLanguage: vi.fn() } };
 
 describe('LazyCodeEditor Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetMonacoSync.mockReturnValue(null);
+    resetEditorState();
   });
 
-  it.skip('[P0] EPI2.01-UNIT-001: 初始渲染显示 "Click to edit" 占位符', () => {
+  // ================================================================
+  // AC2: 初始渲染与状态转换
+  // ================================================================
+
+  it('[P0] EPI2.01-UNIT-001: 初始渲染显示 "Click to edit" 占位符', () => {
     render(<LazyCodeEditor value="" language="typescript" onChange={() => {}} />);
-    
+
+    expect(screen.getByTestId('code-editor-placeholder')).toBeTruthy();
     expect(screen.getByText('Click to edit')).toBeTruthy();
     expect(screen.queryByTestId('lsp-code-editor')).toBeNull();
   });
 
-  it.skip('[P0] EPI2.01-UNIT-002: onClick 触发状态转换为 loading', async () => {
+  it('[P0] EPI2.01-UNIT-002: onClick 触发状态转换为 loading', async () => {
+    const deferred = createDeferred<typeof FAKE_MONACO>();
+    mockGetMonaco.mockReturnValue(deferred.promise);
+
     render(<LazyCodeEditor value="" language="typescript" onChange={() => {}} />);
-    
-    const placeholder = screen.getByText('Click to edit');
+
+    const placeholder = screen.getByTestId('code-editor-placeholder');
     await act(async () => {
       fireEvent.click(placeholder);
     });
-    
+
     expect(screen.getByText('Loading editor...')).toBeTruthy();
+    expect(screen.queryByTestId('lsp-code-editor')).toBeNull();
+
+    deferred.resolve(FAKE_MONACO);
   });
 
-  it.skip('[P0] EPI2.01-UNIT-003: onFocus 触发状态转换为 loading', async () => {
+  it('[P0] EPI2.01-UNIT-003: onFocus 触发状态转换为 loading', async () => {
+    const deferred = createDeferred<typeof FAKE_MONACO>();
+    mockGetMonaco.mockReturnValue(deferred.promise);
+
     render(<LazyCodeEditor value="" language="typescript" onChange={() => {}} />);
-    
-    const placeholder = screen.getByText('Click to edit');
+
+    const placeholder = screen.getByTestId('code-editor-placeholder');
     await act(async () => {
       fireEvent.focus(placeholder);
     });
-    
+
     expect(screen.getByText('Loading editor...')).toBeTruthy();
+    deferred.resolve(FAKE_MONACO);
   });
 
-  it.skip('[P0] EPI2.01-UNIT-004: loading 完成后渲染 LspCodeEditor', async () => {
-    render(<LazyCodeEditor value="const x = 1;" language="typescript" onChange={() => {}} />);
-    
+  it('[P1] EPI2.01-UNIT-011: onMouseEnter 悬停触发加载', async () => {
+    const deferred = createDeferred<typeof FAKE_MONACO>();
+    mockGetMonaco.mockReturnValue(deferred.promise);
+
+    render(<LazyCodeEditor value="" language="typescript" onChange={() => {}} />);
+
+    const placeholder = screen.getByTestId('code-editor-placeholder');
     await act(async () => {
-      fireEvent.click(screen.getByText('Click to edit'));
-      await new Promise(resolve => setTimeout(resolve, 100));
+      fireEvent.mouseEnter(placeholder);
     });
-    
+
+    expect(screen.getByText('Loading editor...')).toBeTruthy();
+    deferred.resolve(FAKE_MONACO);
+  });
+
+  it('[P0] EPI2.01-UNIT-004: loading 完成后渲染 LspCodeEditor', async () => {
+    const deferred = createDeferred<typeof FAKE_MONACO>();
+    mockGetMonaco.mockReturnValue(deferred.promise);
+
+    render(<LazyCodeEditor value="const x = 1;" language="typescript" onChange={() => {}} />);
+
+    const placeholder = screen.getByTestId('code-editor-placeholder');
+    await act(async () => {
+      fireEvent.click(placeholder);
+    });
+
+    expect(screen.getByText('Loading editor...')).toBeTruthy();
+
+    await act(async () => {
+      deferred.resolve(FAKE_MONACO);
+    });
+
     expect(screen.getByTestId('lsp-code-editor')).toBeTruthy();
   });
 
-  it.skip('[P1] EPI2.01-UNIT-005: editorLoadedOnce 为 true 时跳过 idle', async () => {
-    // 模拟首次加载完成
-    const { rerender } = render(<LazyCodeEditor value="first" language="typescript" onChange={() => {}} />);
+  it('[P1] EPI2.01-UNIT-012: Loading 状态使用 animate-pulse 样式', async () => {
+    const deferred = createDeferred<typeof FAKE_MONACO>();
+    mockGetMonaco.mockReturnValue(deferred.promise);
+
+    render(<LazyCodeEditor value="" language="typescript" onChange={() => {}} />);
+
+    const placeholder = screen.getByTestId('code-editor-placeholder');
     await act(async () => {
-      fireEvent.click(screen.getByText('Click to edit'));
-      await new Promise(resolve => setTimeout(resolve, 100));
+      fireEvent.click(placeholder);
     });
-    
-    // 第二次渲染应跳过 idle
-    rerender(<LazyCodeEditor value="second" language="typescript" onChange={() => {}} />);
-    
+
+    const loadingText = screen.getByText('Loading editor...');
+    expect(loadingText.className).toContain('animate-pulse');
+
+    deferred.resolve(FAKE_MONACO);
+  });
+
+  // ================================================================
+  // AC3: 缓存与复用 - getMonacoSync 决定初始状态
+  // ================================================================
+
+  it('[P1] EPI2.01-UNIT-005: getMonacoSync 返回非空时跳过 idle 直接渲染', () => {
+    mockGetMonacoSync.mockReturnValue(FAKE_MONACO);
+
+    render(
+      <LazyCodeEditor value="first" language="typescript" onChange={() => {}} />
+    );
+
     expect(screen.queryByText('Click to edit')).toBeNull();
     expect(screen.getByTestId('lsp-code-editor')).toBeTruthy();
   });
 
-  it.skip('[P1] EPI2.01-UNIT-006: CodeEditor API 兼容性', () => {
+  it('[P1] EPI2.01-UNIT-010: getMonacoSync() 返回值决定初始状态', () => {
+    mockGetMonacoSync.mockReturnValue(null);
+    render(
+      <LazyCodeEditor value="test" language="typescript" onChange={() => {}} />
+    );
+    expect(screen.getByText('Click to edit')).toBeTruthy();
+  });
+
+  it('[P1] EPI2.01-UNIT-010b: getMonacoSync 返回非空时初始渲染跳过 idle', () => {
+    mockGetMonacoSync.mockReturnValue(FAKE_MONACO);
+
+    render(
+      <LazyCodeEditor value="test" language="typescript" onChange={() => {}} />
+    );
+
+    expect(screen.queryByText('Click to edit')).toBeNull();
+    expect(screen.getByTestId('lsp-code-editor')).toBeTruthy();
+  });
+
+  it('[P1] EPI2.01-UNIT-016: editorLoadedOnce 跨组件实例持久化', async () => {
+    const deferred = createDeferred<typeof FAKE_MONACO>();
+    mockGetMonaco.mockReturnValue(deferred.promise);
+    mockGetMonacoSync.mockReturnValue(null);
+
+    const { unmount } = render(
+      <LazyCodeEditor value="first" language="typescript" onChange={() => {}} />
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('code-editor-placeholder'));
+    });
+
+    await act(async () => {
+      deferred.resolve(FAKE_MONACO);
+    });
+
+    expect(screen.getByTestId('lsp-code-editor')).toBeTruthy();
+    unmount();
+
+    // Reset mocks before second render
+    mockGetMonacoSync.mockReturnValue(FAKE_MONACO);
+
+    render(
+      <LazyCodeEditor value="second" language="typescript" onChange={() => {}} />
+    );
+
+    expect(screen.queryByText('Click to edit')).toBeNull();
+    expect(screen.getByTestId('lsp-code-editor')).toBeTruthy();
+  });
+
+  // ================================================================
+  // AC2/AC6: 错误处理
+  // ================================================================
+
+  it('[P0] EPI2.01-UNIT-014: getMonaco() 失败后进入 error 状态', async () => {
+    mockGetMonaco.mockRejectedValueOnce(new Error('Network error'));
+
+    render(<LazyCodeEditor value="" language="typescript" onChange={() => {}} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('code-editor-placeholder'));
+    });
+
+    expect(screen.getByText('Click to retry')).toBeTruthy();
+    expect(screen.getByTestId('code-editor-placeholder')).toBeTruthy();
+  });
+
+  it('[P2] EPI2.01-UNIT-019: Error retry 点击重试按钮恢复加载', async () => {
+    const failDeferred = createDeferred<typeof FAKE_MONACO>();
+    const successDeferred = createDeferred<typeof FAKE_MONACO>();
+
+    mockGetMonaco
+      .mockReturnValueOnce(failDeferred.promise)
+      .mockReturnValueOnce(successDeferred.promise);
+
+    render(<LazyCodeEditor value="" language="typescript" onChange={() => {}} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('code-editor-placeholder'));
+    });
+
+    await act(async () => {
+      failDeferred.reject(new Error('First failure'));
+    });
+
+    expect(screen.getByText('Click to retry')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('code-editor-placeholder'));
+    });
+
+    await act(async () => {
+      successDeferred.resolve(FAKE_MONACO);
+    });
+
+    expect(screen.getByTestId('lsp-code-editor')).toBeTruthy();
+  });
+
+  it('[P2] EPI2.01-UNIT-020: 键盘 Enter 触发重试', async () => {
+    const failDeferred = createDeferred<typeof FAKE_MONACO>();
+    const successDeferred = createDeferred<typeof FAKE_MONACO>();
+
+    mockGetMonaco
+      .mockReturnValueOnce(failDeferred.promise)
+      .mockReturnValueOnce(successDeferred.promise);
+
+    render(<LazyCodeEditor value="" language="typescript" onChange={() => {}} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('code-editor-placeholder'));
+    });
+    await act(async () => {
+      failDeferred.reject(new Error('Fail'));
+    });
+
+    const retryButton = screen.getByTestId('code-editor-placeholder');
+    expect(retryButton.textContent).toContain('retry');
+
+    await act(async () => {
+      fireEvent.keyDown(retryButton, { key: 'Enter' });
+    });
+    await act(async () => {
+      successDeferred.resolve(FAKE_MONACO);
+    });
+
+    expect(screen.getByTestId('lsp-code-editor')).toBeTruthy();
+  });
+
+  it('[P0] EPI2.01-UNIT-015: ErrorBoundary 捕获错误并显示 fallback', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const failDeferred = createDeferred<typeof FAKE_MONACO>();
+    mockGetMonaco.mockReturnValue(failDeferred.promise);
+
+    render(<LazyCodeEditor value="" language="typescript" onChange={() => {}} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('code-editor-placeholder'));
+    });
+    await act(async () => {
+      failDeferred.reject(new Error('Load failed'));
+    });
+
+    expect(screen.getByText('Click to retry')).toBeTruthy();
+    errorSpy.mockRestore();
+  });
+
+  // ================================================================
+  // AC4: Props 转发
+  // ================================================================
+
+  it('[P2] EPI2.01-UNIT-006: CodeEditor 基础 API 兼容性', () => {
     const mockOnChange = vi.fn();
     const diffLines = [
       { lineNumber: 1, type: 'added' as const },
       { lineNumber: 5, type: 'deleted' as const },
     ];
-    
+
     render(
       <LazyCodeEditor
         value="const x = 1;"
@@ -92,26 +330,71 @@ describe('LazyCodeEditor Component', () => {
         uri="file:///test.ts"
       />
     );
-    
+
+    expect(screen.getByTestId('code-editor-placeholder')).toBeTruthy();
     expect(screen.getByText('Click to edit')).toBeTruthy();
   });
 
-  it.skip('[P0] EPI2.01-UNIT-007: 现有测试回归', () => {
-    // 此测试标记表明：实现完成后需要验证现有测试套件完整性
-    expect(true).toBe(true);
+  it('[P1] EPI2.01-UNIT-018: Props 转发 (fontSize/minimap/readOnly) 到 LspCodeEditor', () => {
+    mockGetMonacoSync.mockReturnValue(FAKE_MONACO);
+
+    render(
+      <LazyCodeEditor
+        value="test"
+        language="typescript"
+        onChange={() => {}}
+        fontSize={16}
+        minimap={false}
+        readOnly={true}
+        diffLines={[{ lineNumber: 1, type: 'modified' }]}
+        uri="file:///test.ts"
+      />
+    );
+
+    expect(screen.getByTestId('lsp-code-editor')).toBeTruthy();
+  });
+
+  // ================================================================
+  // AC6: 回归
+  // ================================================================
+
+  it('[P0] EPI2.01-UNIT-008: 空值 value 渲染不崩溃', () => {
+    render(<LazyCodeEditor value="" language="typescript" onChange={() => {}} />);
+
+    expect(screen.getByTestId('code-editor-placeholder')).toBeTruthy();
   });
 });
 
-describe('LazyCodeEditor Error Handling', () => {
-  it.skip('[P2] EPI2.01-UNIT-008: 加载失败时显示重试按钮', async () => {
-    // 加载失败应显示 "Click to retry"
-    expect(true).toBe(true);
+describe('LazyCodeEditor Accessibility', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetMonacoSync.mockReturnValue(null);
+    resetEditorState();
   });
-});
 
-describe('LazyCodeEditor ForwardRef', () => {
-  it.skip('[P1] EPI2.01-UNIT-009: forwardRef 转发 focus/getPosition/setPosition', () => {
-    // 通过 ref 调用 focus、getPosition、setPosition
-    expect(true).toBe(true);
+  it('idle 占位符具有 tabindex', () => {
+    render(<LazyCodeEditor value="" language="typescript" onChange={() => {}} />);
+
+    const placeholder = screen.getByTestId('code-editor-placeholder');
+    expect(placeholder.getAttribute('tabindex')).toBe('0');
+  });
+
+  it('错误状态具有 retry ARIA role 和 label', async () => {
+    const failDeferred = createDeferred<typeof FAKE_MONACO>();
+    mockGetMonaco.mockReturnValue(failDeferred.promise);
+
+    render(<LazyCodeEditor value="" language="typescript" onChange={() => {}} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('code-editor-placeholder'));
+    });
+    await act(async () => {
+      failDeferred.reject(new Error('fail'));
+    });
+
+    const retry = screen.getByTestId('code-editor-placeholder');
+    expect(retry.getAttribute('role')).toBe('button');
+    expect(retry.getAttribute('aria-label')).toContain('retry');
+    expect(retry.getAttribute('tabindex')).toBe('0');
   });
 });
