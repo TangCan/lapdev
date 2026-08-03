@@ -165,13 +165,16 @@ Deno.test('[9.1] agentHandler unit tests', async (t) => {
     assert(result.error.message.includes('无效') || result.error.message.includes('超出'));
   });
 
-  await t.step('[P1] UT-9.2.3 should return error for non-existent directory', async () => {
+  await t.step('[P1] UT-9.2.3 should auto-create non-existent directory and write file', async () => {
     const req = createMockRequest({ filePath: 'non-existent-dir/test.ts', content: 'test' });
     const response = await handleAgentWriteFile(req);
     const result = await response.json();
 
-    assertEquals(response.status, 404);
-    assertEquals(result.status, 'error');
+    assertEquals(response.status, 200);
+    assertEquals(result.status, 'success');
+
+    // 清理测试文件
+    await Deno.remove(join(TEST_WORKSPACE, 'non-existent-dir'), { recursive: true });
   });
 
   await t.step('[P1] UT-9.2.4 should return error for empty file path', async () => {

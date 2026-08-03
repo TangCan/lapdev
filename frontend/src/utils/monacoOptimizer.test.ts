@@ -9,6 +9,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
+  getLineCount,
   isLargeFile,
   isHugeFile,
   getOptimizedEditorOptions,
@@ -281,5 +282,96 @@ describe('monacoOptimizer', () => {
     // huge: minimap 禁用 + lineNumbers 关闭
     expect(huge.minimap?.enabled).toBe(false);
     expect(huge.lineNumbers).toBe('off');
+  });
+
+  // ================================================================
+  // getLineCount 共享函数测试
+  // ================================================================
+
+  it('[P0] EPI2.02-UNIT-014: getLineCount 空字符串返回 0', () => {
+    expect(getLineCount('')).toBe(0);
+  });
+
+  it('[P0] EPI2.02-UNIT-014b: getLineCount 多行内容正确计数', () => {
+    expect(getLineCount('a\nb\nc')).toBe(3);
+    expect(getLineCount(generateContent(100))).toBe(100);
+  });
+
+  it('[P2] EPI2.02-UNIT-023: getLineCount 单行内容返回 1', () => {
+    expect(getLineCount('hello world')).toBe(1);
+  });
+
+  // ================================================================
+  // glyphMargin / quickSuggestions 优化测试
+  // ================================================================
+
+  it('[P1] EPI2.02-UNIT-015: 大文件(≥10k) 禁用 glyphMargin', () => {
+    const content = generateContent(10001);
+    const options = getOptimizedEditorOptions(content);
+    expect(options.glyphMargin).toBe(false);
+  });
+
+  it('[P1] EPI2.02-UNIT-016: 大文件(≥10k) 禁用 quickSuggestions', () => {
+    const content = generateContent(10001);
+    const options = getOptimizedEditorOptions(content);
+    expect(options.quickSuggestions).toBe(false);
+  });
+
+  it('[P1] EPI2.02-UNIT-017: 小文件 scrollBeyondLastLine 为 true', () => {
+    const content = generateContent(100);
+    const options = getOptimizedEditorOptions(content);
+    expect(options.scrollBeyondLastLine).toBe(true);
+  });
+
+  it('[P1] EPI2.02-UNIT-017b: 大文件 scrollBeyondLastLine 为 false', () => {
+    const content = generateContent(10001);
+    const options = getOptimizedEditorOptions(content);
+    expect(options.scrollBeyondLastLine).toBe(false);
+  });
+
+  // ================================================================
+  // minimap 用户意图测试 (Review Fix)
+  // ================================================================
+
+  it('[P0] EPI2.02-UNIT-018: 小文件尊重用户 minimap:false 意图', () => {
+    const content = generateContent(100);
+    const baseOptions = { minimap: { enabled: false } as any };
+    const options = getOptimizedEditorOptions(content, baseOptions);
+    expect(options.minimap).toEqual({ enabled: false });
+  });
+
+  // ================================================================
+  // multiCursorLimit 回归测试 (Review Fix)
+  // ================================================================
+
+  it('[P0] EPI2.02-UNIT-019: 10k-50k 行范围 multiCursorLimit 为 10000 (非 1)', () => {
+    const content = generateContent(25000);
+    const options = getOptimizedEditorOptions(content);
+    expect(options.multiCursorLimit).toBe(10000);
+  });
+
+  // ================================================================
+  // 边界与健壮性
+  // ================================================================
+
+  it('[P2] EPI2.02-UNIT-020: getOptimizedEditorOptions 无 baseOptions 时正常工作', () => {
+    const content = generateContent(100);
+    const options = getOptimizedEditorOptions(content);
+    expect(options).toBeDefined();
+    expect(options.minimap?.enabled).toBe(true);
+    expect(options.folding).toBe(true);
+  });
+
+  it('[P1] EPI2.02-UNIT-021: 超大文件 glyphMargin 也为 false', () => {
+    const content = generateContent(50001);
+    const options = getOptimizedEditorOptions(content);
+    expect(options.glyphMargin).toBe(false);
+  });
+
+  it('[P2] EPI2.02-UNIT-022: 小文件 quickSuggestions 保持默认', () => {
+    const content = generateContent(100);
+    const baseOptions = { quickSuggestions: { other: true, comments: false, strings: false } as any };
+    const options = getOptimizedEditorOptions(content, baseOptions);
+    expect(options.quickSuggestions).toEqual({ other: true, comments: false, strings: false });
   });
 });

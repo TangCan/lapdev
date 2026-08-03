@@ -39,6 +39,77 @@ async function typeEditorContent(page: any, content: string) {
 }
 
 test.describe('[E2E] LSP Code Intelligence', () => {
+  test.beforeAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    try {
+      await page.goto('/');
+      await page.waitForSelector('[data-testid="file-tree"]', { timeout: 15000 });
+
+      // 创建 test.ts 文件
+      let created = false;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        const result = await page.evaluate(
+          async ({ name, content }) => {
+            const response = await fetch('/api/v1/agent/write-file', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ filePath: name, content }),
+            });
+            const data = await response.json();
+            return { status: response.status, data };
+          },
+          { name: 'test.ts', content: '// LSP test file\nconst x = 1;\nconsole.log(x);\n' }
+        );
+
+        if (result.status === 200 && result.data.status === 'success') {
+          created = true;
+          break;
+        }
+        if (attempt < 3) {
+          await page.waitForTimeout(1000 * attempt);
+        }
+      }
+      if (!created) {
+        throw new Error('Failed to create test.ts after 3 attempts');
+      }
+
+      // 刷新文件树
+      await page.waitForTimeout(1000);
+      const refreshButton = page.locator('.refresh-button');
+      try {
+        if (await refreshButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+          await refreshButton.click();
+        }
+      } catch {}
+
+      // 验证文件可见
+      const workspaceFolder = page.locator('[data-testid="file-item"]').filter({ hasText: 'workspace' });
+      await expect(workspaceFolder).toBeVisible({ timeout: 10000 });
+      const hasChildren = await workspaceFolder.locator('xpath=../div[@class="children"]').count();
+      if (hasChildren === 0) {
+        await workspaceFolder.click();
+        await page.waitForTimeout(800);
+      }
+
+      const testTsFile = page.locator('[data-testid="file-item"]').filter({ hasText: 'test.ts' });
+      for (let retry = 1; retry <= 5; retry++) {
+        try {
+          await expect(testTsFile.first()).toBeVisible({ timeout: 3000 });
+          break;
+        } catch {
+          try {
+            if (await refreshButton.isVisible({ timeout: 500 }).catch(() => false)) {
+              await refreshButton.click();
+            }
+          } catch {}
+          await page.waitForTimeout(1000);
+        }
+      }
+    } finally {
+      await page.close();
+    }
+  });
+
   test.describe('AC-1: 代码补全功能', () => {
     test('[P0] should show completion suggestions on typing', async ({ page }) => {
       await openTestFile(page);

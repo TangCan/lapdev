@@ -338,6 +338,10 @@ export async function handleAgentWriteFile(req: Request): Promise<Response> {
     }
 
     try {
+      const dirPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
+      if (dirPath) {
+        await Deno.mkdir(dirPath, { recursive: true });
+      }
       await Deno.writeTextFile(fullPath, content);
       console.log(`[handleAgentWriteFile] File written successfully: ${filePath}, size: ${content.length} bytes`);
       await appendLogEntry({

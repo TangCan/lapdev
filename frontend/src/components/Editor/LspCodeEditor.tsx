@@ -354,7 +354,7 @@ function LspCodeEditorComponent(props: LspCodeEditorProps, ref: React.ForwardedR
 
         monacoModuleRef.current = monacoMod;
 
-        loadLanguage(language);
+        await loadLanguage(language);
 
         const createEditor = () => {
           if (!containerRef.current || cancelled) return;
@@ -468,6 +468,8 @@ function LspCodeEditorComponent(props: LspCodeEditorProps, ref: React.ForwardedR
   }, []);
 
   useEffect(() => {
+    if (!monacoReady) return;
+
     const initLSP = async () => {
       try {
         await connect({ language });
@@ -485,7 +487,7 @@ function LspCodeEditorComponent(props: LspCodeEditorProps, ref: React.ForwardedR
     return () => {
       unregisterEditor(uri);
     };
-  }, [connect, registerEditor, unregisterEditor, language, uri]);
+  }, [monacoReady, connect, registerEditor, unregisterEditor, language, uri]);
 
   useEffect(() => {
     if (editorRef.current && editorRef.current.getValue() !== value) {
