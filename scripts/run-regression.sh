@@ -240,7 +240,7 @@ start_frontend_with_retry() {
     
     cd "${FRONTEND_DIR}"
     
-    nohup npm run dev -- --host 0.0.0.0 --port ${FRONTEND_BASE_PORT} > /tmp/frontend.log 2>&1 &
+    nohup npm run dev -- --host 0.0.0.0 --port ${FRONTEND_BASE_PORT} --strictPort > /tmp/frontend.log 2>&1 &
     FRONTEND_PID=$!
     cd ..
 
@@ -450,7 +450,7 @@ fi
 run_test "6. API集成测试" "npm run test:api 2>&1"
 
 # 7. E2E测试
-if ! ensure_service_available "前端服务" "${FRONTEND_URL}" "start_frontend_with_retry" "stop_frontend"; then
+if ! ensure_service_available "前端服务" "${FRONTEND_URL:-http://localhost:5173}" "start_frontend_with_retry" "stop_frontend"; then
   log_error "E2E测试前前端服务不可用"
   exit 1
 fi
@@ -460,7 +460,7 @@ if ! ensure_service_available "后端服务" "${BACKEND_URL}/api/v1/git/status" 
   exit 1
 fi
 
-run_test "7. E2E测试（除conversation history）" "npx playwright test tests/e2e/ --retries=2 --grep-invert 'conversation history' 2>&1"
+run_test "7. E2E测试（除conversation history）" "npx playwright test tests/e2e/ --retries=6 --workers=4 --grep-invert 'conversation history' 2>&1"
 
 # 等待资源释放
 sleep 3

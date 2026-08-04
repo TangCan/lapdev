@@ -97,6 +97,26 @@ test.describe('[E2E] Code Editor', () => {
     await page.waitForSelector('[data-testid="file-item"]', { timeout: 10000 });
   });
 
+  // 辅助函数：确保 workspace 已展开，然后点击目标文件
+  async function expandWorkspaceAndClickFile(page: import('@playwright/test').Page, fileName: string) {
+    const testFile = page.locator('[data-testid="file-item"]').filter({ hasText: fileName });
+
+    // 如果文件已经可见（workspace 已展开），直接点击
+    if (await testFile.first().isVisible({ timeout: 2000 }).catch(() => false)) {
+      await testFile.first().click();
+      return;
+    }
+
+    // 文件不可见，需要展开 workspace 文件夹
+    const workspaceFolder = page.locator('[data-testid="file-item"]').filter({ hasText: 'workspace' });
+    await workspaceFolder.first().click();
+    await page.waitForTimeout(800);
+
+    // 等待文件出现
+    await expect(testFile.first()).toBeVisible({ timeout: 10000 });
+    await testFile.first().click();
+  }
+
   test('[P0] should display welcome screen on startup', async ({ page }) => {
     const welcomeScreen = page.getByText('欢迎使用 Lapdev');
     await expect(welcomeScreen).toBeVisible();
@@ -115,7 +135,7 @@ test.describe('[E2E] Code Editor', () => {
 
   test('[P0] should expand file tree and show files', async ({ page }) => {
     const workspaceFolder = page.locator('[data-testid="file-item"]').filter({ hasText: 'workspace' });
-    await workspaceFolder.click();
+    await workspaceFolder.first().click();
     await page.waitForTimeout(500);
 
     const fileTreeContent = page.getByTestId('file-tree').locator('.file-tree-content');
@@ -123,13 +143,7 @@ test.describe('[E2E] Code Editor', () => {
   });
 
   test('[P0] should open file when clicked', async ({ page }) => {
-    const workspaceFolder = page.locator('[data-testid="file-item"]').filter({ hasText: 'workspace' });
-    await workspaceFolder.click();
-    await page.waitForTimeout(500);
-
-    const testFile = page.locator('[data-testid="file-item"]').filter({ hasText: 'test-file.txt' });
-    await expect(testFile).toBeVisible({ timeout: 10000 });
-    await testFile.click();
+    await expandWorkspaceAndClickFile(page, 'test-file.txt');
     await page.waitForTimeout(500);
 
     const placeholder = page.getByTestId('code-editor-placeholder');
@@ -146,13 +160,7 @@ test.describe('[E2E] Code Editor', () => {
   });
 
   test('[P0] should allow editing file content', async ({ page }) => {
-    const workspaceFolder = page.locator('[data-testid="file-item"]').filter({ hasText: 'workspace' });
-    await workspaceFolder.click();
-    await page.waitForTimeout(500);
-
-    const testFile = page.locator('[data-testid="file-item"]').filter({ hasText: 'test-file.txt' });
-    await expect(testFile).toBeVisible({ timeout: 10000 });
-    await testFile.click();
+    await expandWorkspaceAndClickFile(page, 'test-file.txt');
     await page.waitForTimeout(500);
 
     const placeholder = page.getByTestId('code-editor-placeholder');
@@ -168,13 +176,7 @@ test.describe('[E2E] Code Editor', () => {
   });
 
   test('[P1] should display line numbers', async ({ page }) => {
-    const workspaceFolder = page.locator('[data-testid="file-item"]').filter({ hasText: 'workspace' });
-    await workspaceFolder.click();
-    await page.waitForTimeout(500);
-
-    const testFile = page.locator('[data-testid="file-item"]').filter({ hasText: 'test-file.txt' });
-    await expect(testFile).toBeVisible({ timeout: 10000 });
-    await testFile.click();
+    await expandWorkspaceAndClickFile(page, 'test-file.txt');
     await page.waitForTimeout(500);
 
     const placeholder = page.getByTestId('code-editor-placeholder');
@@ -190,13 +192,7 @@ test.describe('[E2E] Code Editor', () => {
   });
 
   test('[P2] should handle large files', async ({ page }) => {
-    const workspaceFolder = page.locator('[data-testid="file-item"]').filter({ hasText: 'workspace' });
-    await workspaceFolder.click();
-    await page.waitForTimeout(500);
-
-    const largeFile = page.locator('[data-testid="file-item"]').filter({ hasText: 'large-file.txt' });
-    await expect(largeFile).toBeVisible({ timeout: 10000 });
-    await largeFile.click();
+    await expandWorkspaceAndClickFile(page, 'large-file.txt');
     await page.waitForTimeout(500);
 
     const placeholder = page.getByTestId('code-editor-placeholder');

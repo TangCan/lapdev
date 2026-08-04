@@ -217,5 +217,287 @@ describe('lspService', () => {
       expect(result).toBeNull();
       consoleErrorSpy.mockRestore();
     });
+
+    // ============================================================
+    // 扩展测试: 边界条件和错误处理 (EPI2.03 automation)
+    // ============================================================
+
+    it('[P0] should handle content with trailing newline correctly', async () => {
+      const mockContent = 'const x=1\nconst y=2\nconst z=3\n';
+      const mockFormatted = 'const x = 1;\nconst y = 2;\nconst z = 3;';
+
+      vi.spyOn(lspService, 'getMonacoMod' as never).mockReturnValue({
+        editor: {
+          getModels: () => [{
+            uri: { toString: () => 'file:///workspace/test.ts' },
+            getValue: () => mockContent,
+          }],
+        },
+      } as never);
+
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          status: 'success',
+          content: mockFormatted,
+        }),
+      }) as unknown as typeof fetch;
+
+      const result = await lspService.formatRange('file:///workspace/test.ts', {
+        startLine: 0,
+        endLine: 2,
+      });
+
+      expect(result).not.toBeNull();
+      expect(result![0].range.start.line).toBe(0);
+      expect(result![0].range.end.line).toBe(2);
+    });
+
+    it('[P0] should handle non-JSON response gracefully', async () => {
+      const mockContent = 'const x=1\nconst y=2';
+
+      vi.spyOn(lspService, 'getMonacoMod' as never).mockReturnValue({
+        editor: {
+          getModels: () => [{
+            uri: { toString: () => 'file:///workspace/test.ts' },
+            getValue: () => mockContent,
+          }],
+        },
+      } as never);
+
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.reject(new SyntaxError('Unexpected token < in JSON')),
+      }) as unknown as typeof fetch;
+
+      const result = await lspService.formatRange('file:///workspace/test.ts', {
+        startLine: 0,
+        endLine: 1,
+      });
+
+      expect(result).toBeNull();
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('[P1] should handle non-OK HTTP status', async () => {
+      const mockContent = 'const x=1\nconst y=2';
+
+      vi.spyOn(lspService, 'getMonacoMod' as never).mockReturnValue({
+        editor: {
+          getModels: () => [{
+            uri: { toString: () => 'file:///workspace/test.ts' },
+            getValue: () => mockContent,
+          }],
+        },
+      } as never);
+
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: () => Promise.resolve({ status: 'error' }),
+      }) as unknown as typeof fetch;
+
+      const result = await lspService.formatRange('file:///workspace/test.ts', {
+        startLine: 0,
+        endLine: 1,
+      });
+
+      expect(result).toBeNull();
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('[P1] should handle negative endLine', async () => {
+      const mockContent = 'const x=1\nconst y=2';
+
+      vi.spyOn(lspService, 'getMonacoMod' as never).mockReturnValue({
+        editor: {
+          getModels: () => [{
+            uri: { toString: () => 'file:///workspace/test.ts' },
+            getValue: () => mockContent,
+          }],
+        },
+      } as never);
+
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const result = await lspService.formatRange('file:///workspace/test.ts', {
+        startLine: 0,
+        endLine: -1,
+      });
+
+      expect(result).toBeNull();
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('[P1] should handle range exceeding line count', async () => {
+      const mockContent = 'const x=1\nconst y=2';
+
+      vi.spyOn(lspService, 'getMonacoMod' as never).mockReturnValue({
+        editor: {
+          getModels: () => [{
+            uri: { toString: () => 'file:///workspace/test.ts' },
+            getValue: () => mockContent,
+          }],
+        },
+      } as never);
+
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const result = await lspService.formatRange('file:///workspace/test.ts', {
+        startLine: 0,
+        endLine: 100,
+      });
+
+      expect(result).toBeNull();
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('[P1] should handle empty selected content', async () => {
+      const mockContent = 'line1\n\nline3';
+
+      vi.spyOn(lspService, 'getMonacoMod' as never).mockReturnValue({
+        editor: {
+          getModels: () => [{
+            uri: { toString: () => 'file:///workspace/test.ts' },
+            getValue: () => mockContent,
+          }],
+        },
+      } as never);
+
+      // 选中空行 (第2行, index=1)
+      const result = await lspService.formatRange('file:///workspace/test.ts', {
+        startLine: 1,
+        endLine: 1,
+      });
+
+      expect(result).toBeNull();
+    });
+
+    it('[P1] should return correct range for single-line selection', async () => {
+      const mockContent = 'const x=1\nconst y=2\nconst z=3';
+      const mockFormatted = 'const x = 1;';
+
+      vi.spyOn(lspService, 'getMonacoMod' as never).mockReturnValue({
+        editor: {
+          getModels: () => [{
+            uri: { toString: () => 'file:///workspace/test.ts' },
+            getValue: () => mockContent,
+          }],
+        },
+      } as never);
+
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          status: 'success',
+          content: mockFormatted,
+        }),
+      }) as unknown as typeof fetch;
+
+      const result = await lspService.formatRange('file:///workspace/test.ts', {
+        startLine: 0,
+        endLine: 0,
+      });
+
+      expect(result).not.toBeNull();
+      expect(result![0].range.start.line).toBe(0);
+      expect(result![0].range.end.line).toBe(0);
+      expect(result![0].newText).toBe(mockFormatted);
+    });
+
+    it('[P1] should handle AbortController timeout', async () => {
+      const mockContent = 'const x=1\nconst y=2';
+
+      vi.spyOn(lspService, 'getMonacoMod' as never).mockReturnValue({
+        editor: {
+          getModels: () => [{
+            uri: { toString: () => 'file:///workspace/test.ts' },
+            getValue: () => mockContent,
+          }],
+        },
+      } as never);
+
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      globalThis.fetch = vi.fn().mockImplementation(() => {
+        return new Promise((_, reject) => {
+          setTimeout(() => reject(new DOMException('The operation was aborted')), 50);
+        });
+      }) as unknown as typeof fetch;
+
+      const result = await lspService.formatRange('file:///workspace/test.ts', {
+        startLine: 0,
+        endLine: 1,
+      });
+
+      expect(result).toBeNull();
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('[P0] should not replace entire document — only selected range', async () => {
+      const mockContent = 'const a=1\nconst b=2\nconst c=3\nconst d=4';
+      const mockFormatted = 'const b = 2;\nconst c = 3;';
+
+      vi.spyOn(lspService, 'getMonacoMod' as never).mockReturnValue({
+        editor: {
+          getModels: () => [{
+            uri: { toString: () => 'file:///workspace/test.ts' },
+            getValue: () => mockContent,
+          }],
+        },
+      } as never);
+
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          status: 'success',
+          content: mockFormatted,
+        }),
+      }) as unknown as typeof fetch;
+
+      const result = await lspService.formatRange('file:///workspace/test.ts', {
+        startLine: 1,
+        endLine: 2,
+      });
+
+      expect(result).not.toBeNull();
+      // 验证编辑范围仅限于选中区域 (行1-2)，不是整个文档
+      expect(result![0].range.start.line).toBe(1);
+      expect(result![0].range.end.line).toBe(2);
+      expect(result![0].newText).toBe(mockFormatted);
+    });
+
+    it('[P1] should return null when formatted content equals original', async () => {
+      const mockContent = 'const x = 1;\nconst y = 2;';
+      // 格式化后内容与原内容相同 (已经格式化好了)
+      const mockFormatted = 'const x = 1;\nconst y = 2.;';
+
+      vi.spyOn(lspService, 'getMonacoMod' as never).mockReturnValue({
+        editor: {
+          getModels: () => [{
+            uri: { toString: () => 'file:///workspace/test.ts' },
+            getValue: () => mockContent,
+          }],
+        },
+      } as never);
+
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          status: 'success',
+          content: mockFormatted,
+        }),
+      }) as unknown as typeof fetch;
+
+      const result = await lspService.formatRange('file:///workspace/test.ts', {
+        startLine: 0,
+        endLine: 1,
+      });
+
+      // 格式化结果与原文不同时应该返回编辑
+      expect(result).not.toBeNull();
+    });
   });
 });

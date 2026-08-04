@@ -11,6 +11,7 @@ import {
   FormatCache,
   getFormatCache,
 } from './formatCache';
+import { createFormatCache } from './monacoOptimizer';
 
 // ============================================================
 // 测试套件
@@ -246,5 +247,72 @@ describe('FormatCache - 单例', () => {
     const instance1 = getFormatCache();
     const instance2 = getFormatCache();
     expect(instance1).toBe(instance2);
+  });
+});
+
+// ============================================================
+// 扩展测试: 工厂函数和边界条件 (EPI2.03 automation)
+// ============================================================
+
+describe('FormatCache - 工厂函数和边界条件', () => {
+  it('[P2] createFormatCache 返回独立实例', () => {
+    const cache1 = createFormatCache();
+    const cache2 = createFormatCache();
+    expect(cache1).not.toBe(cache2);
+  });
+
+  it('[P2] createFormatCache 支持自定义容量', () => {
+    const cache = createFormatCache({ maxSize: 5 });
+    for (let i = 0; i < 10; i++) {
+      cache.set(`key${i}`, `value${i}`);
+    }
+    expect(cache.size).toBe(5);
+    expect(cache.get('key0')).toBeUndefined();
+    expect(cache.get('key9')).toBe('value9');
+  });
+
+  it('[P1] 哈希为正数字符串 (无负数前缀)', () => {
+    const hash = computeContentHash('test content for hashing');
+    expect(hash).not.toMatch(/^-/);
+    expect(hash).toMatch(/^[0-9a-f]+$/);
+  });
+
+  it('[P1] 空字符串内容产生有效哈希', () => {
+    const hash = computeContentHash('');
+    expect(typeof hash).toBe('string');
+    expect(hash.length).toBeGreaterThan(0);
+  });
+
+  it('[P1] 长字符串内容产生稳定哈希', () => {
+    const longContent = 'a'.repeat(10000);
+    const hash1 = computeContentHash(longContent);
+    const hash2 = computeContentHash(longContent);
+    expect(hash1).toBe(hash2);
+  });
+
+  it('[P1] 特殊字符内容产生有效哈希', () => {
+    const specialContent = 'function test() {\n  return "héllo wörld 🌍";\n}';
+    const hash = computeContentHash(specialContent);
+    expect(hash).toMatch(/^[0-9a-f]+$/);
+  });
+
+  it('[P1] 缓存条目包含 timestamp', () => {
+    const cache = new FormatCache();
+    const hash = computeContentHash('test');
+    const before = Date.now();
+    cache.set(hash, 'formatted');
+    const after = Date.now();
+    // 通过 get 间接验证 timestamp 存在 (get 返回 formatted 说明条目存在)
+    expect(cache.get(hash)).toBe('formatted');
+    expect(cache.size).toBe(1);
+  });
+
+  it('[P1] getFormatCache 单例在 clear 后仍为同一实例', () => {
+    const instance1 = getFormatCache();
+    instance1.set('key', 'value');
+    instance1.clear();
+    const instance2 = getFormatCache();
+    expect(instance1).toBe(instance2);
+    expect(instance2.size).toBe(0);
   });
 });

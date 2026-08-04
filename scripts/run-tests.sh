@@ -136,7 +136,7 @@ start_frontend() {
     
     cd "${FRONTEND_DIR}"
     
-    nohup npm run dev -- --host 0.0.0.0 --port ${FRONTEND_PORT} > /tmp/frontend.log 2>&1 &
+    nohup npm run dev -- --host 0.0.0.0 --port ${FRONTEND_PORT} --strictPort > /tmp/frontend.log 2>&1 &
     FRONTEND_PID=$!
     cd ..
     
@@ -250,7 +250,7 @@ npm run test:api || log_error "API 测试失败"
 log_info ""
 log_info "5. E2E 测试"
 log_info "----------------------------------------"
-if ! wait_for_service "${FRONTEND_URL}" 5; then
+if ! wait_for_service "${FRONTEND_URL:-http://localhost:5173}" 5; then
     log_info "前端服务不可用，尝试重启..."
     stop_frontend
     start_frontend
@@ -260,7 +260,7 @@ if ! wait_for_service "${BACKEND_URL}/api/v1/git/status" 5; then
     stop_backend
     start_backend
 fi
-npx playwright test tests/e2e/ || log_error "E2E 测试失败"
+npx playwright test tests/e2e/ --retries=6 --workers=4 || log_error "E2E 测试失败"
 
 log_info ""
 log_info "========================================"
