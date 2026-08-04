@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-07-27
-# last_updated: 2026-07-29 (epi1-03 done; clean review, 0 actionable findings; epi2-01 done after code review, 21 patches applied; epi2-02 ready-for-dev)
+# last_updated: 2026-08-03 (epi2-03 ready-for-dev; range formatting & incremental update story created)
 project: lapdev
 project_key: NOKEY
 tracking_system: file-system
@@ -125,7 +125,7 @@ development_status:
   epi2: in-progress
   epi2-01-monaco-editor-lazy-loading: done
   epi2-02-large-file-optimization: done
-  epi2-03-range-formatting-incremental-update: in-progress
+  epi2-03-range-formatting-incremental-update: done
   epi2-retrospective: optional
 
   # Epic EPI3: 性能优化 - 并发渲染与虚拟滚动 (3 stories)
@@ -164,8 +164,8 @@ summary:
   epics_done: 11
   epics_in_progress: 6
   stories_done: 30
-  stories_in_progress: 13
-  stories_ready_for_dev: 2
+  stories_in_progress: 12
+  stories_ready_for_dev: 3
   stories_in_review: 0
 
 story_mapping:
@@ -306,7 +306,7 @@ story_mapping:
       title: "范围格式化与增量更新"
       key: "epi2-03-range-formatting-incremental-update"
       frs: []
-      status_note: "未实现"
+      status_note: "ready-for-dev: 范围格式化与增量更新 — story 文件已创建"
   epi3:
     - id: "EPI3.01"
       title: "文件搜索并发优化"

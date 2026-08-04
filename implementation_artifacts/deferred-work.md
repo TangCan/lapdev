@@ -37,3 +37,11 @@
 - [x] [Review][Defer] 旧版 CodeEditor.tsx (components/) 未清理 — 文件路径与新版重复，预存问题 [CodeEditor.tsx]
 - [x] [Review][Defer] Python 语言服务特殊处理被移除 — 如需 Python 支持应在 EPI3/EPI4 中处理 [monacoLoader.ts]
 - [x] [Review][Defer] registerLanguageCallbacks 导出函数为死代码 — 仅在内部被调用，外部无使用方 [monacoLoader.ts:160-162]
+
+## Deferred from: code review of epi2-03-range-formatting-incremental-update (2026-08-03)
+
+- [x] [Review][Defer] Ctrl+F 覆盖了标准查找功能 [LspCodeEditor.tsx:411] — 已有行为，AC5 要求 "不变"
+- [x] [Review][Defer] DJB2 哈希碰撞风险 [formatCache.ts:37-50] — 50 条目 LRU 缓存碰撞概率极低
+- [x] [Review][Defer] 缓存无 TTL/过期机制 [formatCache.ts] — AC 未要求
+- [x] [Review][Defer] 测试覆盖不足 [lspService.test.ts] — 缺少跨文件缓存碰撞、过期缓存等场景，可后续补充
+- [x] [Review][Defer] 缓存键缺少文件 URI [formatCache.ts] — 相同内容产生相同格式化结果，实际影响可忽略

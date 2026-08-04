@@ -245,6 +245,32 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       },
     }));
 
+    // 注册范围格式化 provider (EPI2.03)
+    // 当编辑器有选中文本时，Monaco 会调用此 provider 进行范围格式化
+    disposers.push(monacoMod.languages.registerDocumentRangeFormattingEditProvider(uri, {
+      provideDocumentRangeFormattingEdits: async (model, range) => {
+        // Monaco range 是 1-based，lspService 使用 0-based
+        // 边界守卫：确保行号 ≥ 1，防止转换为 -1
+        const startLine = Math.max(0, range.startLineNumber - 1);
+        const endLine = Math.max(0, range.endLineNumber - 1);
+        const result = await lspService.formatRange(model.uri.toString(), {
+          startLine,
+          endLine,
+        });
+        if (!result) return [];
+
+        return result.map((edit) => ({
+          range: new monacoMod.Range(
+            edit.range.start.line + 1,
+            edit.range.start.character + 1,
+            edit.range.end.line + 1,
+            edit.range.end.character + 1
+          ),
+          text: edit.newText,
+        }));
+      },
+    }));
+
     disposers.push(monacoMod.languages.registerSignatureHelpProvider(uri, {
       provideSignatureHelp: async (model, position) => {
         const lspPosition: Position = {

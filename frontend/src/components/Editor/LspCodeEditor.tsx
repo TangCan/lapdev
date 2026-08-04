@@ -5,7 +5,7 @@ import { useLSP } from '../../context/LSPContext';
 import { aiService } from '../../services/aiService';
 import { useAI } from '../../context/AIContext';
 import { useInlineCompletion } from '../../context/InlineCompletionContext';
-import { getOptimizedEditorOptions, getLineCount, LARGE_FILE_THRESHOLD, HUGE_FILE_THRESHOLD } from '../../utils/monacoOptimizer';
+import { getOptimizedEditorOptions, getLineCount, isLargeFile, LARGE_FILE_THRESHOLD, HUGE_FILE_THRESHOLD } from '../../utils/monacoOptimizer';
 
 import type { DiffLine } from '../../types/diff';
 
@@ -111,6 +111,7 @@ function LspCodeEditorComponent(props: LspCodeEditorProps, ref: React.ForwardedR
   const monacoModuleRef = useRef<MonacoModule | null>(null);
   const [monacoReady, setMonacoReady] = useState(false);
   const [initError, setInitError] = useState(false);
+  const isFormattingRef = useRef(false);
   const prevIsLargeRef = useRef(false);
   const prevIsHugeRef = useRef(false);
   const thresholdInitRef = useRef(false);
@@ -375,14 +376,42 @@ function LspCodeEditorComponent(props: LspCodeEditorProps, ref: React.ForwardedR
             triggerCompletion();
           });
 
+          // 格式化触发函数：检测选中状态，决定使用范围格式化还是全文件格式化
+          const triggerFormat = () => {
+            const editor = editorRef.current;
+            if (!editor) return;
+
+            const selection = editor.getSelection();
+            const hasSelection = selection ? !selection.isEmpty() : false;
+            const largeFile = isLargeFile(value);
+
+            if (hasSelection && largeFile) {
+              // 大文件 + 有选中区域 → 范围格式化
+              isFormattingRef.current = true;
+              editor.trigger('keyboard', 'editor.action.formatSelection', {});
+              setTimeout(() => { isFormattingRef.current = false; }, 500);
+            } else {
+              // 无选中或小文件 → 全文件格式化（保持原有行为）
+              isFormattingRef.current = true;
+              editor.trigger('keyboard', 'editor.action.formatDocument', {});
+              setTimeout(() => { isFormattingRef.current = false; }, 1000);
+            }
+          };
+
           const handleKeyDown = (e: KeyboardEvent) => {
             if (e.ctrlKey && e.key === 's') {
               e.preventDefault();
-              editorRef.current?.trigger('keyboard', 'editor.action.formatDocument', {});
+              // 大文件 + 有选中区域 → 使用范围格式化
+              // 否则 → 全文件格式化（保持原有行为）
+              if (!isFormattingRef.current) {
+                triggerFormat();
+              }
             }
             if (e.ctrlKey && e.key === 'F') {
               e.preventDefault();
-              editorRef.current?.trigger('keyboard', 'editor.action.formatDocument', {});
+              if (!isFormattingRef.current) {
+                triggerFormat();
+              }
             }
             if (e.ctrlKey && e.key === 'd') {
               e.preventDefault();

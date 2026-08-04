@@ -11,6 +11,7 @@ import {
   Hover,
 } from 'vscode-languageserver-types';
 import { API_URL } from '../config';
+import { computeContentHash, getFormatCache } from '../utils/formatCache';
 
 export interface LspConfig {
   language: string;
@@ -390,6 +391,112 @@ class LspService {
       }
     } catch (error) {
       console.error('Error formatting document:', error);
+    }
+
+    return null;
+  }
+
+  /**
+   * 范围格式化 - 仅格式化选中区域的代码
+   *
+   * 逻辑：获取 model 内容 → 提取 range 对应的子内容 → 调用 /api/v1/format → 合并回完整内容
+   * 集成 formatCache：先查缓存 → 命中则直接返回 → 未命中则格式化后缓存
+   *
+   * @param uri Monaco model URI
+   * @param range 行范围 { startLine, endLine } (0-based)
+   * @returns 格式化编辑数组，或 null 表示无变化
+   */
+  async formatRange(
+    uri: string,
+    range: { startLine: number; endLine: number }
+  ): Promise<{ range: Range; newText: string }[] | null> {
+    const monacoMod = this.getMonacoMod();
+    const model = monacoMod.editor.getModels().find(m => m.uri.toString() === uri);
+    const fullContent = model?.getValue() || '';
+
+    if (!fullContent) return null;
+
+    // 处理末尾换行：split('\n') 对末尾有 \n 的内容会多出一个空元素
+    const trimmedContent = fullContent.endsWith('\n') ? fullContent.slice(0, -1) : fullContent;
+    const allLines = trimmedContent.split('\n');
+    const { startLine, endLine } = range;
+
+    // 边界检查（含负值守卫）
+    if (startLine < 0 || endLine < 0 || startLine >= allLines.length || endLine >= allLines.length || startLine > endLine) {
+      console.warn('[formatRange] Invalid range:', range);
+      return null;
+    }
+
+    // 提取选中区域的子内容
+    const selectedLines = allLines.slice(startLine, endLine + 1);
+    const selectedContent = selectedLines.join('\n');
+
+    if (!selectedContent) return null;
+
+    // 缓存查找
+    const cache = getFormatCache();
+    const cacheKey = computeContentHash(selectedContent, { startLine, endLine });
+    const cachedResult = cache.get(cacheKey);
+
+    let formattedContent: string;
+    if (cachedResult !== undefined) {
+      formattedContent = cachedResult;
+    } else {
+      // 调用后端格式化 API（带超时）
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch(`${API_BASE_URL}/format`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            path: this.getFilePathFromUri(uri),
+            content: selectedContent,
+          }),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          console.error('[formatRange] API returned non-OK status:', response.status);
+          return null;
+        }
+
+        let result: { status: string; content?: string };
+        try {
+          result = await response.json();
+        } catch {
+          console.error('[formatRange] Failed to parse API response as JSON');
+          return null;
+        }
+
+        if (result.status === 'success' && result.content !== undefined) {
+          formattedContent = result.content;
+          cache.set(cacheKey, formattedContent, { startLine, endLine });
+        } else {
+          return null;
+        }
+      } catch (error) {
+        console.error('Error formatting range:', error);
+        return null;
+      }
+    }
+
+    // 仅返回选中范围的编辑（不替换整个文档）
+    const formattedLines = formattedContent.split('\n');
+    const lastLine = allLines[startLine] || '';
+    const lastFormattedLine = formattedLines[formattedLines.length - 1] || '';
+
+    if (formattedContent !== selectedContent) {
+      return [{
+        range: {
+          start: { line: startLine, character: 0 },
+          end: { line: endLine, character: lastLine.length },
+        },
+        newText: formattedContent,
+      }];
     }
 
     return null;

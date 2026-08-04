@@ -1,5 +1,6 @@
 import type { editor } from 'monaco-editor';
 import { getMonacoSync } from '../services/monacoLoader';
+import { FormatCache, type FormatCacheOptions } from './formatCache';
 
 function getMonacoMod() {
   const mod = getMonacoSync();
@@ -110,4 +111,17 @@ export function createOptimizedEditor(
   });
 
   return getMonacoMod().editor.create(container, options);
+}
+
+// ============================================================
+// 格式化缓存集成 (EPI2.03)
+// ============================================================
+
+/**
+ * 创建格式化缓存实例
+ * @param options 缓存选项
+ * @returns FormatCache 实例
+ */
+export function createFormatCache(options?: FormatCacheOptions): FormatCache {
+  return new FormatCache(options);
 }
