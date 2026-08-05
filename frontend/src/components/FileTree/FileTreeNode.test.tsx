@@ -251,4 +251,92 @@ describe('FileTreeNode - renderName Highlighting', () => {
     expect(highlights).toHaveLength(1);
     expect(highlights[0]).toHaveTextContent('test');
   });
+
+  // ─── renderChildren prop ───
+
+  it('[P1] renderChildren={false} 时目录展开后不渲染子节点', () => {
+    const directory: FileInfo = {
+      name: 'src',
+      path: '/src',
+      type: 'directory',
+      children: [
+        { name: 'App.tsx', path: '/src/App.tsx', type: 'file' },
+        { name: 'index.ts', path: '/src/index.ts', type: 'file' },
+      ],
+    };
+    const expanded = new Set<string>(['/src']);
+
+    render(
+      <FileTreeNode
+        file={directory}
+        depth={0}
+        onFileClick={mockOnFileClick}
+        onContextMenu={mockOnContextMenu}
+        expandedPaths={expanded}
+        onToggleExpand={mockOnToggleExpand}
+        renderChildren={false}
+      />
+    );
+
+    expect(screen.queryByText('App.tsx')).not.toBeInTheDocument();
+    expect(screen.queryByText('index.ts')).not.toBeInTheDocument();
+  });
+
+  it('[P1] renderChildren={true} (默认) 时目录展开后渲染子节点', () => {
+    const directory: FileInfo = {
+      name: 'src',
+      path: '/src',
+      type: 'directory',
+      children: [
+        { name: 'App.tsx', path: '/src/App.tsx', type: 'file' },
+        { name: 'index.ts', path: '/src/index.ts', type: 'file' },
+      ],
+    };
+    const expanded = new Set<string>(['/src']);
+
+    render(
+      <FileTreeNode
+        file={directory}
+        depth={0}
+        onFileClick={mockOnFileClick}
+        onContextMenu={mockOnContextMenu}
+        expandedPaths={expanded}
+        onToggleExpand={mockOnToggleExpand}
+      />
+    );
+
+    expect(screen.getByText('App.tsx')).toBeInTheDocument();
+    expect(screen.getByText('index.ts')).toBeInTheDocument();
+  });
+
+  it('[P1] isExpandedOverride prop 正确控制展开状态', () => {
+    const directory: FileInfo = {
+      name: 'src',
+      path: '/src',
+      type: 'directory',
+      children: [
+        { name: 'App.tsx', path: '/src/App.tsx', type: 'file' },
+        { name: 'index.ts', path: '/src/index.ts', type: 'file' },
+      ],
+    };
+    const emptyExpanded = new Set<string>();
+
+    render(
+      <FileTreeNode
+        file={directory}
+        depth={0}
+        onFileClick={mockOnFileClick}
+        onContextMenu={mockOnContextMenu}
+        expandedPaths={emptyExpanded}
+        onToggleExpand={mockOnToggleExpand}
+        isExpandedOverride={true}
+      />
+    );
+
+    // 目录节点排在子节点之前，取第一个 folder-expand 即为目录自身的展开图标
+    const expandIcon = screen.getAllByTestId('folder-expand')[0];
+    expect(expandIcon).toHaveTextContent('▼');
+    // 展开后应渲染子节点
+    expect(screen.getByText('App.tsx')).toBeInTheDocument();
+  });
 });

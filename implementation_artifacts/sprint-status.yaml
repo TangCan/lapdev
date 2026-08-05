@@ -1,5 +1,5 @@
 # generated: 2026-07-27
-# last_updated: 2026-07-27 (epi1-02 done; epi1-03 ready-for-dev; aiService immutability fix)
+# last_updated: 2026-08-05 (epi3-02 ready-for-dev; 文件树虚拟滚动 story 创建)
 # project: lapdev
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-07-27
-# last_updated: 2026-08-04 (epi3-01 done; 文件搜索并发优化实现完成)
+# last_updated: 2026-08-05 (epi3-02 ready-for-dev; 文件树虚拟滚动 story 创建)
 project: lapdev
 project_key: NOKEY
 tracking_system: file-system
@@ -131,7 +131,7 @@ development_status:
   # Epic EPI3: 性能优化 - 并发渲染与虚拟滚动 (3 stories)
   epi3: in-progress
   epi3-01-file-search-concurrent-optimization: done
-  epi3-02-file-tree-virtual-scrolling: in-progress
+  epi3-02-file-tree-virtual-scrolling: review
   epi3-03-complex-operation-concurrent-processing: in-progress
   epi3-retrospective: optional
 

@@ -374,6 +374,10 @@ body {
   padding: 8px 0;
 }
 
+.file-tree-content:has(.file-tree-virtual-list) {
+  overflow-y: hidden;
+}
+
 .file-tree-node {
   user-select: none;
 }
@@ -384,6 +388,9 @@ body {
   padding: 4px 8px;
   cursor: pointer;
   transition: background-color 0.2s;
+  height: 28px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .file-item:hover {
@@ -405,6 +412,9 @@ body {
 .name {
   font-size: 13px;
   color: #c6c6c6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .file-item.directory .name {

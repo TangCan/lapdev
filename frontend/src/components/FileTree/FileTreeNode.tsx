@@ -10,9 +10,13 @@ interface FileTreeNodeProps {
   expandedPaths: Set<string>;
   onToggleExpand: (path: string) => void;
   highlightMatch?: string | null;
+  /** 是否渲染子节点。虚拟滚动模式下为 false，由 VirtualList 管理子节点渲染 */
+  renderChildren?: boolean;
+  /** 虚拟滚动模式下直接传入展开状态，避免 Set 引用变化导致 React.memo 失效 */
+  isExpandedOverride?: boolean;
 }
 
-export function FileTreeNode({
+export const FileTreeNode = React.memo(function FileTreeNode({
   file,
   depth,
   onFileClick,
@@ -20,10 +24,12 @@ export function FileTreeNode({
   expandedPaths,
   onToggleExpand,
   highlightMatch,
+  renderChildren = true,
+  isExpandedOverride,
 }: FileTreeNodeProps) {
   const { status } = useGit();
 
-  const isExpanded = expandedPaths.has(file.path);
+  const isExpanded = isExpandedOverride ?? expandedPaths.has(file.path);
 
   const gitStatus = !status
     ? null
@@ -135,7 +141,7 @@ export function FileTreeNode({
           <span className={gitIconInfo.className}>{gitIconInfo.icon}</span>
         )}
       </div>
-      {file.type === 'directory' && isExpanded && file.children && (
+      {renderChildren && file.type === 'directory' && isExpanded && file.children && (
         <div className="children">
           {file.children.map((child) => (
             <FileTreeNode
@@ -153,7 +159,7 @@ export function FileTreeNode({
       )}
     </div>
   );
-}
+});
 
 function getFileIcon(filename: string): string {
   const ext = filename.split('.').pop()?.toLowerCase();

@@ -5,6 +5,12 @@ import { FileTreeNode } from './FileTreeNode';
 import { FileTreeContextMenu } from './FileTreeContextMenu';
 import { FileTreeSearch } from './FileTreeSearch';
 import { useFileSearch } from '../../hooks/useFileSearch';
+import { useFileTreeFlatten } from '../../hooks/useFileTreeFlatten';
+import type { FlatFileItem } from '../../hooks/useFileTreeFlatten';
+import { VirtualList } from '../common/VirtualList';
+
+const VIRTUAL_SCROLL_THRESHOLD = 50;
+const ITEM_HEIGHT = 28;
 
 export interface FileTreeProps {
   onFileOpen: (file: FileInfo) => void;
@@ -130,13 +136,13 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
     return () => clearInterval(interval);
   }, [loadFileTree]);
 
-  const handleFileClick = (file: FileInfo) => {
+  const handleFileClick = useCallback((file: FileInfo) => {
     if (file.type === 'file') {
       onFileOpen(file);
     }
-  };
+  }, [onFileOpen]);
 
-  const handleToggleExpand = (path: string) => {
+  const handleToggleExpand = useCallback((path: string) => {
     setExpandedPaths(prev => {
       const newSet = new Set(prev);
       if (newSet.has(path)) {
@@ -146,15 +152,15 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
       }
       return newSet;
     });
-  };
+  }, []);
 
-  const handleContextMenu = (file: FileInfo, event: React.MouseEvent) => {
+  const handleContextMenu = useCallback((file: FileInfo, event: React.MouseEvent) => {
     setContextMenu({
       file,
       position: { x: event.clientX, y: event.clientY }
     });
     isPausedRef.current = true;
-  };
+  }, []);
 
   const handleCloseContextMenu = () => {
     setContextMenu(null);
@@ -223,6 +229,28 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
   // F6: Don't show "no results" while searching or stale
   const showNoResults = hasSearch && !filteredTree && !isSearching && !isStale;
 
+  // Flatten the filtered tree for virtual scrolling
+  const flatItems = useFileTreeFlatten(filteredTree, effectiveExpandedPaths);
+  const useVirtualScroll = flatItems.length > VIRTUAL_SCROLL_THRESHOLD;
+
+  // Stable renderItem callback for VirtualList
+  const renderVirtualItem = useCallback(
+    (item: FlatFileItem) => (
+      <FileTreeNode
+        file={item.file}
+        depth={item.depth}
+        onFileClick={handleFileClick}
+        onContextMenu={handleContextMenu}
+        expandedPaths={effectiveExpandedPaths}
+        onToggleExpand={handleToggleExpand}
+        highlightMatch={highlightMatch}
+        renderChildren={false}
+        isExpandedOverride={item.isExpanded}
+      />
+    ),
+    [handleFileClick, handleContextMenu, effectiveExpandedPaths, handleToggleExpand, highlightMatch]
+  );
+
   if (loading) {
     return (
       <div className="file-tree" data-testid="file-tree" role="tree">
@@ -258,21 +286,47 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
       />
 
       <div className="file-tree-content">
-        {filteredTree && (
-          <FileTreeNode
-            file={filteredTree}
-            depth={0}
-            onFileClick={handleFileClick}
-            onContextMenu={handleContextMenu}
-            expandedPaths={effectiveExpandedPaths}
-            onToggleExpand={handleToggleExpand}
-            highlightMatch={highlightMatch}
+        {useVirtualScroll && flatItems.length === 0 ? (
+          showNoResults ? (
+            <div className="file-tree-no-results" data-testid="file-tree-no-results">
+              没有找到匹配的文件
+            </div>
+          ) : (
+            <div className="file-tree-empty" data-testid="file-tree-empty">
+              空文件夹
+            </div>
+          )
+        ) : useVirtualScroll ? (
+          <VirtualList
+            items={flatItems}
+            itemHeight={ITEM_HEIGHT}
+            className="file-tree-virtual-list"
+            renderItem={renderVirtualItem}
           />
-        )}
-        {showNoResults && (
-          <div className="file-tree-no-results" data-testid="file-tree-no-results">
-            没有找到匹配的文件
-          </div>
+        ) : (
+          <>
+            {filteredTree && (
+              <FileTreeNode
+                file={filteredTree}
+                depth={0}
+                onFileClick={handleFileClick}
+                onContextMenu={handleContextMenu}
+                expandedPaths={effectiveExpandedPaths}
+                onToggleExpand={handleToggleExpand}
+                highlightMatch={highlightMatch}
+              />
+            )}
+            {showNoResults && (
+              <div className="file-tree-no-results" data-testid="file-tree-no-results">
+                没有找到匹配的文件
+              </div>
+            )}
+            {!filteredTree && !hasSearch && (
+              <div className="file-tree-empty" data-testid="file-tree-empty">
+                空文件夹
+              </div>
+            )}
+          </>
         )}
       </div>
 
