@@ -1,5 +1,72 @@
 {
   "version": "5",
+  "specifiers": {
+    "npm:@playwright/test@^1.44.0": "1.62.1",
+    "npm:@types/node@^20.11.0": "20.19.43",
+    "npm:js-yaml@*": "5.2.3",
+    "npm:playwright@^1.60.0": "1.62.1",
+    "npm:typescript@^5.4.0": "5.9.3"
+  },
+  "npm": {
+    "@playwright/test@1.62.1": {
+      "integrity": "sha512-DTcUc8qii+cpHvtOwggMtBRMjKZHXYWdw8syRYu2vtzuq4Wxphqq4NfCs5Zt44L6mA8rfDfj+PHnxFc/FeK6mQ==",
+      "dependencies": [
+        "playwright"
+      ],
+      "bin": true,
+      "tarball": "https://registry.npmmirror.com/@playwright/test/-/test-1.62.1.tgz"
+    },
+    "@types/node@20.19.43": {
+      "integrity": "sha512-6oYBAi5ikg4Pl+kGsoYtawUMBT2zZMCvPNF7pVLnHZfd1zf38DRiWn/gT01RYCdUqkv7Fhr+C9ot4/tb+2sVvA==",
+      "dependencies": [
+        "undici-types"
+      ],
+      "tarball": "https://registry.npmmirror.com/@types/node/-/node-20.19.43.tgz"
+    },
+    "argparse@2.0.1": {
+      "integrity": "sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==",
+      "tarball": "https://registry.npmmirror.com/argparse/-/argparse-2.0.1.tgz"
+    },
+    "fsevents@2.3.2": {
+      "integrity": "sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==",
+      "os": ["darwin"],
+      "scripts": true,
+      "tarball": "https://registry.npmmirror.com/fsevents/-/fsevents-2.3.2.tgz"
+    },
+    "js-yaml@5.2.3": {
+      "integrity": "sha512-n+mUVyUX5bVv7G/G2zyIHOhdxfuU1dY2NOFzTQUWiMUbFss8b57NFlgCCaggU78wSw5KVS9cllzeLyzyR+n5nw==",
+      "dependencies": [
+        "argparse"
+      ],
+      "bin": true,
+      "tarball": "https://registry.npmmirror.com/js-yaml/-/js-yaml-5.2.3.tgz"
+    },
+    "playwright-core@1.62.1": {
+      "integrity": "sha512-wPYSwEBJY9GHraISXqyqtx0na0LpO3XEX7jNDhntbex7tzUS7kLnZsOlFruFJB4Hi/rhDMjXGqHewDZ68nYZVw==",
+      "bin": true,
+      "tarball": "https://registry.npmmirror.com/playwright-core/-/playwright-core-1.62.1.tgz"
+    },
+    "playwright@1.62.1": {
+      "integrity": "sha512-0M+L3LAD8/nm554LOla9Ayx0j0tmFZ0FBcoQ7F1VuVHpM/XpiC8RcDzBQB8W5+hA8L22THxELzeF+2WcUzvcLg==",
+      "dependencies": [
+        "playwright-core"
+      ],
+      "optionalDependencies": [
+        "fsevents"
+      ],
+      "bin": true,
+      "tarball": "https://registry.npmmirror.com/playwright/-/playwright-1.62.1.tgz"
+    },
+    "typescript@5.9.3": {
+      "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==",
+      "bin": true,
+      "tarball": "https://registry.npmmirror.com/typescript/-/typescript-5.9.3.tgz"
+    },
+    "undici-types@6.21.0": {
+      "integrity": "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==",
+      "tarball": "https://registry.npmmirror.com/undici-types/-/undici-types-6.21.0.tgz"
+    }
+  },
   "redirects": {
     "https://deno.land/std/assert/mod.ts": "https://deno.land/std@0.224.0/assert/mod.ts",
     "https://deno.land/std/fs/mod.ts": "https://deno.land/std@0.224.0/fs/mod.ts",
@@ -241,6 +308,9 @@
     "https://deno.land/std@0.224.0/testing/bdd.ts": "3e4de4ff6d8f348b5574661cef9501b442046a59079e201b849d0e74120d476b"
   },
   "workspace": {
+    "dependencies": [
+      "npm:js-yaml@*"
+    ],
     "packageJson": {
       "dependencies": [
         "npm:@playwright/test@^1.44.0",

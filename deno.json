@@ -1,0 +1,6 @@
+{
+  "nodeModulesDir": "auto",
+  "imports": {
+    "js-yaml": "npm:js-yaml"
+  }
+}
