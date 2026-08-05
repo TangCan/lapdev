@@ -411,6 +411,95 @@ body {
   color: #dcdcaa;
 }
 
+.file-tree-search {
+  padding: 8px 12px;
+  background-color: #252526;
+  border-bottom: 1px solid #3c3c3c;
+}
+
+.file-tree-search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background-color: #3c3c3c;
+  border-radius: 4px;
+  padding: 0 8px;
+}
+
+.file-tree-search-icon {
+  margin-right: 6px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.file-tree-search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  color: #ffffff;
+  padding: 6px 0;
+  font-size: 13px;
+  outline: none;
+}
+
+.file-tree-search-input::placeholder {
+  color: #858585;
+}
+
+.file-tree-search-loading {
+  font-size: 12px;
+  animation: spin 1s linear infinite;
+}
+
+.file-tree-search-stale {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.file-tree-search-clear {
+  background: none;
+  border: none;
+  color: #858585;
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 11px;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.file-tree-search-clear:hover {
+  background-color: #505050;
+  color: #ffffff;
+}
+
+.file-tree-search-error {
+  margin-top: 6px;
+  padding: 6px 8px;
+  background-color: #3d2b2b;
+  border: 1px solid #5a2d2d;
+  border-radius: 4px;
+  color: #f48771;
+  font-size: 12px;
+}
+
+.file-tree-search-results-info {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #858585;
+}
+
+.file-tree-search-highlight {
+  background-color: #094771;
+  color: #ffffff;
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .children {
   overflow: hidden;
 }

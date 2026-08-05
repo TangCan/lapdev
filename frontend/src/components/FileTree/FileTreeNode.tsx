@@ -9,9 +9,18 @@ interface FileTreeNodeProps {
   onContextMenu: (file: FileInfo, event: React.MouseEvent) => void;
   expandedPaths: Set<string>;
   onToggleExpand: (path: string) => void;
+  highlightMatch?: string | null;
 }
 
-export function FileTreeNode({ file, depth, onFileClick, onContextMenu, expandedPaths, onToggleExpand }: FileTreeNodeProps) {
+export function FileTreeNode({
+  file,
+  depth,
+  onFileClick,
+  onContextMenu,
+  expandedPaths,
+  onToggleExpand,
+  highlightMatch,
+}: FileTreeNodeProps) {
   const { status } = useGit();
 
   const isExpanded = expandedPaths.has(file.path);
@@ -63,6 +72,47 @@ export function FileTreeNode({ file, depth, onFileClick, onContextMenu, expanded
 
   const gitIconInfo = gitStatus ? getGitStatusIcon(gitStatus) : null;
 
+  const renderName = (name: string, match: string | null | undefined) => {
+    if (!match || match.length === 0) {
+      return <span className="name">{name}</span>;
+    }
+
+    const lowerName = name.toLowerCase();
+    const lowerMatch = match.toLowerCase();
+
+    if (!lowerName.includes(lowerMatch)) {
+      return <span className="name">{name}</span>;
+    }
+
+    // Highlight ALL matches, not just the first
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let matchIndex = lowerName.indexOf(lowerMatch, lastIndex);
+
+    while (matchIndex !== -1) {
+      if (matchIndex > lastIndex) {
+        parts.push(name.substring(lastIndex, matchIndex));
+      }
+      parts.push(
+        <span
+          key={matchIndex}
+          className="file-tree-search-highlight"
+          data-testid="file-tree-search-highlight"
+        >
+          {name.substring(matchIndex, matchIndex + match.length)}
+        </span>
+      );
+      lastIndex = matchIndex + match.length;
+      matchIndex = lowerName.indexOf(lowerMatch, lastIndex);
+    }
+
+    if (lastIndex < name.length) {
+      parts.push(name.substring(lastIndex));
+    }
+
+    return <span className="name">{parts}</span>;
+  };
+
   return (
     <div className="file-tree-node">
       <div
@@ -80,7 +130,7 @@ export function FileTreeNode({ file, depth, onFileClick, onContextMenu, expanded
           )}
         </span>
         <span className="icon">{icon}</span>
-        <span className="name">{file.name}</span>
+        {renderName(file.name, highlightMatch)}
         {gitIconInfo && (
           <span className={gitIconInfo.className}>{gitIconInfo.icon}</span>
         )}
@@ -96,6 +146,7 @@ export function FileTreeNode({ file, depth, onFileClick, onContextMenu, expanded
               onContextMenu={onContextMenu}
               expandedPaths={expandedPaths}
               onToggleExpand={onToggleExpand}
+              highlightMatch={highlightMatch}
             />
           ))}
         </div>

@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-07-27
-# last_updated: 2026-08-03 (epi2-03 ready-for-dev; range formatting & incremental update story created)
+# last_updated: 2026-08-04 (epi3-01 done; 文件搜索并发优化实现完成)
 project: lapdev
 project_key: NOKEY
 tracking_system: file-system
@@ -130,7 +130,7 @@ development_status:
 
   # Epic EPI3: 性能优化 - 并发渲染与虚拟滚动 (3 stories)
   epi3: in-progress
-  epi3-01-file-search-concurrent-optimization: in-progress
+  epi3-01-file-search-concurrent-optimization: done
   epi3-02-file-tree-virtual-scrolling: in-progress
   epi3-03-complex-operation-concurrent-processing: in-progress
   epi3-retrospective: optional
@@ -163,9 +163,9 @@ summary:
   total_stories: 45
   epics_done: 11
   epics_in_progress: 6
-  stories_done: 30
-  stories_in_progress: 12
-  stories_ready_for_dev: 3
+  stories_done: 31
+  stories_in_progress: 11
+  stories_ready_for_dev: 4
   stories_in_review: 0
 
 story_mapping:
@@ -312,7 +312,7 @@ story_mapping:
       title: "文件搜索并发优化"
       key: "epi3-01-file-search-concurrent-optimization"
       frs: ["UX-DR3"]
-      status_note: "useFileSearch.ts 已创建但未集成"
+      status_note: "done: useFileSearch 集成到 FileTree，客户端过滤 + useDeferredValue + 防抖，高亮匹配"
     - id: "EPI3.02"
       title: "文件树虚拟滚动"
       key: "epi3-02-file-tree-virtual-scrolling"
@@ -389,7 +389,7 @@ integration_gap_analysis:
     - "GitContext/ChatContext/ThemeContext 未被 Zustand stores 替换"
     - "LazyCodeEditor 和 monacoOptimizer 未接入编辑器"
     - "VirtualList 未接入 FileTree"
-    - "useFileSearch 未被任何组件使用"
+    - "useFileSearch 已集成到 FileTree.tsx"
     - "DI 容器未被任何服务/组件引用"
     - "无 startTransition 调用"
   recommended_next_steps:

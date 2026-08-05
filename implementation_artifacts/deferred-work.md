@@ -45,3 +45,10 @@
 - [x] [Review][Defer] 缓存无 TTL/过期机制 [formatCache.ts] — AC 未要求
 - [x] [Review][Defer] 测试覆盖不足 [lspService.test.ts] — 缺少跨文件缓存碰撞、过期缓存等场景，可后续补充
 - [x] [Review][Defer] 缓存键缺少文件 URI [formatCache.ts] — 相同内容产生相同格式化结果，实际影响可忽略
+
+## Deferred from: code review of epi3-01-file-search-concurrent-optimization (2026-08-04)
+
+- [x] [Review][Defer] F10: AC3错误处理路径在集成中不可达(searchFn为空桩) — 设计选择，localFiles优先模式不需要API调用，错误处理路径保留供未来API模式使用
+- [x] [Review][Defer] F11: AC1的INP降低60%无验证证据 — 需运行时性能度量工具验证，代码层面已使用useDeferredValue
+- [x] [Review][Defer] F12: 大量搜索结果分页未实现 — 技术约束3为"如需要"，当前1000+文件搜索响应足够快
+
