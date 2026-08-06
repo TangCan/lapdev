@@ -236,7 +236,7 @@ start_frontend_with_retry() {
   local retry_count=0
   
   while [ $retry_count -lt $max_retries ]; do
-    log_info "启动前端服务 (尝试 ${retry_count + 1}/${max_retries})..."
+    log_info "启动前端服务 (尝试 $((retry_count + 1))/${max_retries})..."
     
     cd "${FRONTEND_DIR}"
     

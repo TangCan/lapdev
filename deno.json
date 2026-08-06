@@ -1,6 +1,8 @@
 {
   "nodeModulesDir": "auto",
   "imports": {
-    "js-yaml": "npm:js-yaml"
+    "js-yaml": "npm:js-yaml",
+    "supertest": "npm:supertest",
+    "vitest": "npm:vitest"
   }
 }
