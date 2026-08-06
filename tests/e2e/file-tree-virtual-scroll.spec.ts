@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 /**
  * E2E: 文件树虚拟滚动 E2E 测试
@@ -8,6 +8,75 @@ import { test, expect } from '@playwright/test';
  */
 
 let backendAvailable = false;
+
+/**
+ * 展开根目录（workspace 文件夹），使子文件可见以触发虚拟滚动。
+ * 每个测试 page.goto('/') 后需调用，因为 expandedPaths 状态在页面重载后会重置。
+ * 包含重试逻辑：点击后验证展开图标变为 ▼，未展开则重试（最多 3 次）。
+ */
+async function expandRootFolder(page: Page) {
+  // 等待文件树加载完成（无 loading 指示器）
+  await page.waitForFunction(
+    () => {
+      const el = document.querySelector('[data-testid="file-tree"]');
+      return el && !el.querySelector('.loading');
+    },
+    { timeout: 15000 }
+  ).catch(() => {});
+
+  const rootFolder = page.locator('[data-testid="file-item"]').filter({ hasText: 'workspace' }).first();
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (!(await rootFolder.isVisible({ timeout: 3000 }).catch(() => false))) {
+      await page.waitForTimeout(500);
+      continue;
+    }
+
+    const expandIcon = rootFolder.locator('[data-testid="folder-expand"]');
+    const iconText = await expandIcon.textContent().catch(() => '');
+
+    if (iconText?.trim() === '▼') {
+      // 已展开，无需操作
+      return;
+    }
+
+    // 点击展开
+    await rootFolder.click();
+    await page.waitForTimeout(500);
+
+    // 验证是否成功展开
+    const iconAfter = await expandIcon.textContent().catch(() => '');
+    if (iconAfter?.trim() === '▼') {
+      return;
+    }
+    // 未展开，重试
+  }
+}
+
+/**
+ * 获取虚拟滚动列表的总项目数（包括未渲染的）。
+ * VirtualList 内部渲染一个 height=totalHeight 的占位 div，totalHeight = items.length * itemHeight。
+ * 通过读取该 div 的高度并除以 ITEM_HEIGHT(28) 来推算总项目数。
+ */
+async function getTotalItemCount(page: Page): Promise<number> {
+  return await page.evaluate(() => {
+    const container = document.querySelector('[data-testid="virtual-scroll-container"]');
+    if (!container) return 0;
+    const spacer = container.firstElementChild as HTMLElement | null;
+    if (!spacer) return 0;
+    const totalHeight = spacer.offsetHeight;
+    return Math.round(totalHeight / 28);
+  });
+}
+
+/**
+ * 查找可见且可点击的折叠状态目录（展开图标为 ▶）。
+ * 虚拟滚动下，文件项的 folder-expand span 为空且不可见，需过滤出含 ▶ 文本的目录项。
+ */
+function getCollapsedDirectoryLocator(page: Page) {
+  return page.locator('[data-testid="file-item"].directory')
+    .filter({ hasText: '▶' });
+}
 
 test.describe('[E2E] File Tree Virtual Scroll', () => {
   test.beforeAll(async ({ browser }) => {
@@ -20,8 +89,8 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
       // 文件分布在多个目录中，以测试目录展开/折叠时的虚拟滚动
       const files: Array<{ name: string; content: string }> = [];
 
-      // 顶层虚拟滚动测试文件
-      for (let i = 1; i <= 30; i++) {
+      // 顶层虚拟滚动测试文件（>50 顶层文件以确保 flatItems > VIRTUAL_SCROLL_THRESHOLD）
+      for (let i = 1; i <= 55; i++) {
         files.push({
           name: `vscroll-root-file-${String(i).padStart(3, '0')}.ts`,
           content: `// virtual scroll root file ${i}\nexport const index = ${i};\n`,
@@ -95,16 +164,17 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
       const fileCount = await page.locator('[data-testid="file-item"]').count();
       backendAvailable = fileCount > 0;
 
-      // 展开 workspace 目录（如果存在且未展开）
-      const workspaceFolder = page.locator('[data-testid="file-item"]').filter({ hasText: 'workspace' });
-      if (await workspaceFolder.first().isVisible({ timeout: 3000 }).catch(() => false)) {
-        // 检查是否已展开（有 children div）
-        const isExpanded = await workspaceFolder.locator('xpath=../div[contains(@class,"children")]').count();
-        if (isExpanded === 0) {
-          await workspaceFolder.first().click();
+      // 展开根目录（workspace 文件夹），使子文件可见以触发虚拟滚动
+      const rootFolder = page.locator('[data-testid="file-item"]').filter({ hasText: 'workspace' }).first();
+      if (await rootFolder.isVisible({ timeout: 3000 }).catch(() => false)) {
+        // 检查是否已展开：展开图标应为 ▼
+        const expandIcon = rootFolder.locator('[data-testid="folder-expand"]');
+        const iconText = await expandIcon.textContent().catch(() => '');
+        if (iconText?.trim() !== '▼') {
+          await rootFolder.click();
           await page.waitForTimeout(1000);
         }
-        // 展开后再次等待 file-item 出现
+        // 展开后等待更多 file-item 出现
         await page.waitForSelector('[data-testid="file-item"]', { timeout: 10000 });
       }
 
@@ -131,18 +201,22 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
 
     test.skip(!backendAvailable, '后端未运行，跳过此测试');
 
-    // 检查文件项数量
-    const fileItems = page.locator('[data-testid="file-item"]');
-    const itemCount = await fileItems.count();
+    // 展开根目录以使子文件可见，触发虚拟滚动
+    await expandRootFolder(page);
 
     // 虚拟滚动容器应存在
     const virtualScrollContainer = page.getByTestId('virtual-scroll-container');
     await expect(virtualScrollContainer).toBeVisible({ timeout: 5000 });
 
+    // DOM 中渲染的文件项数量（虚拟滚动只渲染可视区域）
+    const fileItems = page.locator('[data-testid="file-item"]');
     const renderedCount = await fileItems.count();
-    // 虚拟滚动应限制渲染数量（典型可视区域为 20-40 项）
-    expect(renderedCount).toBeLessThan(itemCount);
     expect(renderedCount).toBeGreaterThan(0);
+
+    // 总项目数（从虚拟滚动占位 div 高度推算，包括未渲染的）
+    const totalCount = await getTotalItemCount(page);
+    // 虚拟滚动应限制 DOM 渲染数量（renderedCount < totalCount）
+    expect(renderedCount).toBeLessThan(totalCount);
 
     // 滚动应流畅：虚拟滚动容器应支持滚动
     await virtualScrollContainer.evaluate((el) => {
@@ -151,7 +225,7 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
     await page.waitForTimeout(300);
 
     const renderedCountAfterScroll = await fileItems.count();
-    expect(renderedCountAfterScroll).toBeLessThan(itemCount);
+    expect(renderedCountAfterScroll).toBeLessThan(totalCount);
   });
 
   // ─── AC2: 文件数≤50时使用传统渲染，>50时启用虚拟滚动 ───
@@ -161,6 +235,9 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
     await page.waitForSelector('[data-testid="file-tree"]', { timeout: 15000 });
 
     test.skip(!backendAvailable, '后端未运行，跳过此测试');
+
+    // 展开根目录以使子文件可见，触发虚拟滚动
+    await expandRootFolder(page);
 
     // 测试环境创建 60+ 文件，应启用虚拟滚动
     const virtualScrollContainer = page.getByTestId('virtual-scroll-container');
@@ -185,38 +262,48 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
 
     test.skip(!backendAvailable, '后端未运行，跳过此测试');
 
+    // 展开根目录以使子文件可见，触发虚拟滚动
+    await expandRootFolder(page);
+
     const virtualScrollContainer = page.getByTestId('virtual-scroll-container');
     await expect(virtualScrollContainer).toBeVisible({ timeout: 5000 });
 
-    // 初始文件项数量
-    const fileItems = page.locator('[data-testid="file-item"]');
-    const initialCount = await fileItems.count();
+    // 初始总项目数
+    const initialTotalCount = await getTotalItemCount(page);
 
-    // 查找可展开的目录（vscroll-dir-a）
-    const expandableFolder = page.locator('[data-testid="folder-expand"]').first();
+    // 查找可展开的折叠目录（▶ 图标），避免点击文件项的空 folder-expand span
+    const expandableFolder = getCollapsedDirectoryLocator(page).first();
     await expect(expandableFolder).toBeVisible({ timeout: 5000 });
 
-    // 点击展开
+    // 提取纯目录名（从 .name span 获取，不含图标字符）
+    const folderNameSpan = expandableFolder.locator('.name').first();
+    const dirName = await folderNameSpan.textContent().catch(() => '') || 'vscroll';
+
+    // 点击展开（点击目录项本身触发 onToggleExpand）
     await expandableFolder.click();
     await page.waitForTimeout(500);
 
-    // 展开后文件项应增加（或保持虚拟滚动渲染数量上限）
-    const afterExpandCount = await fileItems.count();
+    // 展开后总项目数应增加（子文件被加入扁平列表）
+    const afterExpandTotalCount = await getTotalItemCount(page);
+    expect(afterExpandTotalCount).toBeGreaterThan(initialTotalCount);
 
-    // 验证虚拟滚动仍然工作（渲染数量受限）
+    // 验证虚拟滚动仍然工作
     const virtualScrollStillActive = await page.getByTestId('virtual-scroll-container').isVisible();
     expect(virtualScrollStillActive).toBeTruthy();
 
-    // 点击折叠
-    await expandableFolder.click();
+    // 再次点击折叠（通过 .name span 精确定位刚展开的目录，避免误点 workspace 根目录）
+    const folderToCollapse = page.locator('[data-testid="file-item"].directory')
+      .filter({ has: page.locator('.name', { hasText: dirName }) })
+      .first();
+    await folderToCollapse.click();
     await page.waitForTimeout(500);
 
-    // 折叠后文件项应减少
-    const afterCollapseCount = await fileItems.count();
-    expect(afterCollapseCount).toBeLessThanOrEqual(afterExpandCount);
+    // 折叠后总项目数应减少
+    const afterCollapseTotalCount = await getTotalItemCount(page);
+    expect(afterCollapseTotalCount).toBeLessThanOrEqual(afterExpandTotalCount);
 
     // 验证展开/折叠后虚拟滚动状态稳定
-    expect(initialCount).toBeGreaterThan(0);
+    expect(initialTotalCount).toBeGreaterThan(0);
   });
 
   // ─── AC4: 搜索过滤后虚拟滚动正常工作 ───
@@ -275,11 +362,15 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
 
     test.skip(!backendAvailable, '后端未运行，跳过此测试');
 
+    // 展开根目录以使子文件可见，触发虚拟滚动
+    await expandRootFolder(page);
+
     const virtualScrollContainer = page.getByTestId('virtual-scroll-container');
     await expect(virtualScrollContainer).toBeVisible({ timeout: 5000 });
 
-    // 在虚拟滚动列表中查找文件项
-    const fileItems = page.locator('[data-testid="file-item"]');
+    // 在虚拟滚动列表中查找文件项（仅文件，排除目录）
+    // .file-item.file 选择器匹配 type='file' 的项，点击后打开编辑器
+    const fileItems = page.locator('[data-testid="file-item"].file');
     await expect(fileItems.first()).toBeVisible({ timeout: 5000 });
 
     // 滚动到中部区域以确保点击的不是首屏固定项
@@ -309,10 +400,14 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
 
     test.skip(!backendAvailable, '后端未运行，跳过此测试');
 
+    // 展开根目录以使子文件可见，触发虚拟滚动
+    await expandRootFolder(page);
+
     const virtualScrollContainer = page.getByTestId('virtual-scroll-container');
     await expect(virtualScrollContainer).toBeVisible({ timeout: 5000 });
 
-    const fileItems = page.locator('[data-testid="file-item"]');
+    // 右键点击文件项（仅文件，排除目录 — 目录的右键菜单行为可能不同）
+    const fileItems = page.locator('[data-testid="file-item"].file');
     await expect(fileItems.first()).toBeVisible({ timeout: 5000 });
 
     // 右键点击文件项
@@ -320,7 +415,7 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
     await page.waitForTimeout(300);
 
     // 上下文菜单应出现
-    const contextMenu = page.getByTestId('file-context-menu');
+    const contextMenu = page.getByTestId('context-menu');
     await expect(contextMenu).toBeVisible({ timeout: 3000 });
   });
 
@@ -340,6 +435,9 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
     );
 
     test.skip(!backendAvailable, '后端未运行，跳过此测试');
+
+    // 展开根目录以使子文件可见，触发虚拟滚动
+    await expandRootFolder(page);
 
     // 虚拟滚动容器应存在
     const virtualScrollContainer = page.getByTestId('virtual-scroll-container');
@@ -379,6 +477,9 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
     await page.waitForSelector('[data-testid="file-tree"]', { timeout: 15000 });
 
     test.skip(!backendAvailable, '后端未运行，跳过此测试');
+
+    // 展开根目录以使子文件可见，触发虚拟滚动
+    await expandRootFolder(page);
 
     const virtualScrollContainer = page.getByTestId('virtual-scroll-container');
     await expect(virtualScrollContainer).toBeVisible({ timeout: 5000 });
@@ -523,6 +624,9 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
 
     test.skip(!backendAvailable, '后端未运行，跳过此测试');
 
+    // 展开根目录以使子文件可见，触发虚拟滚动
+    await expandRootFolder(page);
+
     const virtualScrollContainer = page.getByTestId('virtual-scroll-container');
     await expect(virtualScrollContainer).toBeVisible({ timeout: 5000 });
 
@@ -534,17 +638,24 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
 
     const scrollBefore = await virtualScrollContainer.evaluate((el) => el.scrollTop);
 
-    // 查找可展开的目录
-    const expandableFolders = page.locator('[data-testid="folder-expand"]');
-    const folderCount = await expandableFolders.count();
+    // 查找可展开的折叠目录（▶ 图标），避免点击文件项的空 folder-expand span
+    const expandableFolder = getCollapsedDirectoryLocator(page).first();
+    const folderVisible = await expandableFolder.isVisible({ timeout: 3000 }).catch(() => false);
 
-    if (folderCount > 0) {
-      // 展开第一个目录
-      await expandableFolders.first().click();
+    if (folderVisible) {
+      // 提取纯目录名（从 .name span 获取，不含图标字符）
+      const folderNameSpan = expandableFolder.locator('.name').first();
+      const dirName = await folderNameSpan.textContent().catch(() => '') || 'vscroll';
+
+      // 展开目录（点击目录项本身触发 onToggleExpand）
+      await expandableFolder.click();
       await page.waitForTimeout(300);
 
-      // 折叠回去
-      await expandableFolders.first().click();
+      // 折叠回去（通过 .name span 精确定位刚展开的目录，避免误点 workspace 根目录）
+      const folderToCollapse = page.locator('[data-testid="file-item"].directory')
+        .filter({ has: page.locator('.name', { hasText: dirName }) })
+        .first();
+      await folderToCollapse.click();
       await page.waitForTimeout(300);
 
       // 验证滚动位置没有跳到异常位置
@@ -572,6 +683,9 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
     );
 
     test.skip(!backendAvailable, '后端未运行，跳过此测试');
+
+    // 展开根目录以使子文件可见，触发虚拟滚动
+    await expandRootFolder(page);
 
     // 初始状态：60+ 文件应使用虚拟滚动
     const virtualContainer = page.getByTestId('virtual-scroll-container');
@@ -614,6 +728,9 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
 
     test.skip(!backendAvailable, '后端未运行，跳过此测试');
 
+    // 展开根目录以使子文件可见，触发虚拟滚动
+    await expandRootFolder(page);
+
     const virtualScrollContainer = page.getByTestId('virtual-scroll-container');
     await expect(virtualScrollContainer).toBeVisible({ timeout: 5000 });
 
@@ -655,6 +772,9 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
     );
 
     test.skip(!backendAvailable, '后端未运行，跳过此测试');
+
+    // 展开根目录以使子文件可见，触发虚拟滚动
+    await expandRootFolder(page);
 
     // 获取文件树中实际文件项的 DOM 数量
     const fileItems = page.locator('[data-testid="file-item"]');

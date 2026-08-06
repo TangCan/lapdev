@@ -154,8 +154,8 @@ test.describe('[1.3] Terminal E2E Tests (ATDD GREEN PHASE)', () => {
     });
 
     await page.waitForTimeout(5000);
-    
-    const terminalContent = await terminalOutput.textContent();
+
+    const terminalContent = await page.evaluate(() => (window as any).__getTerminalOutput());
     expect(terminalContent).toContain('Hello from terminal');
   });
 
@@ -173,8 +173,8 @@ test.describe('[1.3] Terminal E2E Tests (ATDD GREEN PHASE)', () => {
     });
 
     await page.waitForTimeout(5000);
-    
-    const terminalContent = await terminalOutput.textContent();
+
+    const terminalContent = await page.evaluate(() => (window as any).__getTerminalOutput());
     expect(terminalContent).toContain('test');
 
     const endTime = Date.now();
@@ -217,7 +217,8 @@ test.describe('[1.3] Terminal E2E Tests (ATDD GREEN PHASE)', () => {
       test.skip();
     }
     
-    expect(terminalContent).toContain('$');
+    // 接受 $ (非 root) 或 # (root) 作为命令提示符
+    expect(terminalContent).toMatch(/[$#]/);
   });
 
   test('[P2] should display text output in terminal', async ({ page }) => {

@@ -165,11 +165,7 @@ test.describe('EPI1.03: 移除手动 Memoization 回归测试 (ATDD Green Phase)
     await rootItem.click();
     await page.waitForTimeout(500);
 
-    // 等待根目录展开后，子元素出现
-    const childrenContainer = fileTree.locator('.children').first();
-    await expect(childrenContainer).toBeVisible({ timeout: 10000 });
-
-    // 找到第一个文件（非目录）并点击
+    // 等待根目录展开后，子文件出现（兼容虚拟滚动和非虚拟滚动模式）
     const firstFile = fileTree.locator('.file-item.file').first();
     await expect(firstFile).toBeVisible({ timeout: 10000 });
     await firstFile.click();
@@ -197,11 +193,7 @@ test.describe('EPI1.03: 移除手动 Memoization 回归测试 (ATDD Green Phase)
     await rootItem.click();
     await page.waitForTimeout(500);
 
-    // 等待根目录展开后，子元素出现
-    const childrenContainer = fileTree.locator('.children').first();
-    await expect(childrenContainer).toBeVisible({ timeout: 10000 });
-
-    // 找到第一个文件（非目录）并点击
+    // 等待根目录展开后，子文件出现（兼容虚拟滚动和非虚拟滚动模式）
     const firstFile = fileTree.locator('.file-item.file').first();
     await expect(firstFile).toBeVisible({ timeout: 10000 });
     await firstFile.click();
