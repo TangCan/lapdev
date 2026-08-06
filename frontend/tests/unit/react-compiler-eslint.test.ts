@@ -2,27 +2,18 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
 
 const frontendDir = path.resolve(__dirname, '../..');
-const tmpDir = path.join(os.tmpdir(), 'react-compiler-eslint-tests');
+const tmpDir = path.join(frontendDir, '.tmp-eslint-tests');
 const timeoutMs = 30000;
 const eslintRuleJson = JSON.stringify({ 'react-compiler/react-compiler': 'warn' });
 
-const componentWithViolation = `import React from 'react';
+const componentWithViolation = `import React, { useState } from 'react';
 
-interface Props {
-  user: { name: string; age: number };
-}
-
-export default function UserCard({ user }: Props) {
-  return (
-    <div>
-      <h1>{user.name}</h1>
-      <p>Age: {user.age}</p>
-      <span>{user.name === 'admin' ? 'Admin' : 'User'}</span>
-    </div>
-  );
+export default function Counter() {
+  const [count, setCount] = useState(0);
+  count++;
+  return <div>{count}</div>;
 }
 `;
 
@@ -66,7 +57,7 @@ function writeTempFile(fileName: string, content: string): string {
 function runEslint(targetPath: string, extraArgs: string = '') {
   const cwd = frontendDir;
   const ruleArg = `--rule '${eslintRuleJson}'`;
-  const cmd = `npx eslint ${ruleArg} ${extraArgs} "${targetPath}"`;
+  const cmd = `npx eslint --no-ignore ${ruleArg} ${extraArgs} "${targetPath}"`;
   try {
     return {
       status: 0,
