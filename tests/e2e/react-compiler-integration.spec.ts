@@ -20,7 +20,7 @@ test.describe('EPI1.03: React Compiler 集成测试', () => {
     await expect(page.getByTestId('status-bar')).toBeVisible({ timeout: 10000 });
 
     await page.goto('/settings');
-    await expect(page.getByRole('heading', { name: /设置|Settings/i })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('settings-page-heading')).toBeVisible({ timeout: 15000 });
 
     await page.goto('/');
     await expect(page.getByTestId('file-tree')).toBeVisible({ timeout: 15000 });
@@ -173,7 +173,7 @@ test.describe('EPI1.03: React Compiler 集成测试', () => {
     await expect(page.getByTestId('file-tree')).toBeVisible({ timeout: 15000 });
 
     await page.goto('/settings');
-    await expect(page.getByRole('heading', { name: /设置|Settings/i })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('settings-page-heading')).toBeVisible({ timeout: 15000 });
 
     const hasSuspenseFallback = await page.evaluate(() => {
       return !!document.querySelector('[data-testid="suspense-fallback"], [data-testid="loading"]');
@@ -220,7 +220,7 @@ test.describe('EPI1.03: React Compiler 集成测试', () => {
         await expect(page.getByTestId('file-tree')).toBeVisible({ timeout: 15000 });
         await expect(page.getByTestId('editor-content')).toBeVisible({ timeout: 10000 });
       } else {
-        await expect(page.getByRole('heading', { name: /设置|Settings/i })).toBeVisible({ timeout: 15000 });
+        await expect(page.getByTestId('settings-page-heading')).toBeVisible({ timeout: 15000 });
       }
     }
 

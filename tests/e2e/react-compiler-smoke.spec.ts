@@ -69,7 +69,7 @@ test.describe('EPI1.02: React Compiler 冒烟测试', () => {
     await expect(page.getByTestId('ai-chat-panel')).not.toBeVisible({ timeout: 5000 });
 
     await page.goto('/settings');
-    await expect(page.getByRole('heading', { name: /设置|Settings/i })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('settings-page-heading')).toBeVisible({ timeout: 15000 });
   });
 
   test('[P1] React Compiler 与 React 19 Concurrent Features 兼容', async ({ page }) => {

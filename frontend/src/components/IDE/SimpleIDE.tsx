@@ -52,7 +52,7 @@ function SimpleIDE() {
           <button
             className={`ai-panel-button ${isPanelOpen ? 'active' : ''}`}
             onClick={togglePanel}
-            data-testid="ai-panel-button"
+            data-testid="simple-ai-panel-button"
             title="Toggle AI Panel"
           >
             🤖

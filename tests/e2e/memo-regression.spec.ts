@@ -334,8 +334,8 @@ test.describe('EPI1.03: 移除手动 Memoization 回归测试 (ATDD Green Phase)
     const aiConfigSection = page.getByTestId('ai-config-section');
     await expect(aiConfigSection).toBeVisible({ timeout: 15000 });
 
-    // 验证主题设置区块（使用 role=heading 精确定位"主题"标题）
-    const themeHeading = page.getByRole('heading', { name: '主题' });
+    // 验证主题设置区块（使用 testid 避免翻译问题）
+    const themeHeading = page.getByTestId('theme-settings-heading');
     await expect(themeHeading).toBeVisible({ timeout: 5000 });
 
     // 验证 AI 配置功能可用

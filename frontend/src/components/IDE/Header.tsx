@@ -85,17 +85,17 @@ export function Header({
             e.stopPropagation();
             onToggleTerminal();
           }}
-          data-testid="terminal-button"
+          data-testid="header-terminal-button"
         >
           🖥️ {t('ide.terminal')}
         </button>
-        <Link to="/settings" className="action-button" data-testid="settings-button">
+        <Link to="/settings" className="action-button" data-testid="header-settings-button">
           ⚙️ {t('common.settings')}
         </Link>
         <button
           className={`action-button ${isAIPanelOpen ? 'active' : ''}`}
           onClick={onToggleAIPanel}
-          data-testid="ai-panel-button"
+          data-testid="header-ai-panel-button"
         >
           🤖 {t('ai.title')}
         </button>

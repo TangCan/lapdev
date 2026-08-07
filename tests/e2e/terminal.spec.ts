@@ -235,7 +235,7 @@ test.describe('[1.3] Terminal E2E Tests (ATDD GREEN PHASE)', () => {
 
     await page.waitForTimeout(5000);
     
-    const terminalContent = await terminalOutput.textContent();
+    const terminalContent = await page.evaluate(() => (window as any).__getTerminalOutput());
     expect(terminalContent).toContain('Red Text');
   });
 

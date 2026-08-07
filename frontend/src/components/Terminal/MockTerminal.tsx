@@ -103,7 +103,7 @@ export function MockTerminal() {
     <>
       {/* Terminal Button */}
       <button
-        data-testid="terminal-button"
+        data-testid="mock-terminal-button"
         className="terminal-button"
         onClick={() => setIsOpen(!isOpen)}
       >

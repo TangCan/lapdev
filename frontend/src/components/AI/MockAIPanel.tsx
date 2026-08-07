@@ -220,7 +220,7 @@ export function MockAIPanel() {
     <>
       {/* AI Panel Button */}
       <button
-        data-testid="ai-panel-button"
+        data-testid="mock-ai-panel-button"
         className="ai-panel-button"
         onClick={() => setIsOpen(true)}
       >

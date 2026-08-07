@@ -8,7 +8,7 @@ export function ThemeSettings() {
 
   return (
     <div className="rounded-lg p-3 border" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
-      <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>主题</h3>
+      <h3 className="text-sm font-medium mb-2" data-testid="theme-settings-heading" style={{ color: 'var(--color-text-primary)' }}>主题</h3>
       
       <div className="mb-3">
         <label className="flex items-center gap-2 cursor-pointer">

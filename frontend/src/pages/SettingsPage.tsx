@@ -36,7 +36,7 @@ export const SettingsPage: React.FC = () => {
                 ← {t('common.back')}
               </Link>
               <div style={{ width: '1px', height: '16px', backgroundColor: 'var(--color-border)', opacity: '0.6' }}></div>
-              <h1 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>{t('settings.title')}</h1>
+              <h1 className="text-lg font-semibold" data-testid="settings-page-heading" style={{ color: 'var(--color-text-primary)' }}>{t('settings.title')}</h1>
               <div className="ml-auto">
                 <LanguageSelector />
               </div>
