@@ -732,7 +732,7 @@ describe('EPI1.03 AC#2: 代码行数减少验证', () => {
 
 describe('EPI1.03 AC#3: 必要 memoization 保留验证', () => {
 
-  it('[P0] IDE.tsx handleSave 保留 useCallback (依赖 [tabs, activeTabId, showError, refreshStatus])', () => {
+  it('[P0] IDE.tsx 通过 useFileOperations 获取 handleSave/handleFormat (EPI5 重构)', () => {
     const { execSync } = require('child_process');
 
     const content = execSync(
@@ -740,20 +740,15 @@ describe('EPI1.03 AC#3: 必要 memoization 保留验证', () => {
       { encoding: 'utf-8' }
     );
 
-    expect(content).toContain('const handleSave = useCallback(');
-    expect(content).toContain('[tabs, activeTabId, showError, refreshStatus]');
-  });
-
-  it('[P0] IDE.tsx handleFormat 保留 useCallback (依赖 [tabs, activeTabId, showError])', () => {
-    const { execSync } = require('child_process');
-
-    const content = execSync(
-      'cat src/components/IDE/IDE.tsx',
-      { encoding: 'utf-8' }
-    );
-
-    expect(content).toContain('const handleFormat = useCallback(');
-    expect(content).toContain('[tabs, activeTabId, showError]');
+    // EPI5: IDE.tsx 不再内联 useCallback，而是委托给 useFileOperations hook
+    expect(content).toContain('useFileOperations(');
+    expect(content).toContain('handleSave');
+    expect(content).toContain('handleFormat');
+    // 验证 handleSave/handleFormat 传递给 Header 和快捷键
+    expect(content).toContain('onSave={handleSave}');
+    expect(content).toContain('onFormat={handleFormat}');
+    expect(content).toContain('onSave: handleSave');
+    expect(content).toContain('onFormat: handleFormat');
   });
 
   it('[P0] usePerformanceMonitor 的 getMetrics/getStatus/stop/start 保留 useCallback', () => {

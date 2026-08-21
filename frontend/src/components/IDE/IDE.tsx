@@ -1,547 +1,190 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { FileTree } from '../FileTree';
-import type { DiffLine } from '../../types/diff';
-import { LazyCodeEditor } from '../Editor/LazyCodeEditor';
-import { Terminal } from '../Terminal/Terminal';
-import GitPanel from '../Git/GitPanel';
-import ProblemsPanel from '../Problems/ProblemsPanel';
 import AIChatPanel from '../AI/AIChatPanel';
-import { PerformancePanel } from '../Performance/PerformancePanel';
-import { LanguageSelector } from '../Language/LanguageSelector';
-import { useGit } from '../../context/GitContext';
-import { useChat } from '../../context/ChatContext';
-import type { FileInfo } from '../../types/file';
-import { readFile, writeFile, formatCode } from '../../services/fileService';
-import { fetchGitDiff } from '../../services/gitService';
-import { Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-
-interface Tab {
-  id: string;
-  file: FileInfo;
-  content: string;
-  isModified: boolean;
-  language: string;
-}
+import { useEditorTabs } from '../../hooks/useEditorTabs';
+import { useFileOperations } from '../../hooks/useFileOperations';
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
+import { useGitStore } from '../../stores/gitStore';
+import { useChatStore } from '../../stores/chatStore';
+import { writeFile } from '../../services/fileService';
+import { Header } from './Header';
+import { EditorArea } from './EditorArea';
+import { TerminalArea } from './TerminalArea';
+import { PanelManager } from './PanelManager';
+import { StatusBar } from './StatusBar';
+import { CloseTabModal } from './CloseTabModal';
 
 function IDE() {
-  const { t } = useTranslation();
-  const [tabs, setTabs] = useState<Tab[]>([]);
-  const [activeTabId, setActiveTabId] = useState<string | null>(null);
-  const [loadingFiles, setLoadingFiles] = useState<Set<string>>(new Set());
-  const [isSaving, setIsSaving] = useState(false);
-  const [isFormatting, setIsFormatting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [showTerminal, setShowTerminal] = useState(false);
-  const [closeConfirm, setCloseConfirm] = useState<{ tabId: string; fileName: string } | null>(null);
-  
+  // ─── Zustand Stores (replaces React Context) ──────────────────────
+  const { status, currentBranch, refreshStatus } = useGitStore();
+  const { isPanelOpen, togglePanel } = useChatStore();
+
+  // ─── Editor Tabs (extracted hook) ─────────────────────────────────
+  const {
+    tabs,
+    activeTabId,
+    loadingFiles,
+    diffLines,
+    activeTab,
+    openFile,
+    closeTab,
+    switchTab,
+    updateContent,
+    markSaved,
+    updateTabContent,
+  } = useEditorTabs();
+
+  // ─── File Operations (extracted hook) ─────────────────────────────
+  const {
+    isSaving,
+    isFormatting,
+    errorMessage,
+    handleSave,
+    handleFormat,
+  } = useFileOperations({
+    tabs,
+    activeTabId,
+    markSaved,
+    updateTabContent,
+    refreshGitStatus: refreshStatus,
+  });
+
+  // ─── Keyboard Shortcuts (extracted hook) ──────────────────────────
+  useKeyboardShortcuts({ onSave: handleSave, onFormat: handleFormat });
+
+  // ─── UI State (kept inline — specific to layout) ─────────────────
   const [showGitPanel, setShowGitPanel] = useState(false);
   const [showProblemsPanel, setShowProblemsPanel] = useState(false);
   const [showPerformancePanel, setShowPerformancePanel] = useState(false);
+  const [showTerminal, setShowTerminal] = useState(false);
   const [terminalHeight, setTerminalHeight] = useState(300);
-  const [diffLines, setDiffLines] = useState<Record<string, DiffLine[]>>({});
-  
-  const { status, currentBranch, refreshStatus } = useGit();
-  const { isPanelOpen, togglePanel } = useChat();
+  const [closeConfirm, setCloseConfirm] = useState<{
+    tabId: string;
+    fileName: string;
+  } | null>(null);
 
-  const showError = (message: string) => {
-    setErrorMessage(message);
-    setTimeout(() => setErrorMessage(null), 5000);
-  };
+  // ─── Derived ──────────────────────────────────────────────────────
+  const changesCount = status
+    ? status.changes.length + status.untracked.length
+    : 0;
 
-  const parseDiffLines = (diff: string): DiffLine[] => {
-    const lines: DiffLine[] = [];
-    const diffLines = diff.split('\n');
-    let currentLineNumber = 0;
-    
-    for (const line of diffLines) {
-      // Skip header lines
-      if (line.startsWith('---') || line.startsWith('+++') || line.startsWith('@@')) {
-        // Parse the @@ header to get the starting line number
-        const match = line.match(/@@ -\d+,\d+ \+(\d+),/);
-        if (match) {
-          currentLineNumber = parseInt(match[1], 10) - 1;
-        }
-        continue;
-      }
-      
-      // Skip index line
-      if (line.startsWith('index ')) {
-        continue;
-      }
-      
-      // Process diff lines
-      if (line.startsWith('+')) {
-        currentLineNumber++;
-        lines.push({ lineNumber: currentLineNumber, type: 'added' });
-      } else if (line.startsWith('-')) {
-        // Deleted lines don't affect current line number in the new file
-        lines.push({ lineNumber: currentLineNumber + 1, type: 'deleted' });
-      } else if (line.length > 0 && !line.startsWith('\\')) {
-        currentLineNumber++;
-        // Check if this line is modified (appears after a -/+ pair)
-        const prevLine = diffLines[diffLines.indexOf(line) - 1];
-        if (prevLine && (prevLine.startsWith('-') || prevLine.startsWith('+'))) {
-          const prevPrevLine = diffLines[diffLines.indexOf(line) - 2];
-          if (prevPrevLine && prevPrevLine.startsWith('-')) {
-            lines.push({ lineNumber: currentLineNumber, type: 'modified' });
-          }
-        }
-      }
-    }
-    
-    return lines;
-  };
-
-  const loadDiffForFile = async (filePath: string) => {
-    try {
-      const result = await fetchGitDiff(filePath);
-      if (result.status === 'success' && result.data) {
-        const parsedLines = parseDiffLines(result.data.diff);
-        setDiffLines(prev => ({
-          ...prev,
-          [filePath]: parsedLines
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to load diff:', error);
-    }
-  };
-
-  const detectLanguage = (filePath: string): string => {
-    const extension = filePath.split('.').pop()?.toLowerCase() || '';
-    
-    const languageMap: Record<string, string> = {
-      js: 'javascript',
-      jsx: 'javascript',
-      ts: 'typescript',
-      tsx: 'typescript',
-      py: 'python',
-      rs: 'rust',
-      go: 'go',
-      java: 'java',
-      cpp: 'cpp',
-      c: 'cpp',
-      cs: 'csharp',
-      json: 'json',
-      yaml: 'yaml',
-      yml: 'yaml',
-      md: 'markdown',
-      html: 'html',
-      css: 'css',
-    };
-
-    return languageMap[extension] || 'plaintext';
-  };
-
-  const handleFileOpen = async (file: FileInfo) => {
-    const existingTab = tabs.find(tab => tab.file.path === file.path);
-    
-    if (existingTab) {
-      setActiveTabId(existingTab.id);
-      // Load diff for the file if not already loaded
-      if (!diffLines[file.path]) {
-        loadDiffForFile(file.path);
-      }
-      return;
-    }
-
-    setLoadingFiles(prev => new Set([...prev, file.path]));
-
-    try {
-      const [fileResult, diffResult] = await Promise.all([
-        readFile(file.path),
-        fetchGitDiff(file.path).catch(() => ({ status: 'error' }))
-      ]);
-      
-      if (fileResult.status === 'success' && fileResult.data) {
-        const newTab: Tab = {
-          id: `tab-${Date.now()}`,
-          file,
-          content: fileResult.data.content,
-          isModified: false,
-          language: detectLanguage(file.path)
-        };
-        setTabs([...tabs, newTab]);
-        setActiveTabId(newTab.id);
-        
-        // Parse and store diff lines if available
-        if (diffResult.status === 'success' && 'data' in diffResult && diffResult.data) {
-          const parsedLines = parseDiffLines(diffResult.data.diff);
-          setDiffLines(prev => ({
-            ...prev,
-            [file.path]: parsedLines
-          }));
-        }
-      }
-    } catch (error) {
-      console.error('Failed to open file:', error);
-    } finally {
-      setLoadingFiles(prev => {
-        const next = new Set(prev);
-        next.delete(file.path);
-        return next;
-      });
-    }
-  };
-
+  // ─── Tab Close Handlers (with modified-file check) ────────────────
   const handleCloseTab = (tabId: string) => {
     const tab = tabs.find(t => t.id === tabId);
-    
     if (tab && tab.isModified) {
       setCloseConfirm({ tabId, fileName: tab.file.name });
       return;
     }
-    
-    setTabs(tabs.filter(tab => tab.id !== tabId));
-    
-    if (activeTabId === tabId) {
-      const remainingTabs = tabs.filter(tab => tab.id !== tabId);
-      setActiveTabId(remainingTabs.length > 0 ? remainingTabs[remainingTabs.length - 1].id : null);
-    }
+    closeTab(tabId);
   };
 
-  const confirmCloseTab = () => {
+  const handleDiscardClose = () => {
     if (!closeConfirm) return;
-    
-    setTabs(tabs.filter(tab => tab.id !== closeConfirm.tabId));
-    
-    if (activeTabId === closeConfirm.tabId) {
-      const remainingTabs = tabs.filter(tab => tab.id !== closeConfirm.tabId);
-      setActiveTabId(remainingTabs.length > 0 ? remainingTabs[remainingTabs.length - 1].id : null);
-    }
-    
+    closeTab(closeConfirm.tabId);
     setCloseConfirm(null);
   };
 
-  const cancelCloseTab = () => {
-    setCloseConfirm(null);
-  };
-
-  const saveAndCloseTab = async () => {
+  const handleSaveAndClose = useCallback(async () => {
     if (!closeConfirm) return;
-    
     const tab = tabs.find(t => t.id === closeConfirm.tabId);
     if (!tab) {
       setCloseConfirm(null);
       return;
     }
-    
-    setIsSaving(true);
+
     try {
       const result = await writeFile(tab.file.path, tab.content);
-      
       if (result.status === 'success') {
-        confirmCloseTab();
+        markSaved(closeConfirm.tabId);
+        closeTab(closeConfirm.tabId);
         refreshStatus();
-      } else {
-        showError(result.message || '保存失败');
       }
-    } catch (error) {
-      showError(error instanceof Error ? error.message : '保存失败');
+    } catch {
+      // Error already surfaced through the save flow
     } finally {
-      setIsSaving(false);
+      setCloseConfirm(null);
     }
+  }, [closeConfirm, tabs, markSaved, closeTab, refreshStatus]);
+
+  const handleCancelClose = () => {
+    setCloseConfirm(null);
   };
 
-  const handleContentChange = (tabId: string, newContent: string) => {
-    setTabs(tabs.map(tab => 
-      tab.id === tabId 
-        ? { ...tab, content: newContent, isModified: true }
-        : tab
-    ));
-  };
-
-  const handleSave = useCallback(async () => {
-    const activeTab = tabs.find(tab => tab.id === activeTabId);
-    if (!activeTab || !activeTab.isModified) return;
-
-    setIsSaving(true);
-    try {
-      const result = await writeFile(activeTab.file.path, activeTab.content);
-      
-      if (result.status === 'success') {
-        setTabs(tabs.map(tab => 
-          tab.id === activeTabId 
-            ? { ...tab, isModified: false }
-            : tab
-        ));
-        refreshStatus();
-      } else {
-        showError(result.message || '保存失败');
-      }
-    } catch (error) {
-      showError(error instanceof Error ? error.message : '保存失败');
-    } finally {
-      setIsSaving(false);
-    }
-  }, [tabs, activeTabId, showError, refreshStatus]);
-
-  const handleFormat = useCallback(async () => {
-    const activeTab = tabs.find(tab => tab.id === activeTabId);
-    if (!activeTab) return;
-
-    setIsFormatting(true);
-    try {
-      const result = await formatCode(activeTab.content, activeTab.language);
-      
-      if (result.status === 'success' && result.data && result.data.formatted) {
-        const data = result.data;
-        setTabs(tabs.map(tab => 
-          tab.id === activeTabId 
-            ? { ...tab, content: data.formatted, isModified: true }
-            : tab
-        ));
-      } else {
-        showError(result.message || '格式化失败');
-      }
-    } catch (error) {
-      showError(error instanceof Error ? error.message : '格式化失败');
-    } finally {
-      setIsFormatting(false);
-    }
-  }, [tabs, activeTabId, showError]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === 's') {
-        e.preventDefault();
-        handleSave();
-      }
-      if (e.ctrlKey && e.shiftKey && e.key === 'F') {
-        e.preventDefault();
-        handleFormat();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [activeTabId, handleSave, handleFormat]);
-
-  const activeTab = tabs.find(tab => tab.id === activeTabId);
-  
-  const changesCount = status 
-    ? status.changes.length + status.untracked.length 
-    : 0;
-
+  // ─── Render ───────────────────────────────────────────────────────
   return (
     <div className="app">
-      <header className="header">
-        <h1>📝 Lapdev IDE</h1>
-        <div className="header-actions">
-          <button 
-            className="action-button" 
-            onClick={handleSave}
-            disabled={!activeTab || !activeTab.isModified || isSaving}
-            data-testid="save-button"
-          >
-            {isSaving ? '⏳ ' + t('ide.fileSaved') : '💾 ' + t('common.save')}
-          </button>
-          <button 
-            className="action-button" 
-            onClick={handleFormat}
-            disabled={!activeTab || isFormatting}
-            data-testid="format-button"
-          >
-            {isFormatting ? '⏳ ' + t('ide.formatting') : '🎨 ' + t('editor.format')}
-          </button>
-          <button 
-            className={`action-button ${showGitPanel ? 'active' : ''}`}
-            onClick={() => setShowGitPanel(!showGitPanel)}
-            data-testid="git-panel-button"
-          >
-            🗂️ {t('git.title')} {changesCount > 0 && `(${changesCount})`}
-          </button>
-          <button 
-            className={`action-button ${showProblemsPanel ? 'active' : ''}`}
-            onClick={() => setShowProblemsPanel(!showProblemsPanel)}
-            data-testid="problems-panel-button"
-          >
-            ⚠️ {t('ide.problems')}
-          </button>
-          <button 
-            className={`action-button ${showTerminal ? 'active' : ''}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowTerminal(!showTerminal);
-            }}
-            data-testid="terminal-button"
-          >
-            🖥️ {t('ide.terminal')}
-          </button>
-          <Link 
-            to="/settings" 
-            className="action-button"
-            data-testid="settings-button"
-          >
-            ⚙️ {t('common.settings')}
-          </Link>
-          <button 
-            className={`action-button ${isPanelOpen ? 'active' : ''}`}
-            onClick={togglePanel}
-            data-testid="ai-panel-button"
-          >
-            🤖 {t('ai.title')}
-          </button>
-          <button 
-            className={`action-button ${showPerformancePanel ? 'active' : ''}`}
-            onClick={() => setShowPerformancePanel(!showPerformancePanel)}
-            data-testid="performance-panel-button"
-          >
-            ⚡ {t('performance.title')}
-          </button>
-        </div>
-      </header>
-      
-      <footer className="status-bar" data-testid="status-bar">
-        <div className="status-left">
-          {currentBranch && (
-            <span className="branch-info" data-testid="branch-info">
-              🌿 {currentBranch}
-            </span>
-          )}
-          {changesCount > 0 && (
-            <span className="changes-count" data-testid="changes-count">
-              {changesCount} changes
-            </span>
-          )}
-        </div>
-        <div className="status-right">
-          <LanguageSelector className="mr-4" />
-          <span>Lapdev v1.0</span>
-        </div>
-      </footer>
-      
+      <Header
+        activeTab={activeTab}
+        isSaving={isSaving}
+        isFormatting={isFormatting}
+        showGitPanel={showGitPanel}
+        showProblemsPanel={showProblemsPanel}
+        showTerminal={showTerminal}
+        showPerformancePanel={showPerformancePanel}
+        isAIPanelOpen={isPanelOpen}
+        changesCount={changesCount}
+        onSave={handleSave}
+        onFormat={handleFormat}
+        onToggleGitPanel={() => setShowGitPanel(!showGitPanel)}
+        onToggleProblemsPanel={() => setShowProblemsPanel(!showProblemsPanel)}
+        onToggleTerminal={() => setShowTerminal(!showTerminal)}
+        onToggleAIPanel={togglePanel}
+        onTogglePerformancePanel={() => setShowPerformancePanel(!showPerformancePanel)}
+      />
+
+      <StatusBar currentBranch={currentBranch} changesCount={changesCount} />
+
       {errorMessage && (
-          <div className="error-message" data-testid="error-message">
-            ❌ {errorMessage}
-          </div>
-        )}
-        <div className="main-content">
-          <aside className="sidebar">
-            <FileTree onFileOpen={handleFileOpen} />
-          </aside>
-        
-        <main className="editor-area">
-          <div className="tabs">
-            {tabs.map(tab => (
-              <div
-                key={tab.id}
-                className={`tab ${activeTabId === tab.id ? 'active' : ''}`}
-                onClick={() => setActiveTabId(tab.id)}
-                data-testid="editor-tab"
-              >
-                <span className="tab-icon">{tab.file.type === 'directory' ? '📁' : '📄'}</span>
-                <span className="tab-name">{tab.file.name}</span>
-                {tab.isModified && <span className="modified-indicator" data-testid="modified-indicator">●</span>}
-                <button 
-                  className="close-tab" 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCloseTab(tab.id);
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
-          
-          <div className="editor-container" data-testid="editor-content">
-            {activeTab ? (
-              <div className="editor-wrapper">
-                {loadingFiles.has(activeTab.file.path) ? (
-                  <div className="loading-editor">Loading...</div>
-                ) : (
-                  <LazyCodeEditor
-                    value={activeTab.content}
-                    language={activeTab.language}
-                    onChange={(value) => handleContentChange(activeTab.id, value)}
-                    diffLines={diffLines[activeTab.file.path] || []}
-                    uri={`file://${activeTab.file.path}`}
-                  />
-                )}
-              </div>
-            ) : (
-              <div className="welcome-screen">
-                <h2>欢迎使用 Lapdev</h2>
-                <p>点击左侧文件树中的文件开始编辑</p>
-                <div className="shortcuts">
-                  <p><kbd>Ctrl+S</kbd> 保存文件</p>
-                  <p><kbd>Ctrl+Shift+F</kbd> 格式化代码</p>
-                </div>
-              </div>
-            )}
-          </div>
-          
-          {showTerminal && (
-            <div 
-              className="terminal-container" 
-              style={{ height: `${terminalHeight}px` }}
-              data-testid="terminal-container"
-            >
-              <Terminal 
-                onClose={() => setShowTerminal(false)} 
-                onResize={setTerminalHeight}
-              />
-            </div>
-          )}
-        </main>
-        
-        {showGitPanel && (
-          <aside className="git-sidebar">
-            <GitPanel />
-          </aside>
-        )}
-        
-        {showProblemsPanel && (
-          <aside className="problems-sidebar">
-            <ProblemsPanel 
-              onSelectProblem={(line, column) => {
-                console.log('Jump to problem:', line, column);
-              }}
-            />
-          </aside>
-        )}
-        
-        {showPerformancePanel && (
-          <aside className="performance-sidebar">
-            <PerformancePanel />
-          </aside>
-        )}
-      </div>
-      
-      <AIChatPanel />
-    
-    {closeConfirm && (
-      <div className="modal-overlay" data-testid="close-confirm-modal">
-        <div className="modal-content">
-          <h3>文件已修改</h3>
-          <p>文件 &quot;{closeConfirm.fileName}&quot; 已被修改，是否保存更改？</p>
-          <div className="modal-actions">
-            <button 
-              className="modal-button modal-button-primary" 
-              onClick={saveAndCloseTab}
-              disabled={isSaving}
-            >
-              {isSaving ? '保存中...' : '保存并关闭'}
-            </button>
-            <button 
-              className="modal-button modal-button-secondary" 
-              onClick={confirmCloseTab}
-            >
-              不保存并关闭
-            </button>
-            <button 
-              className="modal-button modal-button-cancel" 
-              onClick={cancelCloseTab}
-            >
-              取消
-            </button>
-          </div>
+        <div className="error-message" data-testid="error-message">
+          ❌ {errorMessage}
         </div>
+      )}
+
+      <div className="main-content">
+        <aside className="sidebar">
+          <FileTree onFileOpen={openFile} />
+        </aside>
+
+        <main className="editor-area">
+          <EditorArea
+            tabs={tabs}
+            activeTabId={activeTabId}
+            loadingFiles={loadingFiles}
+            diffLines={diffLines}
+            onSwitchTab={switchTab}
+            onCloseTab={handleCloseTab}
+            onContentChange={updateContent}
+          />
+
+          <TerminalArea
+            showTerminal={showTerminal}
+            terminalHeight={terminalHeight}
+            onClose={() => setShowTerminal(false)}
+            onResize={setTerminalHeight}
+          />
+        </main>
+
+        <PanelManager
+          showGitPanel={showGitPanel}
+          showProblemsPanel={showProblemsPanel}
+          showPerformancePanel={showPerformancePanel}
+          onSelectProblem={(line, column) => {
+            console.log('Jump to problem:', line, column);
+          }}
+        />
       </div>
-    )}
+
+      <AIChatPanel />
+
+      {closeConfirm && (
+        <CloseTabModal
+          fileName={closeConfirm.fileName}
+          isSaving={isSaving}
+          onSaveAndClose={handleSaveAndClose}
+          onDiscardAndClose={handleDiscardClose}
+          onCancel={handleCancelClose}
+        />
+      )}
     </div>
   );
 }
