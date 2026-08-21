@@ -4,7 +4,6 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import './index.css';
 import './i18n';
 import App from './App';
-import { ThemeProvider } from './theme/ThemeContext';
 import { performanceService } from './services/performanceService';
 
 window.addEventListener('error', (e) => {
@@ -67,7 +66,5 @@ const router = createBrowserRouter(
 );
 
 createRoot(document.getElementById('root')!).render(
-  <ThemeProvider>
-    <RouterProvider router={router} />
-  </ThemeProvider>
+  <RouterProvider router={router} />
 );

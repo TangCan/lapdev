@@ -1,6 +1,6 @@
 import React from 'react';
 import type { FileInfo } from '../../types/file';
-import { useGit } from '../../context/GitContext';
+import { useGitStore } from '../../stores/gitStore';
 
 interface FileTreeNodeProps {
   file: FileInfo;
@@ -27,7 +27,7 @@ export const FileTreeNode = React.memo(function FileTreeNode({
   renderChildren = true,
   isExpandedOverride,
 }: FileTreeNodeProps) {
-  const { status } = useGit();
+  const { status } = useGitStore();
 
   const isExpanded = isExpandedOverride ?? expandedPaths.has(file.path);
 

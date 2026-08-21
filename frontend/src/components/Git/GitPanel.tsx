@@ -1,12 +1,12 @@
 import React from 'react';
-import { useGit } from '../../context/GitContext';
+import { useGitStore } from '../../stores/gitStore';
 import GitStatusList from './GitStatus';
 import DiffView from './DiffView';
 import BranchSelector from './BranchSelector';
 import CommitForm from './CommitForm';
 
 const GitPanel: React.FC = () => {
-  const { status, currentBranch, isLoading, error, refreshStatus } = useGit();
+  const { status, currentBranch, isLoading, error, refreshStatus } = useGitStore();
 
   if (isLoading) {
     return (

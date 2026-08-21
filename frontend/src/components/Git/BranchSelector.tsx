@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useGit } from '../../context/GitContext';
+import { useGitStore } from '../../stores/gitStore';
 
 const BranchSelector: React.FC = () => {
-  const { branches, currentBranch, checkout } = useGit();
+  const { branches, currentBranch, checkout } = useGitStore();
   const [isOpen, setIsOpen] = useState(false);
 
   const handleBranchSelect = (branchName: string) => {

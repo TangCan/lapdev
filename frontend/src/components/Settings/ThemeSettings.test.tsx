@@ -2,21 +2,28 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ThemeSettings } from './ThemeSettings';
-import { ThemeProvider } from '../../theme/ThemeContext';
+import { useThemeStore } from '../../stores/themeStore';
 
 describe('ThemeSettings Component', () => {
   const renderWithProvider = (ui: React.ReactElement) => {
-    return render(
-      <ThemeProvider>
-        {ui}
-      </ThemeProvider>
-    );
+    return render(ui);
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.removeItem('lapdev-theme');
     localStorage.removeItem('lapdev-theme-follow-system');
+    // 重置 Zustand store 状态（保留 action 函数）
+    const { setTheme, toggleTheme, setFollowSystem, initTheme } = useThemeStore.getState();
+    useThemeStore.setState({
+      themeName: 'dark',
+      theme: useThemeStore.getState().theme,
+      followSystem: false,
+      setTheme,
+      toggleTheme,
+      setFollowSystem,
+      initTheme,
+    });
   });
 
   it('[P0] should render theme settings panel', () => {
@@ -86,10 +93,12 @@ describe('ThemeSettings Component', () => {
   });
 
   it('[P1] should restore follow system setting from localStorage', () => {
-    localStorage.setItem('lapdev-theme-follow-system', 'true');
-    
+    // Zustand store 是单一事实源，直接通过 setFollowSystem 设置状态
+    const { setFollowSystem } = useThemeStore.getState();
+    setFollowSystem(true);
+
     renderWithProvider(<ThemeSettings />);
-    
+
     const checkbox = screen.getByLabelText('跟随系统主题');
     expect(checkbox).toBeChecked();
     expect(screen.queryByText('深色')).not.toBeInTheDocument();

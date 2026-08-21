@@ -1,8 +1,8 @@
 import React from 'react';
-import { useGit } from '../../context/GitContext';
+import { useGitStore } from '../../stores/gitStore';
 
 const GitStatusList: React.FC = () => {
-  const { status, getFileDiff, stageFile } = useGit();
+  const { status, getFileDiff, stageFile } = useGitStore();
 
   if (!status) return null;
 

@@ -4,7 +4,7 @@ import type { editor, Range as MonacoRange } from 'monaco-editor';
 import { aiService } from '../../services/aiService';
 import { useAI } from '../../context/AIContext';
 import { useInlineCompletion } from '../../context/InlineCompletionContext';
-import { useTheme } from '../../theme/ThemeContext';
+import { useThemeStore } from '../../stores/themeStore';
 
 import type { DiffLine } from '../../types/diff';
 
@@ -42,7 +42,7 @@ export function CodeEditor({
 
   const { isConnected } = useAI();
   const { inlineCompletionEnabled, inlineCompletionVisible, setInlineCompletionVisible, ghostText, setGhostText } = useInlineCompletion();
-  const { themeName } = useTheme();
+  const { themeName } = useThemeStore();
 
   const inlineCompletionEnabledRef = useRef(inlineCompletionEnabled);
   const isConnectedRef = useRef(isConnected);

@@ -1,9 +1,9 @@
 import type { CSSProperties } from 'react';
-import { useTheme } from '../../theme/ThemeContext';
+import { useThemeStore } from '../../stores/themeStore';
 import { getThemeList, type ThemeConfig } from '../../theme/themeConfig';
 
 export function ThemeSettings() {
-  const { themeName, setTheme, followSystem, setFollowSystem } = useTheme();
+  const { themeName, setTheme, followSystem, setFollowSystem } = useThemeStore();
   const themes = getThemeList();
 
   return (

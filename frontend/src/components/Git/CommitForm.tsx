@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useGit } from '../../context/GitContext';
+import { useGitStore } from '../../stores/gitStore';
 
 const CommitForm: React.FC = () => {
-  const { status, commit, stageFiles, refreshStatus } = useGit();
+  const { status, commit, stageFiles, refreshStatus } = useGitStore();
   const [message, setMessage] = useState('');
   const [isCommitting, setIsCommitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);

@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { html } from 'diff2html/lib-esm/diff2html.js';
 import DOMPurify from 'isomorphic-dompurify';
 import 'diff2html/bundles/css/diff2html.min.css';
-import { useGit } from '../../context/GitContext';
+import { useGitStore } from '../../stores/gitStore';
 
 // DOMPurify 配置：只允许 diff2html 生成的 HTML 标签
 const DIFF2HTML_ALLOWED_TAGS = [
@@ -16,7 +16,7 @@ const DIFF2HTML_ALLOWED_ATTR = [
 ];
 
 const DiffView: React.FC = () => {
-  const { selectedFileDiff, selectedFilePath } = useGit();
+  const { selectedFileDiff, selectedFilePath } = useGitStore();
 
   const htmlDiff = useMemo(() => {
     if (!selectedFileDiff) return '';

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useChat, ChatMessage } from '../../context/ChatContext';
+import { useChatStore, selectCurrentSession, type ChatMessage } from '../../stores/chatStore';
 import { useAI } from '../../context/AIContext';
 import { useSkill } from '../../context/SkillContext';
 import { useSkillMatch } from '../../hooks/useSkillMatch';
@@ -42,15 +42,16 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isStreaming }) =
 
 const AIChatPanel: React.FC = () => {
   const {
-    currentSession,
     isStreaming,
     isPanelOpen,
     sendMessage,
     abortStream,
     newSession,
     clearSession,
-    togglePanel
-  } = useChat();
+    togglePanel,
+  } = useChatStore();
+
+  const currentSession = useChatStore(selectCurrentSession);
 
   const { isConnected, currentModel } = useAI();
   const { activeSkills } = useSkill();
