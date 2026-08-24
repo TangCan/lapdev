@@ -18,16 +18,27 @@ function getErrorMessage(error: unknown): string {
 }
 
 export async function handleFileTree(req: Request): Promise<Response> {
-  const url = new URL(req.url);
-  const path = url.searchParams.get('path') || '/';
-  const depth = parseInt(url.searchParams.get('depth') || '3');
+  try {
+    const url = new URL(req.url);
+    const path = url.searchParams.get('path') || '/';
+    const depth = parseInt(url.searchParams.get('depth') || '3');
 
-  const result = await getFileTree(path, depth);
-  
-  return new Response(JSON.stringify(result), {
-    headers: { 'Content-Type': 'application/json' },
-    status: result.status === 'success' ? 200 : 400
-  });
+    const result = await getFileTree(path, depth);
+
+    return new Response(JSON.stringify(result), {
+      headers: { 'Content-Type': 'application/json' },
+      status: result.status === 'success' ? 200 : 400
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    return new Response(JSON.stringify({
+      status: 'error',
+      message
+    }), {
+      headers: { 'Content-Type': 'application/json' },
+      status: 500
+    });
+  }
 }
 
 export async function handleReadFile(req: Request): Promise<Response> {
