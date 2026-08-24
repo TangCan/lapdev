@@ -77,7 +77,6 @@ function getCollapsedDirectoryLocator(page: Page) {
   return page.locator('[data-testid="file-item"].directory')
     .filter({ hasText: '▶' });
 }
-
 test.describe('[E2E] File Tree Virtual Scroll', () => {
   test.beforeAll(async ({ browser }) => {
     const page = await browser.newPage();
@@ -189,8 +188,6 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
   test('[P0] EPI3-02-E2E-001: 文件树在大量文件时应使用虚拟滚动 (AC1)', async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('[data-testid="file-tree"]', { timeout: 15000 });
-
-    // 等待加载完成
     await page.waitForFunction(
       () => {
         const el = document.querySelector('[data-testid="file-tree"]');
@@ -203,7 +200,6 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
 
     // 展开根目录以使子文件可见，触发虚拟滚动
     await expandRootFolder(page);
-
     // 虚拟滚动容器应存在
     const virtualScrollContainer = page.getByTestId('virtual-scroll-container');
     await expect(virtualScrollContainer).toBeVisible({ timeout: 5000 });
@@ -238,7 +234,6 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
 
     // 展开根目录以使子文件可见，触发虚拟滚动
     await expandRootFolder(page);
-
     // 测试环境创建 60+ 文件，应启用虚拟滚动
     const virtualScrollContainer = page.getByTestId('virtual-scroll-container');
     await expect(virtualScrollContainer).toBeVisible({ timeout: 5000 });
@@ -264,7 +259,6 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
 
     // 展开根目录以使子文件可见，触发虚拟滚动
     await expandRootFolder(page);
-
     const virtualScrollContainer = page.getByTestId('virtual-scroll-container');
     await expect(virtualScrollContainer).toBeVisible({ timeout: 5000 });
 
@@ -364,7 +358,6 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
 
     // 展开根目录以使子文件可见，触发虚拟滚动
     await expandRootFolder(page);
-
     const virtualScrollContainer = page.getByTestId('virtual-scroll-container');
     await expect(virtualScrollContainer).toBeVisible({ timeout: 5000 });
 
@@ -402,7 +395,6 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
 
     // 展开根目录以使子文件可见，触发虚拟滚动
     await expandRootFolder(page);
-
     const virtualScrollContainer = page.getByTestId('virtual-scroll-container');
     await expect(virtualScrollContainer).toBeVisible({ timeout: 5000 });
 
@@ -424,8 +416,6 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
   test('[P2] EPI3-02-E2E-007: 快速滚动不出现白屏 (AC1)', async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('[data-testid="file-tree"]', { timeout: 15000 });
-
-    // 等待加载完成
     await page.waitForFunction(
       () => {
         const el = document.querySelector('[data-testid="file-tree"]');
@@ -438,7 +428,6 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
 
     // 展开根目录以使子文件可见，触发虚拟滚动
     await expandRootFolder(page);
-
     // 虚拟滚动容器应存在
     const virtualScrollContainer = page.getByTestId('virtual-scroll-container');
     await expect(virtualScrollContainer).toBeVisible({ timeout: 5000 });
@@ -480,7 +469,6 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
 
     // 展开根目录以使子文件可见，触发虚拟滚动
     await expandRootFolder(page);
-
     const virtualScrollContainer = page.getByTestId('virtual-scroll-container');
     await expect(virtualScrollContainer).toBeVisible({ timeout: 5000 });
 
@@ -612,8 +600,6 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
   test('[P1] EPI3-02-E2E-011: 展开/折叠后滚动位置保持稳定 (AC3)', async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('[data-testid="file-tree"]', { timeout: 15000 });
-
-    // 等待加载完成
     await page.waitForFunction(
       () => {
         const el = document.querySelector('[data-testid="file-tree"]');
@@ -626,7 +612,6 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
 
     // 展开根目录以使子文件可见，触发虚拟滚动
     await expandRootFolder(page);
-
     const virtualScrollContainer = page.getByTestId('virtual-scroll-container');
     await expect(virtualScrollContainer).toBeVisible({ timeout: 5000 });
 
@@ -672,8 +657,6 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
   test('[P1] EPI3-02-E2E-012: 搜索结果数量变化时切换虚拟滚动模式 (AC2)', async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('[data-testid="file-tree"]', { timeout: 15000 });
-
-    // 等待加载完成
     await page.waitForFunction(
       () => {
         const el = document.querySelector('[data-testid="file-tree"]');
@@ -686,7 +669,6 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
 
     // 展开根目录以使子文件可见，触发虚拟滚动
     await expandRootFolder(page);
-
     // 初始状态：60+ 文件应使用虚拟滚动
     const virtualContainer = page.getByTestId('virtual-scroll-container');
     await expect(virtualContainer).toBeVisible({ timeout: 5000 });
@@ -716,8 +698,6 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
   test('[P2] EPI3-02-E2E-013: 快速连续展开/折叠不崩溃 (AC1)', async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('[data-testid="file-tree"]', { timeout: 15000 });
-
-    // 等待加载完成
     await page.waitForFunction(
       () => {
         const el = document.querySelector('[data-testid="file-tree"]');
@@ -730,7 +710,6 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
 
     // 展开根目录以使子文件可见，触发虚拟滚动
     await expandRootFolder(page);
-
     const virtualScrollContainer = page.getByTestId('virtual-scroll-container');
     await expect(virtualScrollContainer).toBeVisible({ timeout: 5000 });
 
@@ -761,8 +740,6 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
   test('[P3] EPI3-02-E2E-014: 虚拟滚动 DOM 节点数量远少于文件总数 (AC1)', async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('[data-testid="file-tree"]', { timeout: 15000 });
-
-    // 等待加载完成
     await page.waitForFunction(
       () => {
         const el = document.querySelector('[data-testid="file-tree"]');
@@ -775,7 +752,6 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
 
     // 展开根目录以使子文件可见，触发虚拟滚动
     await expandRootFolder(page);
-
     // 获取文件树中实际文件项的 DOM 数量
     const fileItems = page.locator('[data-testid="file-item"]');
     const renderedCount = await fileItems.count();

@@ -165,11 +165,14 @@ test.describe('EPI1.03: 移除手动 Memoization 回归测试 (ATDD Green Phase)
     await rootItem.click();
     await page.waitForTimeout(500);
 
-    // 等待根目录展开后，子文件出现（兼容虚拟滚动和非虚拟滚动模式）
-    const firstFile = fileTree.locator('.file-item.file').first();
-    await expect(firstFile).toBeVisible({ timeout: 10000 });
-    await firstFile.click();
+    // 等待文件项出现（虚拟滚动模式下 .children div 不存在，直接用 file-item 选择器）
+    const fileItems = page.locator('[data-testid="file-item"]');
+    await expect(fileItems.first()).toBeVisible({ timeout: 10000 });
 
+    // 找到第一个文件（非目录）并点击
+    const firstFile = page.locator('[data-testid="file-item"]').filter({ hasText: /^\S+\.(ts|tsx|js|jsx|md|txt|css|json)$/ });
+    await expect(firstFile.first()).toBeVisible({ timeout: 10000 });
+    await firstFile.first().click();
     // 验证编辑器可见
     const editorContent = page.getByTestId('editor-content');
     await expect(editorContent).toBeVisible({ timeout: 10000 });
@@ -193,11 +196,14 @@ test.describe('EPI1.03: 移除手动 Memoization 回归测试 (ATDD Green Phase)
     await rootItem.click();
     await page.waitForTimeout(500);
 
-    // 等待根目录展开后，子文件出现（兼容虚拟滚动和非虚拟滚动模式）
-    const firstFile = fileTree.locator('.file-item.file').first();
-    await expect(firstFile).toBeVisible({ timeout: 10000 });
-    await firstFile.click();
-    await page.waitForTimeout(500);
+    // 等待文件项出现（虚拟滚动模式下 .children div 不存在）
+    const fileItems = page.locator('[data-testid="file-item"]');
+    await expect(fileItems.first()).toBeVisible({ timeout: 10000 });
+
+    // 找到第一个文件（非目录）并点击
+    const firstFile = page.locator('[data-testid="file-item"]').filter({ hasText: /^\S+\.(ts|tsx|js|jsx|md|txt|css|json)$/ });
+    await expect(firstFile.first()).toBeVisible({ timeout: 10000 });
+    await firstFile.first().click();    await page.waitForTimeout(500);
 
     // 点击懒加载占位符触发 Monaco 加载
     const placeholder = page.getByTestId('code-editor-placeholder');
