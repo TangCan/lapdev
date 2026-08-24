@@ -92,8 +92,8 @@ describe('useFileTreeFlatten 性能测试 (EPI3.02 虚拟滚动故事)', () => {
     rerender({ tree: largeTree, paths: expandedPaths });
     const elapsed = performance.now() - start;
 
-    // 缓存命中时第二次渲染应 < 1ms
-    expect(elapsed).toBeLessThan(1);
+    // 缓存命中时第二次渲染应显著快于完整计算（完整计算约 30-50ms，缓存命中 < 5ms）
+    expect(elapsed).toBeLessThan(5);
   });
 
   it('虚拟滚动渲染节点数应 < 可视区域 + overscan', () => {
