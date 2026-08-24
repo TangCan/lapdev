@@ -173,6 +173,7 @@ test.describe('EPI1.03: 移除手动 Memoization 回归测试 (ATDD Green Phase)
     const firstFile = page.locator('[data-testid="file-item"]').filter({ hasText: /^\S+\.(ts|tsx|js|jsx|md|txt|css|json)$/ });
     await expect(firstFile.first()).toBeVisible({ timeout: 10000 });
     await firstFile.first().click();
+
     // 验证编辑器可见
     const editorContent = page.getByTestId('editor-content');
     await expect(editorContent).toBeVisible({ timeout: 10000 });
@@ -203,7 +204,8 @@ test.describe('EPI1.03: 移除手动 Memoization 回归测试 (ATDD Green Phase)
     // 找到第一个文件（非目录）并点击
     const firstFile = page.locator('[data-testid="file-item"]').filter({ hasText: /^\S+\.(ts|tsx|js|jsx|md|txt|css|json)$/ });
     await expect(firstFile.first()).toBeVisible({ timeout: 10000 });
-    await firstFile.first().click();    await page.waitForTimeout(500);
+    await firstFile.first().click();
+    await page.waitForTimeout(500);
 
     // 点击懒加载占位符触发 Monaco 加载
     const placeholder = page.getByTestId('code-editor-placeholder');
@@ -340,8 +342,8 @@ test.describe('EPI1.03: 移除手动 Memoization 回归测试 (ATDD Green Phase)
     const aiConfigSection = page.getByTestId('ai-config-section');
     await expect(aiConfigSection).toBeVisible({ timeout: 15000 });
 
-    // 验证主题设置区块（使用 testid 避免翻译问题）
-    const themeHeading = page.getByTestId('theme-settings-heading');
+    // 验证主题设置区块（使用 role=heading 精确定位"主题"标题）
+    const themeHeading = page.getByRole('heading', { name: '主题' });
     await expect(themeHeading).toBeVisible({ timeout: 5000 });
 
     // 验证 AI 配置功能可用
