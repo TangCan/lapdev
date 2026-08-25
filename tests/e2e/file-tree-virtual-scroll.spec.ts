@@ -55,7 +55,6 @@ async function waitForFileTreeReady(page: import('@playwright/test').Page, maxRe
   }
   return true;
 }
-}
 
 test.describe('[E2E] File Tree Virtual Scroll', () => {
   test.beforeAll(async ({ browser }) => {
