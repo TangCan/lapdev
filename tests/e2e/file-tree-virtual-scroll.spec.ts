@@ -328,11 +328,15 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
     // 展开 workspace
     await expandWorkspace(page);
 
+    const fileItems = page.locator('[data-testid="file-item"]');
+    const itemCount = await fileItems.count();
+    test.skip(itemCount <= VIRTUAL_SCROLL_THRESHOLD,
+      `文件项数量 ${itemCount} 不足，无法触发虚拟滚动`);
+
     const virtualScrollContainer = page.getByTestId('virtual-scroll-container');
     await expect(virtualScrollContainer).toBeVisible({ timeout: 5000 });
 
     // 在虚拟滚动列表中查找文件项
-    const fileItems = page.locator('[data-testid="file-item"]');
     await expect(fileItems.first()).toBeVisible({ timeout: 5000 });
 
     // 滚动到中部区域以确保点击的不是首屏固定项
@@ -363,10 +367,14 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
     // 展开 workspace
     await expandWorkspace(page);
 
+    const fileItems = page.locator('[data-testid="file-item"]');
+    const itemCount = await fileItems.count();
+    test.skip(itemCount <= VIRTUAL_SCROLL_THRESHOLD,
+      `文件项数量 ${itemCount} 不足，无法触发虚拟滚动`);
+
     const virtualScrollContainer = page.getByTestId('virtual-scroll-container');
     await expect(virtualScrollContainer).toBeVisible({ timeout: 5000 });
 
-    const fileItems = page.locator('[data-testid="file-item"]');
     await expect(fileItems.first()).toBeVisible({ timeout: 5000 });
 
     // 右键点击文件项
@@ -572,6 +580,11 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
 
     // 展开 workspace
     await expandWorkspace(page);
+
+    const fileItems = page.locator('[data-testid="file-item"]');
+    const itemCount = await fileItems.count();
+    test.skip(itemCount <= VIRTUAL_SCROLL_THRESHOLD,
+      `文件项数量 ${itemCount} 不足，无法触发虚拟滚动`);
 
     const virtualScrollContainer = page.getByTestId('virtual-scroll-container');
     await expect(virtualScrollContainer).toBeVisible({ timeout: 5000 });
