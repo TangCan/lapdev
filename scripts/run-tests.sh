@@ -260,7 +260,7 @@ if ! wait_for_service "${BACKEND_URL}/api/v1/git/status" 5; then
     stop_backend
     start_backend
 fi
-npx playwright test tests/e2e/ --retries=6 --workers=4 || log_error "E2E 测试失败"
+NO_PROXY=localhost,127.0.0.1 no_proxy=localhost,127.0.0.1 npx --no-install playwright test tests/e2e/ --retries=6 --workers=4 || log_error "E2E 测试失败"
 
 log_info ""
 log_info "========================================"
