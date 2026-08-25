@@ -460,7 +460,7 @@ if ! ensure_service_available "后端服务" "${BACKEND_URL}/api/v1/git/status" 
   exit 1
 fi
 
-run_test "7. E2E测试（除conversation history）" "NO_PROXY=localhost,127.0.0.1 no_proxy=localhost,127.0.0.1 npx --no-install playwright test tests/e2e/ --retries=6 --workers=4 --grep-invert 'conversation history' 2>&1"
+run_test "7. E2E测试（除conversation history）" "NO_PROXY=localhost,127.0.0.1 no_proxy=localhost,127.0.0.1 node ./node_modules/@playwright/test/cli.js test tests/e2e/ --retries=6 --workers=4 --grep-invert 'conversation history' 2>&1"
 
 # 等待资源释放
 sleep 3
@@ -477,7 +477,7 @@ fi
 # 单独串行运行conversation history测试
 echo -e "\n${YELLOW}7b. E2E测试 - conversation history（串行执行）${NC}"
 echo "------------------------------------------------"
-if NO_PROXY=localhost,127.0.0.1 no_proxy=localhost,127.0.0.1 npx --no-install playwright test tests/e2e/ai-chat.spec.ts --grep "conversation history" --workers=1 --retries=2 2>&1; then
+if NO_PROXY=localhost,127.0.0.1 no_proxy=localhost,127.0.0.1 node ./node_modules/@playwright/test/cli.js test tests/e2e/ai-chat.spec.ts --grep "conversation history" --workers=1 --retries=2 2>&1; then
   echo -e "${GREEN}✓ E2E测试 - conversation history 全部通过${NC}"
   TEST_RESULTS+=("✓ E2E测试 - conversation history")
   log_success "E2E测试 - conversation history 全部通过"
