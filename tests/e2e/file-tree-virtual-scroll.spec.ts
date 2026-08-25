@@ -22,6 +22,37 @@ async function expandWorkspace(page: import('@playwright/test').Page) {
   }
 }
 
+/**
+ * 等待文件树加载完成且无错误状态。
+ * 文件树可能因后端暂时不可用而显示错误，此函数会重试加载。
+ */
+async function waitForFileTreeReady(page: import('@playwright/test').Page, maxRetries: number = 3) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    await page.goto('/');
+    await page.waitForSelector('[data-testid="file-tree"]', { timeout: 15000 });
+
+    const isError = await page.evaluate(() => {
+      const el = document.querySelector('[data-testid="file-tree"]');
+      return !!(el?.querySelector('.error') || el?.querySelector('.loading'));
+    });
+
+    if (!isError) return;
+
+    // 文件树处于错误或加载中，等待后重试
+    await page.waitForTimeout(2000);
+  }
+
+  // 最后一次检查
+  const finalError = await page.evaluate(() => {
+    const el = document.querySelector('[data-testid="file-tree"]');
+    const errEl = el?.querySelector('.error');
+    return errEl?.textContent || null;
+  });
+  if (finalError) {
+    throw new Error(`File tree failed to load after ${maxRetries} retries: ${finalError}`);
+  }
+}
+
 test.describe('[E2E] File Tree Virtual Scroll', () => {
   test.beforeAll(async ({ browser }) => {
     const page = await browser.newPage();
@@ -130,15 +161,7 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
   // ─── AC1: 文件树在大量文件时应使用虚拟滚动 ───
 
   test('[P0] EPI3-02-E2E-001: 文件树在大量文件时应使用虚拟滚动 (AC1)', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForSelector('[data-testid="file-tree"]', { timeout: 15000 });
-    await page.waitForFunction(
-      () => {
-        const el = document.querySelector('[data-testid="file-tree"]');
-        return el && !el.querySelector('.loading');
-      },
-      { timeout: 15000 }
-    );
+    await waitForFileTreeReady(page);
 
     test.skip(!backendAvailable, '后端未运行，跳过此测试');
 
@@ -197,8 +220,7 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
   // ─── AC3: 展开/折叠目录后虚拟滚动正确更新 ───
 
   test('[P1] EPI3-02-E2E-003: 展开/折叠目录后虚拟滚动正确更新 (AC3)', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForSelector('[data-testid="file-tree"]', { timeout: 15000 });
+    await waitForFileTreeReady(page);
 
     test.skip(!backendAvailable, '后端未运行，跳过此测试');
 
@@ -290,8 +312,7 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
   // ─── AC5: 虚拟滚动中点击文件正常打开 ───
 
   test('[P1] EPI3-02-E2E-005: 虚拟滚动中点击文件正常打开 (AC5)', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForSelector('[data-testid="file-tree"]', { timeout: 15000 });
+    await waitForFileTreeReady(page);
 
     test.skip(!backendAvailable, '后端未运行，跳过此测试');
 
@@ -327,8 +348,7 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
   // ─── AC5: 虚拟滚动中右键菜单正常工作 ───
 
   test('[P2] EPI3-02-E2E-006: 虚拟滚动中右键菜单正常工作 (AC5)', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForSelector('[data-testid="file-tree"]', { timeout: 15000 });
+    await waitForFileTreeReady(page);
 
     test.skip(!backendAvailable, '后端未运行，跳过此测试');
 
@@ -539,15 +559,7 @@ test.describe('[E2E] File Tree Virtual Scroll', () => {
   // ─── AC3: 滚动位置在展开/折叠后保持稳定 ───
 
   test('[P1] EPI3-02-E2E-011: 展开/折叠后滚动位置保持稳定 (AC3)', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForSelector('[data-testid="file-tree"]', { timeout: 15000 });
-    await page.waitForFunction(
-      () => {
-        const el = document.querySelector('[data-testid="file-tree"]');
-        return el && !el.querySelector('.loading');
-      },
-      { timeout: 15000 }
-    );
+    await waitForFileTreeReady(page);
 
     test.skip(!backendAvailable, '后端未运行，跳过此测试');
 
