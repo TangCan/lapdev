@@ -1,5 +1,5 @@
 # generated: 2026-07-27
-# last_updated: 2026-09-24 (项目正式结项; 17/17 epics done, 43/43 stories done; TD-02/TD-06 已闭环; 技术债 TD-01/03/04/05/07 移交后续)
+# last_updated: 2026-09-24 (Phase 3 完成; 19/19 epics done, 47/47 stories done; TD-01/02/03/04/06 已闭环; 剩余 TD-05/TD-07 移交后续)
 # project: lapdev
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-07-27
-# last_updated: 2026-09-24 (项目正式结项; 17/17 epics done, 43/43 stories done; TD-02/TD-06 已闭环; 技术债 TD-01/03/04/05/07 移交后续)
+# last_updated: 2026-09-24 (Phase 3 完成; 19/19 epics done, 47/47 stories done; TD-01/02/03/04/06 已闭环; 剩余 TD-05/TD-07 移交后续)
 project: lapdev
 project_key: NOKEY
 tracking_system: file-system
@@ -168,21 +168,21 @@ development_status:
   epi7-02-formatting-boundary-fixes: done
 
   # Epic EPI8: 交互体验与度量（P1 技术债）（2 stories）
-  epi8: in_progress
+  epi8: done
   epi8-01-ghost-text-transition-cancellation: done
-  epi8-02-quantify-react-compiler-gain: backlog
+  epi8-02-quantify-react-compiler-gain: done
 
 summary:
   total_epics: 19
   total_stories: 47
-  epics_done: 18
-  epics_in_progress: 1
+  epics_done: 19
+  epics_in_progress: 0
   epics_backlog: 0
-  stories_done: 46
+  stories_done: 47
   stories_in_progress: 0
   stories_ready_for_dev: 0
   stories_in_review: 0
-  stories_backlog: 1
+  stories_backlog: 0
 
 story_mapping:
   # Phase 1: 基础功能
@@ -423,12 +423,12 @@ story_mapping:
       td_ref: "TD-01"
 
 integration_gap_analysis:
-  summary: "Phase 2 全部完成（17/17 epics done、43/43 stories）。技术债 TD-02（range-formatting E2E 激活）与 TD-06（AI 适配器契约）已处理。Phase 3 已规划：epi7「运行时稳定性」（TD-03 内存泄漏 + 格式化边界缺陷）与 epi8「交互体验与度量」（TD-04 幽灵文本 + TD-01 React Compiler 度量）；TD-03 优先级上调为 high。"
+  summary: "Phase 2 + Phase 3 全部完成（19/19 epics done、47/47 stories）。技术债 TD-01（React Compiler 量化）/TD-02（range-formatting E2E）/TD-03（LSPContext dispose 泄漏）/TD-04（幽灵文本 transition 取消）/TD-06（AI 适配器契约）已闭环；剩余 TD-05（架构迁移 commit 规范）、TD-07（Ctrl+Shift+F 未校验 Shift）为低优先级，移交后续。epi8-02 附带的后续发现：vitest.config.ts 未启用 compiler（单测运行未 memoize 组件），作为新技术债另行跟踪。"
   affected_areas: []
   recommended_next_steps:
-    - "Phase 3 首批（P0）：epi7-01（LSPContext dispose 泄漏，TD-03）+ epi7-02（格式化边界缺陷）"
-    - "Phase 3 第二批（P1）：epi8-01（幽灵文本 transition 取消，TD-04）+ epi8-02（React Compiler 收益量化，TD-01）"
-    - "TD-05 转工程规范文档（非代码任务）；TD-07（Ctrl+Shift+F 未校验 Shift）作为 quick win 后续附带处理"
+    - "TD-05：架构类批量迁移按 story 拆分 commit 与独立验收记录（非代码任务，转工程规范）"
+    - "TD-07：LspCodeEditor Ctrl+Shift+F 快捷键处理器补校验 Shift 键（quick win）"
+    - "新发现（epi8-02）：评估在 vitest.config.ts 启用 babel-plugin-react-compiler，以实现渲染次数真实验证（需评估对 682 项测试的兼容性影响）"
 
 # ========== 跨 Epic 技术债务 Backlog ==========
 # 来自 epi1-epi6 retrospective 中标记为「转技术债务」/「遗留」的条目
@@ -439,9 +439,9 @@ technical_debt_backlog:
     source_epic: "epi1"
     source_story: "epi1-02 / epi1-03"
     priority: "medium"
-    status: "backlog"
+    status: "done"
     description: "量化 React Compiler 对 bundle 体积与渲染次数的真实收益，验证 compilationMode 'infer' 是否达预期，必要时评估切换为显式参数。"
-    status_note: "planned: 纳入 epi8-02-quantify-react-compiler-gain（Phase 3 第二批）"
+    status_note: "done: A/B 实测——compiler 增加约 12.6KB gzip（总 +0.36%、应用代码 +18.1%），收益在运行时渲染次数而非体积；ESLint react-compiler 22 warn（5 跳过优化 + 17 纯度违规）；建议保持 compilationMode 'infer'；记录 vitest.config.ts 未启用 compiler 的不一致，转后续技术债"
   - id: "TD-02"
     title: "激活 range-formatting E2E 测试"
     source_epic: "epi2"
