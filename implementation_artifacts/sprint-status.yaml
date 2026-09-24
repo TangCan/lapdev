@@ -1,5 +1,5 @@
 # generated: 2026-07-27
-# last_updated: 2026-09-24 (epi3-02 done; epi3-03 create-story → ready-for-dev; epi4-6 待 backlog; summary 计数对齐)
+# last_updated: 2026-09-24 (epi3-02 done; epi3-03 → review; epi4-6 待 backlog; summary 计数对齐)
 # project: lapdev
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-07-27
-# last_updated: 2026-09-24 (epi3-02 done; epi3-03 create-story → ready-for-dev; epi4-6 待 backlog; summary 计数对齐)
+# last_updated: 2026-09-24 (epi3-02 done; epi3-03 → review; epi4-6 待 backlog; summary 计数对齐)
 project: lapdev
 project_key: NOKEY
 tracking_system: file-system
@@ -133,7 +133,7 @@ development_status:
   epi3: in-progress
   epi3-01-file-search-concurrent-optimization: done
   epi3-02-file-tree-virtual-scrolling: done
-  epi3-03-complex-operation-concurrent-processing: ready-for-dev
+  epi3-03-complex-operation-concurrent-processing: review
   epi3-retrospective: optional
 
   # Epic EPI4: 架构改进 - Zustand 状态管理迁移 (3 stories)
@@ -166,8 +166,8 @@ summary:
   epics_in_progress: 6
   stories_done: 31
   stories_in_progress: 0
-  stories_ready_for_dev: 1
-  stories_in_review: 0
+  stories_ready_for_dev: 0
+  stories_in_review: 1
   stories_backlog: 11
 
 story_mapping:
@@ -324,7 +324,7 @@ story_mapping:
       title: "复杂操作并发处理"
       key: "epi3-03-complex-operation-concurrent-processing"
       frs: []
-      status_note: "未实现 — 无 startTransition 调用"
+      status_note: "review: startTransition 落地 3 处（handleFormat/ProblemsPanel/inline completion），新增单元+E2E 测试，全量回归通过"
   epi4:
     - id: "EPI4.01"
       title: "创建 Zustand Store 替换 GitContext"
@@ -393,7 +393,7 @@ integration_gap_analysis:
     - "VirtualList 未接入 FileTree"
     - "useFileSearch 已集成到 FileTree.tsx"
     - "DI 容器未被任何服务/组件引用"
-    - "无 startTransition 调用"
+    - "startTransition 已落地 3 处（handleFormat/ProblemsPanel/inline completion），epi3-03 待 review"
   recommended_next_steps:
     - "优先集成 EPI5（IDE.tsx 拆分）—— 影响面最大"
     - "集成 EPI4（Zustand 替换 Context）—— 与 EPI5 并行"
