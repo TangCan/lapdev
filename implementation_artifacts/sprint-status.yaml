@@ -1,5 +1,5 @@
 # generated: 2026-07-27
-# last_updated: 2026-09-24 (epi3-03 done; epi3/4/5 → done; epi6-01..03 done, epi6-04 backlog; summary 计数对齐)
+# last_updated: 2026-09-24 (epi6-04 done; epi6 → done; summary 43/43 done, 0 backlog)
 # project: lapdev
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-07-27
-# last_updated: 2026-09-24 (epi3-03 done; epi3/4/5 → done; epi6-01..03 done, epi6-04 backlog; summary 计数对齐)
+# last_updated: 2026-09-24 (epi6-04 done; epi6 → done; summary 43/43 done, 0 backlog)
 project: lapdev
 project_key: NOKEY
 tracking_system: file-system
@@ -152,23 +152,23 @@ development_status:
   epi5-retrospective: optional
 
   # Epic EPI6: 架构改进 - 服务层重构 (4 stories)
-  epi6: in-progress
+  epi6: done
   epi6-01-create-core-domain-models: done
   epi6-02-create-port-interfaces: done
   epi6-03-create-api-adapter-implementation: done
-  epi6-04-refactor-service-layer-ports-adapters: backlog
+  epi6-04-refactor-service-layer-ports-adapters: done
   epi6-retrospective: optional
 
 summary:
   total_epics: 17
   total_stories: 43
-  epics_done: 14
-  epics_in_progress: 3
-  stories_done: 42
+  epics_done: 15
+  epics_in_progress: 2
+  stories_done: 43
   stories_in_progress: 0
   stories_ready_for_dev: 0
   stories_in_review: 0
-  stories_backlog: 1
+  stories_backlog: 0
 
 story_mapping:
   # Phase 1: 基础功能
@@ -287,7 +287,7 @@ story_mapping:
       title: "启用 React Compiler"
       key: "epi1-02-enable-react-compiler"
       frs: []
-      status_note: "vite.config.ts 尚未配置 babel-plugin-react-compiler"
+      status_note: "done: babel-plugin-react-compiler 已配置（target 19, compilationMode infer，a1ba1ab+0af286b）；279 单元测试 + 7 E2E 冒烟 + 17 build 检查通过"
     - id: "EPI1.03"
       title: "移除手动 Memoization 代码"
       key: "epi1-03-remove-manual-memoization"
@@ -298,7 +298,7 @@ story_mapping:
       title: "Monaco Editor 懒加载"
       key: "epi2-01-monaco-editor-lazy-loading"
       frs: ["UX-DR1"]
-      status_note: "LazyCodeEditor.tsx 已创建但未集成"
+      status_note: "done: LazyCodeEditor 懒加载已集成（abc31c1+b9978af）；React.lazy+Suspense+动态 import()，monaco-async chunk 拆分，首屏 index.js 25.79 kB，389 单元测试通过，review 全解决"
     - id: "EPI2.02"
       title: "大文件优化配置"
       key: "epi2-02-large-file-optimization"
@@ -308,7 +308,7 @@ story_mapping:
       title: "范围格式化与增量更新"
       key: "epi2-03-range-formatting-incremental-update"
       frs: []
-      status_note: "ready-for-dev: 范围格式化与增量更新 — story 文件已创建"
+      status_note: "done: formatCache LRU + formatRange 已落地（c65a76d）；19 formatCache + 10 lspService + 21 API 测试通过；⚠️ range-formatting.spec.ts 的 7 个 E2E 测试当前 test.skip 未启用"
   epi3:
     - id: "EPI3.01"
       title: "文件搜索并发优化"
@@ -382,12 +382,11 @@ story_mapping:
       title: "重构服务层使用端口与适配器"
       key: "epi6-04-refactor-service-layer-ports-adapters"
       frs: []
-      status_note: "backlog: DIContainer 已创建（adapters/index.ts）但 services/ 层尚未改用 adapter"
+      status_note: "done: File/Git 消费方全部切换到 container.getXxxRepository()；GitOperationResult 泛型化；新增 container.test.ts（DI 可替换性）；AI 部分按 R3 defer"
 
 integration_gap_analysis:
-  summary: "Phase 2 大部分已完成：epi1-5 全部 story done；epi6-01..03 模型/端口/适配器已落地。剩余唯一 gap 为 EPI6 服务层重构。"
-  affected_areas:
-    - "DI 容器（adapters/index.ts）已创建但 services/ 层仍直接使用 fileService/gitService/aiService，未切换到 adapter（epi6-04 backlog）"
+  summary: "Phase 2 全部完成：epi1-6 所有 story done。EPI6 服务层重构（epi6-04）已落地，File/Git 消费方全部切换到端口与适配器；AI 部分（R3 契约不匹配）defer 至后续独立处理。"
+  affected_areas: []
   recommended_next_steps:
-    - "完成 EPI6 服务层重构：让 services/ 通过 DIContainer 使用 adapter，替换直接调用的 services"
     - "补齐 epi1/epi2/epi6 的 retrospective（当前 optional）"
+    - "后续决策 AI 适配器契约：对齐 IAIRepository 与 aiService 的真实后端端点与请求字段"

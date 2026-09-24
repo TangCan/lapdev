@@ -6,18 +6,20 @@
 export interface GitFileChange {
   path: string;
   status: 'modified' | 'added' | 'deleted' | 'renamed' | 'untracked';
-  staged: boolean;
+  staged?: boolean;
 }
 
 export interface GitStatus {
+  branch: string;
   changes: GitFileChange[];
+  staged: GitFileChange[];
   untracked: string[];
 }
 
 export interface GitBranch {
   name: string;
-  current: boolean;
-  remote?: boolean;
+  isCurrent: boolean;
+  isRemote: boolean;
 }
 
 export interface GitBranchesResult {
@@ -26,11 +28,15 @@ export interface GitBranchesResult {
 }
 
 export interface GitDiff {
-  path: string;
   diff: string;
 }
 
-export type GitOperationResult =
-  | { status: 'success'; data?: GitStatus | GitBranchesResult | GitDiff | unknown }
-  | { status: 'error'; message: string }
-  | { status: string; data?: unknown; message?: string };
+/**
+ * 通用 Git 操作结果包装
+ * @template T data 负载类型（Status/Branches/Diff），无负载的操作用 void
+ */
+export interface GitOperationResult<T = void> {
+  status: string;
+  data?: T;
+  message?: string;
+}

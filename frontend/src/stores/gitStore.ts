@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { fetchGitStatus, fetchBranches, stageFiles as stageFilesService, commitChanges, checkoutBranch, fetchGitDiff } from '../services/gitService';
-import type { GitStatus, GitBranch } from '../services/gitService';
+import { container } from '../adapters';
+import type { GitStatus, GitBranch } from '../domain/Git';
 import { WS_URL } from '../config';
 
 interface GitState {
@@ -127,8 +127,8 @@ export const useGitStore = create<GitState>((set, get) => ({
 
     try {
       const [statusResult, branchesResult] = await Promise.all([
-        fetchGitStatus(),
-        fetchBranches()
+        container.getGitRepository().getStatus(),
+        container.getGitRepository().getBranches()
       ]);
 
       if (statusResult.status === 'success' && statusResult.data) {
@@ -167,7 +167,7 @@ export const useGitStore = create<GitState>((set, get) => ({
 
   getFileDiff: async (path: string) => {
     try {
-      const result = await fetchGitDiff(path);
+      const result = await container.getGitRepository().getDiff(path);
       if (result.status === 'success' && result.data) {
         set({ selectedFileDiff: result.data.diff, selectedFilePath: path });
       } else {
@@ -180,7 +180,7 @@ export const useGitStore = create<GitState>((set, get) => ({
 
   stageFile: async (path: string) => {
     try {
-      const result = await stageFilesService([path]);
+      const result = await container.getGitRepository().stageFiles([path]);
       if (result.status !== 'success') {
         set({ error: result.message });
       }
@@ -191,7 +191,7 @@ export const useGitStore = create<GitState>((set, get) => ({
 
   stageFiles: async (paths: string[]) => {
     try {
-      const result = await stageFilesService(paths);
+      const result = await container.getGitRepository().stageFiles(paths);
       if (result.status !== 'success') {
         set({ error: result.message });
       }
@@ -202,7 +202,7 @@ export const useGitStore = create<GitState>((set, get) => ({
 
   commit: async (message: string) => {
     try {
-      const result = await commitChanges(message);
+      const result = await container.getGitRepository().commit(message);
       if (result.status === 'success') {
         set({ selectedFileDiff: null, selectedFilePath: null });
       } else {
@@ -215,11 +215,11 @@ export const useGitStore = create<GitState>((set, get) => ({
 
   checkout: async (branch: string) => {
     try {
-      const result = await checkoutBranch(branch);
+      const result = await container.getGitRepository().checkout(branch);
       if (result.status === 'success') {
         set({ selectedFileDiff: null, selectedFilePath: null });
         // Refresh branches after checkout
-        const branchesResult = await fetchBranches();
+        const branchesResult = await container.getGitRepository().getBranches();
         if (branchesResult.status === 'success' && branchesResult.data) {
           set({ branches: branchesResult.data.branches, currentBranch: branchesResult.data.current });
           get().notifyBranchChange(branchesResult.data.current);

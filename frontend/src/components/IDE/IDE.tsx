@@ -6,7 +6,7 @@ import { useFileOperations } from '../../hooks/useFileOperations';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { useGitStore } from '../../stores/gitStore';
 import { useChatStore } from '../../stores/chatStore';
-import { writeFile } from '../../services/fileService';
+import { container } from '../../adapters';
 import { Header } from './Header';
 import { EditorArea } from './EditorArea';
 import { TerminalArea } from './TerminalArea';
@@ -93,7 +93,7 @@ function IDE() {
     }
 
     try {
-      const result = await writeFile(tab.file.path, tab.content);
+      const result = await container.getFileRepository().writeFile(tab.file.path, tab.content);
       if (result.status === 'success') {
         markSaved(closeConfirm.tabId);
         closeTab(closeConfirm.tabId);

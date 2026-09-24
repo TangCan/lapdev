@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import type { FileInfo, FileTreeResult } from '../../types/file';
-import { fetchFileTree } from '../../services/fileService';
+import type { FileInfo } from '../../types/file';
+import { container } from '../../adapters';
 import { FileTreeNode } from './FileTreeNode';
 import { FileTreeContextMenu } from './FileTreeContextMenu';
 import { FileTreeSearch } from './FileTreeSearch';
@@ -102,7 +102,7 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
     }
 
     try {
-      const result: FileTreeResult = await fetchFileTree('/workspace');
+      const result = await container.getFileRepository().getFileTree('/workspace');
 
       if (result.status === 'success' && result.data) {
         const newTreeJson = JSON.stringify(result.data);

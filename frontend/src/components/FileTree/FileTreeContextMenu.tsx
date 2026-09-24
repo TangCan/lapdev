@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FileInfo } from '../../types/file';
-import { createFile, renameFile, deleteFile } from '../../services/fileService';
+import { container } from '../../adapters';
 import { ConfirmDialog } from './ConfirmDialog';
 
 interface FileTreeContextMenuProps {
@@ -37,7 +37,7 @@ export function FileTreeContextMenu({ file, position, onClose, onRefresh }: File
     
     console.log('[FileTreeContextMenu] Creating file:', newFilePath);
     
-    const result = await createFile({ path: newFilePath, type: 'file' });
+    const result = await container.getFileRepository().createFile(newFilePath, 'file');
     console.log('[FileTreeContextMenu] createFile result:', JSON.stringify(result));
     
     if (result.status === 'error' && result.message.includes('already exists')) {
@@ -45,7 +45,7 @@ export function FileTreeContextMenu({ file, position, onClose, onRefresh }: File
       while (counter <= 100) {
         newFileName = `${baseName} (${counter})${ext}`;
         newFilePath = `${parentPath}/${newFileName}`;
-        const retryResult = await createFile({ path: newFilePath, type: 'file' });
+        const retryResult = await container.getFileRepository().createFile(newFilePath, 'file');
         if (retryResult.status === 'success') {
           console.log('[FileTreeContextMenu] Retry succeeded with:', newFilePath);
           break;
@@ -76,7 +76,7 @@ export function FileTreeContextMenu({ file, position, onClose, onRefresh }: File
     
     console.log('[FileTreeContextMenu] Creating folder:', newFolderPath);
     
-    const result = await createFile({ path: newFolderPath, type: 'directory' });
+    const result = await container.getFileRepository().createFile(newFolderPath, 'directory');
     console.log('[FileTreeContextMenu] createFolder result:', JSON.stringify(result));
     
     if (result.status === 'error' && result.message.includes('already exists')) {
@@ -84,7 +84,7 @@ export function FileTreeContextMenu({ file, position, onClose, onRefresh }: File
       while (counter <= 100) {
         newFolderName = `${baseName} (${counter})`;
         newFolderPath = `${parentPath}/${newFolderName}`;
-        const retryResult = await createFile({ path: newFolderPath, type: 'directory' });
+        const retryResult = await container.getFileRepository().createFile(newFolderPath, 'directory');
         if (retryResult.status === 'success') {
           console.log('[FileTreeContextMenu] Retry succeeded with:', newFolderPath);
           break;
@@ -104,7 +104,7 @@ export function FileTreeContextMenu({ file, position, onClose, onRefresh }: File
     const parentPath = file.path.substring(0, file.path.lastIndexOf('/'));
     const newPath = `${parentPath}/${renameInput}`;
     
-    const result = await renameFile({ oldPath: file.path, newPath });
+    const result = await container.getFileRepository().renameFile(file.path, newPath);
     
     if (result.status === 'success') {
       setIsRenaming(false);
@@ -121,7 +121,7 @@ export function FileTreeContextMenu({ file, position, onClose, onRefresh }: File
       return;
     }
     
-    const result = await deleteFile({ path: file.path });
+    const result = await container.getFileRepository().deleteFile(file.path);
     
     if (result.status === 'success') {
       onRefresh();
@@ -133,7 +133,7 @@ export function FileTreeContextMenu({ file, position, onClose, onRefresh }: File
 
   const handleConfirmDelete = async () => {
     setShowDeleteConfirm(false);
-    const result = await deleteFile({ path: file.path });
+    const result = await container.getFileRepository().deleteFile(file.path);
     
     if (result.status === 'success') {
       onRefresh();

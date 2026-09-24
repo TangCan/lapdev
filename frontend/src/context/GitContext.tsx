@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
-import { fetchGitStatus, fetchBranches, stageFiles as stageFilesService, commitChanges, checkoutBranch, fetchGitDiff } from '../services/gitService';
-import type { GitStatus, GitBranch } from '../services/gitService';
+import { container } from '../adapters';
+import type { GitStatus, GitBranch } from '../domain/Git';
 import { WS_URL } from '../config';
 
 interface GitContextType {
@@ -58,8 +58,8 @@ export function GitProvider({ children }: { children: ReactNode }) {
 
     try {
       const [statusResult, branchesResult] = await Promise.all([
-        fetchGitStatus(),
-        fetchBranches()
+        container.getGitRepository().getStatus(),
+        container.getGitRepository().getBranches()
       ]);
 
       if (statusResult.status === 'success' && statusResult.data) {
@@ -179,7 +179,7 @@ export function GitProvider({ children }: { children: ReactNode }) {
 
   const getFileDiff = useCallback(async (path: string) => {
     try {
-      const result = await fetchGitDiff(path);
+      const result = await container.getGitRepository().getDiff(path);
       if (result.status === 'success' && result.data) {
         setSelectedFileDiff(result.data.diff);
         setSelectedFilePath(path);
@@ -195,7 +195,7 @@ export function GitProvider({ children }: { children: ReactNode }) {
 
   const stageFile = useCallback(async (path: string) => {
     try {
-      const result = await stageFilesService([path]);
+      const result = await container.getGitRepository().stageFiles([path]);
       if (result.status !== 'success') {
         setError(result.message);
       }
@@ -206,7 +206,7 @@ export function GitProvider({ children }: { children: ReactNode }) {
 
   const stageFiles = useCallback(async (paths: string[]) => {
     try {
-      const result = await stageFilesService(paths);
+      const result = await container.getGitRepository().stageFiles(paths);
       if (result.status !== 'success') {
         setError(result.message);
       }
@@ -217,7 +217,7 @@ export function GitProvider({ children }: { children: ReactNode }) {
 
   const commit = useCallback(async (message: string) => {
     try {
-      const result = await commitChanges(message);
+      const result = await container.getGitRepository().commit(message);
       if (result.status === 'success') {
         setSelectedFileDiff(null);
         setSelectedFilePath(null);
@@ -231,12 +231,12 @@ export function GitProvider({ children }: { children: ReactNode }) {
 
   const checkout = useCallback(async (branch: string) => {
     try {
-      const result = await checkoutBranch(branch);
+      const result = await container.getGitRepository().checkout(branch);
       if (result.status === 'success') {
         setSelectedFileDiff(null);
         setSelectedFilePath(null);
         // Refresh branches after checkout
-        const branchesResult = await fetchBranches();
+        const branchesResult = await container.getGitRepository().getBranches();
         if (branchesResult.status === 'success' && branchesResult.data) {
           setBranches(branchesResult.data.branches);
           setCurrentBranch(branchesResult.data.current);

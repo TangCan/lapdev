@@ -1,5 +1,5 @@
 import { useState, useCallback, useTransition } from 'react';
-import { writeFile, formatCode } from '../services/fileService';
+import { container } from '../adapters';
 import type { Tab } from './useEditorTabs';
 
 interface UseFileOperationsParams {
@@ -38,7 +38,7 @@ export function useFileOperations({
 
     setIsSaving(true);
     try {
-      const result = await writeFile(activeTab.file.path, activeTab.content);
+      const result = await container.getFileRepository().writeFile(activeTab.file.path, activeTab.content);
 
       if (result.status === 'success') {
         markSaved(activeTabId!);
@@ -59,7 +59,7 @@ export function useFileOperations({
 
     setIsFormatting(true);
     try {
-      const result = await formatCode(activeTab.content, activeTab.language);
+      const result = await container.getFileRepository().formatCode(activeTab.content, activeTab.language);
 
       if (result.status === 'success' && result.data && result.data.formatted) {
         const formatted = result.data.formatted;
@@ -79,7 +79,7 @@ export function useFileOperations({
   const saveFile = useCallback(async (tab: Tab) => {
     setIsSaving(true);
     try {
-      const result = await writeFile(tab.file.path, tab.content);
+      const result = await container.getFileRepository().writeFile(tab.file.path, tab.content);
       if (result.status === 'success') {
         markSaved(tab.id);
         refreshGitStatus?.();

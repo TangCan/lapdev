@@ -8,7 +8,7 @@ import { SkillProvider } from '../../context/SkillContext';
 import { useGit } from '../../context/GitContext';
 import { useChat } from '../../context/ChatContext';
 import type { FileInfo } from '../../types/file';
-import { readFile } from '../../services/fileService';
+import { container } from '../../adapters';
 
 function SimpleIDE() {
   const [openFile, setOpenFile] = useState<FileInfo | null>(null);
@@ -23,7 +23,7 @@ function SimpleIDE() {
     setOpenFile(file);
     
     try {
-      const result = await readFile(file.path);
+      const result = await container.getFileRepository().readFile(file.path);
       if (result.status === 'success' && result.data) {
         setFileContent(result.data.content);
       } else {

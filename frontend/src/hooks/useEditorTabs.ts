@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { FileInfo } from '../types/file';
-import { readFile } from '../services/fileService';
-import { fetchGitDiff } from '../services/gitService';
+import { container } from '../adapters';
 import type { DiffLine } from '../types/diff';
 
 export interface Tab {
@@ -99,7 +98,7 @@ export function useEditorTabs() {
       setActiveTabId(existingTab.id);
       if (!diffLines[file.path]) {
         try {
-          const result = await fetchGitDiff(file.path);
+          const result = await container.getGitRepository().getDiff(file.path);
           if (result.status === 'success' && result.data) {
             const parsedLines = parseDiffLines(result.data.diff);
             setDiffLines(prev => ({ ...prev, [file.path]: parsedLines }));
@@ -115,8 +114,8 @@ export function useEditorTabs() {
 
     try {
       const [fileResult, diffResult] = await Promise.all([
-        readFile(file.path),
-        fetchGitDiff(file.path).catch(() => ({ status: 'error' }))
+        container.getFileRepository().readFile(file.path),
+        container.getGitRepository().getDiff(file.path).catch(() => ({ status: 'error' }))
       ]);
 
       if (fileResult.status === 'success' && fileResult.data) {

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { FileInfo } from '../../types/file';
-import { readFile, writeFile, formatCode as formatCodeApi } from '../../services/fileService';
+import { container } from '../../adapters';
 
 export function useEditor() {
   const [currentFile, setCurrentFile] = useState<FileInfo | null>(null);
@@ -41,7 +41,7 @@ export function useEditor() {
     setError(null);
 
     try {
-      const result = await readFile(file.path);
+      const result = await container.getFileRepository().readFile(file.path);
       
       if (result.status === 'success' && result.data) {
         setCurrentFile(file);
@@ -70,7 +70,7 @@ export function useEditor() {
     setError(null);
 
     try {
-      const result = await writeFile(currentFile.path, content);
+      const result = await container.getFileRepository().writeFile(currentFile.path, content);
       
       if (result.status === 'success') {
         setIsModified(false);
@@ -91,7 +91,7 @@ export function useEditor() {
     setError(null);
 
     try {
-      const result = await formatCodeApi(content, language);
+      const result = await container.getFileRepository().formatCode(content, language);
       
       if (result.status === 'success' && result.data) {
         setContent(result.data.formatted);
