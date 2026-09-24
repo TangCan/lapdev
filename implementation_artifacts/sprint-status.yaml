@@ -423,11 +423,9 @@ story_mapping:
       td_ref: "TD-01"
 
 integration_gap_analysis:
-  summary: "Phase 2 + Phase 3 全部完成（19/19 epics done、47/47 stories）。技术债 TD-01（React Compiler 量化）/TD-02（range-formatting E2E）/TD-03（LSPContext dispose 泄漏）/TD-04（幽灵文本 transition 取消）/TD-06（AI 适配器契约）已闭环；剩余 TD-05（架构迁移 commit 规范）、TD-07（Ctrl+Shift+F 未校验 Shift）为低优先级，移交后续。epi8-02 附带的后续发现：vitest.config.ts 未启用 compiler（单测运行未 memoize 组件），作为新技术债另行跟踪。"
+  summary: "Phase 2 + Phase 3 全部完成（19/19 epics done、47/47 stories）。技术债 TD-01 至 TD-07 全部闭环（TD-01 React Compiler 量化 / TD-02 range-formatting E2E / TD-03 LSPContext dispose 泄漏 / TD-04 幽灵文本 transition 取消 / TD-05 架构迁移 commit 规范 / TD-06 AI 适配器契约 / TD-07 Ctrl+Shift+F 校验 Shift）。epi8-02 附带的后续发现：vitest.config.ts 未启用 compiler（单测运行未 memoize 组件），作为唯一遗留项另行跟踪。"
   affected_areas: []
   recommended_next_steps:
-    - "TD-05：架构类批量迁移按 story 拆分 commit 与独立验收记录（非代码任务，转工程规范）"
-    - "TD-07：LspCodeEditor Ctrl+Shift+F 快捷键处理器补校验 Shift 键（quick win）"
     - "新发现（epi8-02）：评估在 vitest.config.ts 启用 babel-plugin-react-compiler，以实现渲染次数真实验证（需评估对 682 项测试的兼容性影响）"
 
 # ========== 跨 Epic 技术债务 Backlog ==========
@@ -471,8 +469,9 @@ technical_debt_backlog:
     source_epic: "epi4"
     source_story: "epi4 / epi5"
     priority: "medium"
-    status: "backlog"
+    status: "done"
     description: "建立规范：架构类批量迁移按 story 拆分 commit 与独立验收记录，避免单一大 commit 导致可追溯性弱。"
+    status_note: "done: 规范已写入 project_memory.md「Engineering Conventions」——架构类批量迁移（端口+适配器、依赖注入）必须按 story 拆分 commit 并配独立验收记录"
   - id: "TD-06"
     title: "对齐 AI 适配器契约"
     source_epic: "epi6"
@@ -486,5 +485,6 @@ technical_debt_backlog:
     source_epic: "epi2"
     source_story: "epi2-03"
     priority: "low"
-    status: "backlog"
+    status: "done"
     description: "LspCodeEditor 的 handleKeyDown 中 Ctrl+Shift+F 格式化处理器仅判断 e.ctrlKey && e.key === 'F'，未校验 shiftKey；功能当前正确，但语义与快捷键声明（Ctrl+Shift+F）不一致，仅 Ctrl+F 也会触发格式化。"
+    status_note: "done: handleKeyDown 中 Ctrl+Shift+F 分支补 e.shiftKey 校验，仅 Ctrl+F 不再触发格式化（保留 Monaco 原生 Find）；新增 TD-07 单元测试验证 Ctrl+F 不格式化 / Ctrl+Shift+F 格式化"

@@ -382,6 +382,33 @@ describe('LspCodeEditor Integration with monacoOptimizer', () => {
     expect(mockEditorInstance.trigger).toHaveBeenCalledWith('keyboard', 'editor.action.goToDefinition', {});
   });
 
+  it('[P2] TD-07: Ctrl+Shift+F 触发格式化，Ctrl+F（Find）不触发', async () => {
+    await act(async () => {
+      render(
+        <LspCodeEditor
+          value="const x = 1"
+          language="typescript"
+          onChange={() => {}}
+        />
+      );
+    });
+
+    mockEditorInstance.trigger.mockClear();
+
+    // 仅 Ctrl+F（无 Shift）不应触发格式化，保留 Monaco 原生 Find 语义
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, key: 'F' }));
+    });
+    expect(mockEditorInstance.trigger).not.toHaveBeenCalledWith('keyboard', 'editor.action.formatDocument', {});
+    expect(mockEditorInstance.trigger).not.toHaveBeenCalledWith('keyboard', 'editor.action.formatSelection', {});
+
+    // Ctrl+Shift+F 触发全文件格式化（小文件无选区）
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, shiftKey: true, key: 'F' }));
+    });
+    expect(mockEditorInstance.trigger).toHaveBeenCalledWith('keyboard', 'editor.action.formatDocument', {});
+  });
+
   it('[P1] EPI2.02-INT-010: 大文件优化不破坏 LSP 连接', async () => {
     const largeContent = generateContent(10001);
     const mockConnect = vi.fn().mockResolvedValue(undefined);

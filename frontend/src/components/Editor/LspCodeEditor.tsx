@@ -416,7 +416,7 @@ function LspCodeEditorComponent(props: LspCodeEditorProps, ref: React.ForwardedR
                 triggerFormat();
               }
             }
-            if (e.ctrlKey && e.key === 'F') {
+            if (e.ctrlKey && e.shiftKey && e.key === 'F') {
               e.preventDefault();
               if (!isFormattingRef.current) {
                 triggerFormat();
