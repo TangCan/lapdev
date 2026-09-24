@@ -1,5 +1,5 @@
 # generated: 2026-07-27
-# last_updated: 2026-09-24 (epi6-04 done; epi6 → done; summary 43/43 done, 0 backlog)
+# last_updated: 2026-09-24 (epi6-04 done; epi1/epi2 → done; 17/17 epics done, 43/43 stories, 0 backlog)
 # project: lapdev
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-07-27
-# last_updated: 2026-09-24 (epi6-04 done; epi6 → done; summary 43/43 done, 0 backlog)
+# last_updated: 2026-09-24 (epi6-04 done; epi1/epi2 → done; 17/17 epics done, 43/43 stories, 0 backlog)
 project: lapdev
 project_key: NOKEY
 tracking_system: file-system
@@ -111,19 +111,17 @@ development_status:
   11-1-theme-switching-ui: done
   epic-11-retrospective: done
 
-  # ========== Phase 2: 性能优化与架构改进 (EPI1-EPI6) — 进行中 ==========
-  # 说明：epi1/epi2 已全部集成完成；epi3-03 及 epi4-6 代码文件已预创建
-  #       但缺 story 文件且未集成到应用，状态标为 backlog，待重走 create-story → dev-story
+  # ========== Phase 2: 性能优化与架构改进 (EPI1-EPI6) — 全部完成 ==========
 
   # Epic EPI1: 性能优化 - React 19 升级与编译器优化 (3 stories)
-  epi1: in-progress
+  epi1: done
   epi1-01-react-19-dependency-upgrade: done
   epi1-02-enable-react-compiler: done
   epi1-03-remove-manual-memoization: done
   epi1-retrospective: optional
 
   # Epic EPI2: 性能优化 - Monaco Editor 深度优化 (3 stories)
-  epi2: in-progress
+  epi2: done
   epi2-01-monaco-editor-lazy-loading: done
   epi2-02-large-file-optimization: done
   epi2-03-range-formatting-incremental-update: done
@@ -162,8 +160,8 @@ development_status:
 summary:
   total_epics: 17
   total_stories: 43
-  epics_done: 15
-  epics_in_progress: 2
+  epics_done: 17
+  epics_in_progress: 0
   stories_done: 43
   stories_in_progress: 0
   stories_ready_for_dev: 0
@@ -282,7 +280,7 @@ story_mapping:
       title: "React 19 依赖升级"
       key: "epi1-01-react-19-dependency-upgrade"
       frs: ["NFR-002", "NFR-004"]
-      status_note: "升级到 18.3.1 替代 19（19 未正式发布）"
+      status_note: "done: React 19.2.0 升级完成（react/react-dom ^19.2.0、@types 19.2.0、@vitejs/plugin-react 5.1.0，ba4d179）；161 单元测试通过"
     - id: "EPI1.02"
       title: "启用 React Compiler"
       key: "epi1-02-enable-react-compiler"
@@ -385,8 +383,8 @@ story_mapping:
       status_note: "done: File/Git 消费方全部切换到 container.getXxxRepository()；GitOperationResult 泛型化；新增 container.test.ts（DI 可替换性）；AI 部分按 R3 defer"
 
 integration_gap_analysis:
-  summary: "Phase 2 全部完成：epi1-6 所有 story done。EPI6 服务层重构（epi6-04）已落地，File/Git 消费方全部切换到端口与适配器；AI 部分（R3 契约不匹配）defer 至后续独立处理。"
+  summary: "Phase 2 全部完成：epi1-6 所有 story done（17/17 epics done、43/43 stories、0 backlog）。EPI6 服务层重构（epi6-04）已落地，File/Git 消费方全部切换到端口与适配器；AI 部分（R3 契约不匹配）defer 至后续独立处理。"
   affected_areas: []
   recommended_next_steps:
-    - "补齐 epi1/epi2/epi6 的 retrospective（当前 optional）"
+    - "补齐 epi1-epi6 的 retrospective（当前均 optional，非阻塞）"
     - "后续决策 AI 适配器契约：对齐 IAIRepository 与 aiService 的真实后端端点与请求字段"
