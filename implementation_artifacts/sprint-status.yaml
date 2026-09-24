@@ -168,21 +168,21 @@ development_status:
   epi7-02-formatting-boundary-fixes: done
 
   # Epic EPI8: 交互体验与度量（P1 技术债）（2 stories）
-  epi8: backlog
-  epi8-01-ghost-text-transition-cancellation: backlog
+  epi8: in_progress
+  epi8-01-ghost-text-transition-cancellation: done
   epi8-02-quantify-react-compiler-gain: backlog
 
 summary:
   total_epics: 19
   total_stories: 47
   epics_done: 18
-  epics_in_progress: 0
-  epics_backlog: 1
-  stories_done: 45
+  epics_in_progress: 1
+  epics_backlog: 0
+  stories_done: 46
   stories_in_progress: 0
   stories_ready_for_dev: 0
   stories_in_review: 0
-  stories_backlog: 2
+  stories_backlog: 1
 
 story_mapping:
   # Phase 1: 基础功能
@@ -463,9 +463,9 @@ technical_debt_backlog:
     source_epic: "epi3"
     source_story: "epi3-03"
     priority: "low"
-    status: "backlog"
+    status: "done"
     description: "解决 startTransition 的幽灵文本更新晚于 clearGhostText 提交导致的过期补全闪现，支持按需取消 transition。"
-    status_note: "planned: 纳入 epi8-01-ghost-text-transition-cancellation（Phase 3 第二批）"
+    status_note: "done: 引入 completionTokenRef 令牌守卫 + 函数式更新，clearGhostText 自增令牌使已调度过渡失效，过期补全不再重放；InlineCompletionContext setter 类型放宽为 Dispatch<SetStateAction<...>>；新增 EPI8.01-INT-001 单测；tsc 0 错误、全量 vitest 682/683（1 既有 flaky）、build 成功"
   - id: "TD-05"
     title: "架构批量迁移 story 级 commit 规范"
     source_epic: "epi4"

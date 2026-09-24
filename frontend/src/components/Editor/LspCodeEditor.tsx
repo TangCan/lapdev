@@ -129,6 +129,8 @@ function LspCodeEditorComponent(props: LspCodeEditorProps, ref: React.ForwardedR
   const ghostTextDecorationRef = useRef<string[]>([]);
   const debounceTimerRef = useRef<number | null>(null);
   const currentCompletionRequestRef = useRef<AbortController | null>(null);
+  // 补全生命周期令牌：clearGhostText 自增使已调度的 startTransition 失效，阻止过期补全在清除后重放
+  const completionTokenRef = useRef(0);
 
   useEffect(() => {
     inlineCompletionEnabledRef.current = inlineCompletionEnabled;
@@ -195,6 +197,7 @@ function LspCodeEditorComponent(props: LspCodeEditorProps, ref: React.ForwardedR
   }, [diffLines]);
 
   const clearGhostText = useCallback(() => {
+    completionTokenRef.current += 1;
     if (ghostTextDecorationRef.current.length > 0 && editorRef.current) {
       editorRef.current.deltaDecorations(ghostTextDecorationRef.current, []);
       ghostTextDecorationRef.current = [];
@@ -327,9 +330,10 @@ function LspCodeEditorComponent(props: LspCodeEditorProps, ref: React.ForwardedR
           if (result.completion && result.completion.trim()) {
             console.log('triggerCompletion: got completion result:', result.completion);
             const completion = result.completion.trim();
+            const token = completionTokenRef.current;
             startTransition(() => {
-              setGhostText(completion);
-              setInlineCompletionVisible(true);
+              setGhostText((prev) => (completionTokenRef.current === token ? completion : prev));
+              setInlineCompletionVisible((prev) => (completionTokenRef.current === token ? true : prev));
             });
           } else {
             console.log('triggerCompletion: empty completion result');

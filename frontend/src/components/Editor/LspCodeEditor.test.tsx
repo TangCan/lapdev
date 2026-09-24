@@ -11,6 +11,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, act } from '@testing-library/react';
 import React, { RefObject } from 'react';
 import { LspCodeEditor, type LspCodeEditorHandle } from './LspCodeEditor';
+import { aiService } from '../../services/aiService';
 
 const { mockGetMonaco, mockGetMonacoSync } = vi.hoisted(() => ({
   mockGetMonaco: vi.fn(),
@@ -584,5 +585,58 @@ describe('LspCodeEditor Integration with monacoOptimizer', () => {
     expect(passedOptions.folding).toBe(true);
     expect(passedOptions.hover).toEqual({ enabled: true });
     expect(passedOptions.lineNumbers).toBe('on');
+  });
+
+  // ================================================================
+  // EPI8.01: 幽灵文本 transition 取消守卫
+  // ================================================================
+
+  it('[P0] EPI8.01-INT-001: 补全成功时 setGhostText 以函数式守卫更新（令牌一致时应用）', async () => {
+    const setGhostTextSpy = vi.fn();
+    const setInlineCompletionVisibleSpy = vi.fn();
+    mockUseInlineCompletion.mockReturnValue({
+      inlineCompletionEnabled: true,
+      inlineCompletionVisible: false,
+      setInlineCompletionVisible: setInlineCompletionVisibleSpy,
+      ghostText: '',
+      setGhostText: setGhostTextSpy,
+    });
+    vi.mocked(aiService.getInlineCompletion).mockResolvedValue({ completion: ' const y = 2;' });
+
+    vi.useFakeTimers();
+
+    await act(async () => {
+      render(
+        <LspCodeEditor
+          value="const x = 1"
+          language="typescript"
+          onChange={() => {}}
+        />
+      );
+    });
+
+    await act(async () => {
+      (window as any).__test_triggerCompletion?.();
+      vi.advanceTimersByTime(500); // DEBOUNCE_DELAY
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(setGhostTextSpy).toHaveBeenCalled();
+    // 挂载时 clearGhostText 会先以 ''（字符串）调用一次，这里定位到函数式更新调用
+    const ghostTextFnCall = setGhostTextSpy.mock.calls.find((call) => typeof call[0] === 'function');
+    expect(ghostTextFnCall).toBeDefined();
+    const updater = ghostTextFnCall![0] as (prev: string) => string;
+    // 令牌一致（无 clearGhostText）时，函数式更新按 prev 返回补全文本
+    expect(updater('')).toBe('const y = 2;');
+
+    expect(setInlineCompletionVisibleSpy).toHaveBeenCalled();
+    const visibilityFnCall = setInlineCompletionVisibleSpy.mock.calls.find((call) => typeof call[0] === 'function');
+    expect(visibilityFnCall).toBeDefined();
+    const visibilityUpdater = visibilityFnCall![0] as (prev: boolean) => boolean;
+    expect(visibilityUpdater(false)).toBe(true);
+
+    vi.useRealTimers();
   });
 });

@@ -4,9 +4,9 @@ interface InlineCompletionContextType {
   inlineCompletionEnabled: boolean;
   setInlineCompletionEnabled: (enabled: boolean) => void;
   inlineCompletionVisible: boolean;
-  setInlineCompletionVisible: (visible: boolean) => void;
+  setInlineCompletionVisible: React.Dispatch<React.SetStateAction<boolean>>;
   ghostText: string;
-  setGhostText: (text: string) => void;
+  setGhostText: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const InlineCompletionContext = createContext<InlineCompletionContextType | null>(null);
