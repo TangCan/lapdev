@@ -1,5 +1,13 @@
 # Deferred Work
 
+## Deferred from: code review of epi3-03-complex-operation-concurrent-processing (2026-09-24)
+
+- [x] [Review][Defer] 幽灵文本 transition 可能晚于 `clearGhostText` 提交 → 过期补全闪现 [LspCodeEditor.tsx:330-333] — deferred, 需按需取消 transition，属低频边界
+- [x] [Review][Defer] `setIsFormatting(false)`（紧急）与 `updateTabContent`（transition）竞态窗口 [useFileOperations.ts:66-76] — deferred, 窗口极小
+- [x] [Review][Defer] Ctrl+Shift+F 双路径（Monaco 内置 formatDocument + 后端 handleFormat）竞态 [LspCodeEditor.tsx:handleKeyDown] — deferred, 既有行为，非本次引入
+- [x] [Review][Defer] 空文件 `formatted===''` 被真值判断误判为失败 [useFileOperations.ts:64] — deferred, 既有条件，非本次引入
+- [x] [Review][Defer] ProblemsPanel 诊断 transition 延迟期间显示过期诊断/计数 [ProblemsPanel.tsx:33,55] — deferred, 设计取舍
+
 ## Deferred from: code review of 9-2-agent-operation-confirmation (2026-07-10)
 
 - [x] [Review][Defer] 操作确认触发逻辑应改为监听 AI 流式响应而非关键词匹配 [AIChatPanel.tsx:157] — 架构改进建议，当前实现使用关键词匹配（modify/write/update/change）触发操作确认对话框，但实际应用中应该由 AI 返回的 SSE 消息中的 `agent-operation` 类型触发。这需要修改 AI 流式响应解析逻辑，属于架构层面的改进。

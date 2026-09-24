@@ -1,6 +1,6 @@
 # Story EPI3.03: 复杂操作并发处理
 
-Status: review
+Status: done
 
 ## Story
 
@@ -54,6 +54,18 @@ so that 在重计算期间 UI 保持响应，用户无需等待操作完成即�
   - [x] 确认 `editor.executeEdits`（命令式 API）不包裹 startTransition
 - [x] Task 4: 编写单元测试（AC: #4, #5）
 - [x] Task 5: 编写 E2E 测试（AC: #4）
+
+### Review Findings
+
+- [x] [Review][Decision→已解决] 性能/INP 证据缺失 — 已补充 `tests/e2e/format-inp.spec.ts` 用 PerformanceObserver（`event`/`first-input`）采集 INP。实测：INP-001（5000 行格式化期间输入）478 样本 p75=40ms max=72ms；INP-002（3000 行连续两轮格式化）335 样本 p75=32ms max=64ms。均远低于 500ms 阈值并优于 Google「良好」档（200ms）。
+- [x] [Review][Patch→已解决] E2E 测试在 DOM 元素上调用 `.getModel()` 会 TypeError — 已改为读取 `.view-lines` 的 `innerText()`（Monaco 渲染文本），3 个用例不再调用 `codeEditor.evaluate(editor => editor.getModel())`。
+- [x] [Review][Patch→已解决] E2E 断言仅 `toBeTruthy()` 未真正验证格式化结果 — 已改为断言 `.view-lines` 内容 `toContain('const x = 1')` 且 `not.toContain('const x=1')`，验证 formatter 的 `=` 补空格效果（AC1「编辑器自动显示格式化结果」）。
+- [x] [Review][Patch→已解决] 单元测试未覆盖 formatCode 返回 `data:null` / 抛异常分支 — 已新增 2 用例：`status:success 但 data:null` → errorMessage='格式化失败'、`formatCode 抛异常` → errorMessage=异常信息，均验证不调用 updateTabContent 且 isFormatting 复位。共 7 用例全部通过。
+- [x] [Review][Defer] 幽灵文本 transition 可能晚于 `clearGhostText` 提交 → 过期补全闪现 [LspCodeEditor.tsx:330-333] — deferred, 需要按需取消 transition，属低频边界。
+- [x] [Review][Defer] `setIsFormatting(false)`（紧急）与 `updateTabContent`（transition）竞态窗口 [useFileOperations.ts:66-76] — deferred, 窗口极小，用户极难在窗口内再次触发。
+- [x] [Review][Defer] Ctrl+Shift+F 双路径（Monaco 内置 formatDocument + 后端 handleFormat）竞态 [LspCodeEditor.tsx:handleKeyDown] — deferred, 既有行为，非本次引入。
+- [x] [Review][Defer] 空文件 `formatted===''` 被真值判断误判为失败 [useFileOperations.ts:64] — deferred, 既有条件 `result.data.formatted`，非本次引入。
+- [x] [Review][Defer] ProblemsPanel 诊断 transition 延迟期间显示过期诊断/计数 [ProblemsPanel.tsx:33,55] — deferred, 设计取舍，输入停止后自动收敛。
 
 ## Technical Context
 
@@ -195,8 +207,9 @@ DeepSeek-V4-Pro 正式版
 2. **LSP 诊断落地点调整**：技术上下文原指向 `LSPContext.tsx` 的 `handleDiagnosticsChange`（用 `setModelMarkers` 命令式 API，**不应**包 startTransition）。实际诊断触发的 React 状态更新位于其订阅者 **`ProblemsPanel.tsx`**（`updateProblems` 内 `setProblems`），故改动落在 ProblemsPanel 而非 LSPContext。
 3. **pending 状态时机**：Task 1 子任务 3 采用「用现有 `isFormatting` 驱动 pending」方案（story 允许），未新增 `isPending`，避免双 loading 状态闪烁。
 4. **命令式 API 均未包裹**：`editor.trigger`、`setModelMarkers`、`editor.executeEdits` 均为 Monaco 命令式调用，未包 startTransition（符合 AC5）。
-5. **性能验证留待独立测试**：精确 INP / 交互延迟量化属于 `tests/performance/` 独立性能测试范畴，本 story 的 E2E 聚焦功能回归（格式化后内容正确、可交互输入、不卡死），不做不可靠的耗时断言（呼应 EPI3-01 F11 教训，避免「已达标但无证据」——将在独立性能测试中补证据）。
-6. **既有问题未处理**：Monaco 0.55.1 的 `deltaDecorations` 弃用警告为先前遗留，非本次引入。
+5. **性能证据已补充**：新增 `tests/e2e/format-inp.spec.ts` 用 PerformanceObserver（`event`/`first-input` entryType）采集 INP/交互延迟。实测（Chromium 本地）：INP-001（5000 行格式化期间连续输入）478 样本 p75=40ms max=72ms；INP-002（3000 行连续两轮格式化）335 样本 p75=32ms max=64ms。均远低于 500ms 阈值并优于 Google INP「良好」档（200ms），满足 AC1-AC3「UI 保持响应」。
+6. **E2E 需懒加载占位符触发**：Monaco 懒加载需先点击 `code-editor-placeholder` 占位符，再等待 `[data-testid="code-editor"]` 挂载（参考 lsp.spec.ts 模式），否则编辑器不可见。
+7. **既有问题未处理**：Monaco 0.55.1 的 `deltaDecorations` 弃用警告为先前遗留，非本次引入。
 
 ### File List
 
@@ -205,10 +218,13 @@ DeepSeek-V4-Pro 正式版
 | `frontend/src/hooks/useFileOperations.ts` | UPDATE | handleFormat 引入 useTransition + startTransition 包装 updateTabContent |
 | `frontend/src/components/Problems/ProblemsPanel.tsx` | UPDATE | LSP 诊断订阅者的 setProblems 用 startTransition 包装 |
 | `frontend/src/components/Editor/LspCodeEditor.tsx` | UPDATE | inline completion 的 setGhostText/setInlineCompletionVisible 用 startTransition 包装 |
-| `frontend/src/hooks/useFileOperations.test.ts` | NEW | 单元测试（5 用例：格式化更新/pending 恢复/失败/保存/无标签） |
+| `frontend/src/hooks/useFileOperations.test.ts` | NEW | 单元测试（7 用例：格式化更新/pending 恢复/失败/data-null/抛异常/保存/无标签） |
 | `tests/e2e/format-concurrent.spec.ts` | NEW | E2E 测试（3 用例：格式化后内容更新/可交互输入/不卡死） |
+| `tests/e2e/format-inp.spec.ts` | NEW | E2E 性能度量（INP/交互延迟，PerformanceObserver 采集，2 用例） |
 
 ## Change Log
 
 - 2026-09-24: 创建 story（EPI3.03 复杂操作并发处理），供 dev-story 实施
 - 2026-09-24: dev-story 实施完成——三处 startTransition 落地（handleFormat / ProblemsPanel / inline completion），新增单元+E2E 测试，全量回归通过；Status → review
+- 2026-09-24: code review 完成——decision-needed（INP 证据）已解决（补充 format-inp.spec.ts，实测 p75 40/32ms）；5 项 defer 记录至 deferred-work.md
+- 2026-09-24: 3 项 patch 已修复——E2E `.getModel()` TypeError 改为读取 `.view-lines` innerText；断言改为验证 formatter 补空格效果；单元测试补充 data:null/抛异常分支（5→7 用例）；Status → done

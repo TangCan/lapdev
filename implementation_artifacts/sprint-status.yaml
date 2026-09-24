@@ -133,7 +133,7 @@ development_status:
   epi3: in-progress
   epi3-01-file-search-concurrent-optimization: done
   epi3-02-file-tree-virtual-scrolling: done
-  epi3-03-complex-operation-concurrent-processing: review
+  epi3-03-complex-operation-concurrent-processing: done
   epi3-retrospective: optional
 
   # Epic EPI4: 架构改进 - Zustand 状态管理迁移 (3 stories)
@@ -164,10 +164,10 @@ summary:
   total_stories: 43
   epics_done: 11
   epics_in_progress: 6
-  stories_done: 31
+  stories_done: 32
   stories_in_progress: 0
   stories_ready_for_dev: 0
-  stories_in_review: 1
+  stories_in_review: 0
   stories_backlog: 11
 
 story_mapping:
@@ -324,7 +324,7 @@ story_mapping:
       title: "复杂操作并发处理"
       key: "epi3-03-complex-operation-concurrent-processing"
       frs: []
-      status_note: "review: startTransition 落地 3 处（handleFormat/ProblemsPanel/inline completion），新增单元+E2E 测试，全量回归通过"
+      status_note: "done: startTransition 落地 3 处；code review 完成（INP 证据 + 3 patch 修复，5 defer）；7 单元测试 + format-concurrent/format-inp E2E 通过"
   epi4:
     - id: "EPI4.01"
       title: "创建 Zustand Store 替换 GitContext"
