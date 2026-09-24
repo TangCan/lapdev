@@ -163,9 +163,9 @@ development_status:
   # ========== Phase 3: 技术债清偿（稳定性与工程成熟度）— 规划中 ==========
 
   # Epic EPI7: 运行时稳定性（P0 技术债）（2 stories）
-  epi7: in-progress
+  epi7: done
   epi7-01-lsp-context-dispose-leak: done
-  epi7-02-formatting-boundary-fixes: backlog
+  epi7-02-formatting-boundary-fixes: done
 
   # Epic EPI8: 交互体验与度量（P1 技术债）（2 stories）
   epi8: backlog
@@ -175,14 +175,14 @@ development_status:
 summary:
   total_epics: 19
   total_stories: 47
-  epics_done: 17
-  epics_in_progress: 1
+  epics_done: 18
+  epics_in_progress: 0
   epics_backlog: 1
-  stories_done: 44
+  stories_done: 45
   stories_in_progress: 0
   stories_ready_for_dev: 0
   stories_in_review: 0
-  stories_backlog: 3
+  stories_backlog: 2
 
 story_mapping:
   # Phase 1: 基础功能

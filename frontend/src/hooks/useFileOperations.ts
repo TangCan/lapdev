@@ -61,17 +61,18 @@ export function useFileOperations({
     try {
       const result = await container.getFileRepository().formatCode(activeTab.content, activeTab.language);
 
-      if (result.status === 'success' && result.data && result.data.formatted) {
+      if (result.status === 'success' && result.data && typeof result.data.formatted === 'string') {
         const formatted = result.data.formatted;
         startTransition(() => {
           updateTabContent(activeTabId!, formatted);
+          setIsFormatting(false);
         });
       } else {
         showError(result.message || '格式化失败');
+        setIsFormatting(false);
       }
     } catch (error) {
       showError(error instanceof Error ? error.message : '格式化失败');
-    } finally {
       setIsFormatting(false);
     }
   }, [tabs, activeTabId, updateTabContent, showError, startTransition]);

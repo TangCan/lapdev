@@ -106,6 +106,45 @@ describe('useFileOperations Hook', () => {
     expect(result.current.isFormatting).toBe(false);
   });
 
+  it('[P0] handleFormat 格式化空文件（formatted === ""）时应更新为空内容而非报错（EPI7.02 AC#1）', async () => {
+    vi.mocked(formatCode).mockResolvedValue({
+      status: 'success',
+      data: { formatted: '' },
+    });
+
+    const { result } = renderOp();
+
+    await act(async () => {
+      await result.current.handleFormat();
+    });
+
+    await waitFor(() => {
+      expect(mockUpdateTabContent).toHaveBeenCalledWith('tab-1', '');
+    });
+    expect(mockUpdateTabContent).toHaveBeenCalledTimes(1);
+    expect(result.current.errorMessage).toBeNull();
+    expect(result.current.isFormatting).toBe(false);
+  });
+
+  it('[P0] handleFormat 成功后 isFormatting 复位与内容更新在同一个 transition 提交（EPI7.02 AC#2）', async () => {
+    vi.mocked(formatCode).mockResolvedValue({
+      status: 'success',
+      data: { formatted: 'const a = 1;' },
+    });
+
+    const { result } = renderOp();
+
+    await act(async () => {
+      await result.current.handleFormat();
+    });
+
+    await waitFor(() => {
+      expect(mockUpdateTabContent).toHaveBeenCalledWith('tab-1', 'const a = 1;');
+    });
+    expect(result.current.isFormatting).toBe(false);
+    expect(result.current.errorMessage).toBeNull();
+  });
+
   it('[P1] handleFormat formatCode 抛异常时应显示错误信息', async () => {
     vi.mocked(formatCode).mockRejectedValue(new Error('后端格式化崩溃'));
 
