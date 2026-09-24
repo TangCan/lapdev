@@ -38,13 +38,35 @@ export interface AIModelConfig {
 export interface AICompletionRequest {
   modelId: string;
   prompt: string;
-  context?: ChatContextItem[];
-  language?: string;
+  prefix: string;
+  suffix: string;
+  fileContent: string;
+  language: string;
+  maxTokens?: number;
 }
 
 export interface AICompletionResponse {
-  text: string;
-  suggestions?: string[];
+  completion: string;
+  stopReason?: string;
+  model?: string;
+}
+
+export interface AIModelInfo {
+  provider: string;
+  name: string;
+  model: string;
+}
+
+export interface AITestConnectionRequest {
+  apiKey: string;
+  baseUrl: string;
+  model: string;
+}
+
+export interface AITestConnectionResponse {
+  status: 'success' | 'error';
+  message: string;
+  latency?: number;
 }
 
 /**

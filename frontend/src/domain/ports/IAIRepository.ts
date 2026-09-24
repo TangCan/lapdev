@@ -1,10 +1,10 @@
 import type {
-  ChatMessage,
   ChatContextItem,
-  ChatStreamEvent,
-  AIModelConfig,
   AICompletionRequest,
   AICompletionResponse,
+  AIModelInfo,
+  AITestConnectionRequest,
+  AITestConnectionResponse,
 } from '../Chat';
 
 /**
@@ -23,8 +23,8 @@ export interface IAIRepository {
   getCompletion(request: AICompletionRequest): Promise<AICompletionResponse>;
 
   /** 测试模型连接 */
-  testConnection(config: AIModelConfig): Promise<boolean>;
+  testConnection(config: AITestConnectionRequest): Promise<AITestConnectionResponse>;
 
   /** 获取可用模型列表 */
-  getModels(): Promise<string[]>;
+  getModels(): Promise<AIModelInfo[]>;
 }

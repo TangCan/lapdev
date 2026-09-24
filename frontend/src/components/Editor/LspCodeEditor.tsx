@@ -471,6 +471,25 @@ function LspCodeEditorComponent(props: LspCodeEditorProps, ref: React.ForwardedR
             console.log('Global __test_setEditorValue called:', val);
           };
 
+          window.__test_getEditorValue = (): string => {
+            return editorRef.current?.getValue() ?? '';
+          };
+
+          window.__test_setSelection = (
+            startLineNumber: number,
+            startColumn: number,
+            endLineNumber: number,
+            endColumn: number,
+          ) => {
+            const editor = editorRef.current;
+            const monacoMod = monacoModuleRef.current;
+            if (!editor || !monacoMod) return;
+            editor.setSelection(
+              new monacoMod.Selection(startLineNumber, startColumn, endLineNumber, endColumn),
+            );
+            editor.revealLineInCenter(startLineNumber);
+          };
+
           setMonacoReady(true);
 
           cleanup = () => {
@@ -479,6 +498,8 @@ function LspCodeEditorComponent(props: LspCodeEditorProps, ref: React.ForwardedR
             document.removeEventListener('keydown', handleKeyDown);
             delete window.__test_triggerCompletion;
             delete window.__test_setEditorValue;
+            delete window.__test_getEditorValue;
+            delete window.__test_setSelection;
           };
         };
 

@@ -1,5 +1,5 @@
 # generated: 2026-07-27
-# last_updated: 2026-09-24 (epi1-epi6 retrospective done; 17/17 epics done, 43/43 stories, 0 backlog)
+# last_updated: 2026-09-24 (TD-02 range-formatting E2E 激活 done; TD-06 AI 适配器契约对齐 done; 17/17 epics done, 43/43 stories, 0 backlog)
 # project: lapdev
 # project_key: NOKEY
 # tracking_system: file-system
@@ -306,7 +306,7 @@ story_mapping:
       title: "范围格式化与增量更新"
       key: "epi2-03-range-formatting-incremental-update"
       frs: []
-      status_note: "done: formatCache LRU + formatRange 已落地（c65a76d）；19 formatCache + 10 lspService + 21 API 测试通过；⚠️ range-formatting.spec.ts 的 7 个 E2E 测试当前 test.skip 未启用"
+      status_note: "done: formatCache LRU + formatRange 已落地（c65a76d）；19 formatCache + 10 lspService + 21 API 测试通过；range-formatting.spec.ts 的 7 个 E2E 测试已激活并通过（TD-02）"
   epi3:
     - id: "EPI3.01"
       title: "文件搜索并发优化"
@@ -380,13 +380,13 @@ story_mapping:
       title: "重构服务层使用端口与适配器"
       key: "epi6-04-refactor-service-layer-ports-adapters"
       frs: []
-      status_note: "done: File/Git 消费方全部切换到 container.getXxxRepository()；GitOperationResult 泛型化；新增 container.test.ts（DI 可替换性）；AI 部分按 R3 defer"
+      status_note: "done: File/Git 消费方全部切换到 container.getXxxRepository()；GitOperationResult 泛型化；新增 container.test.ts（DI 可替换性）；AI 契约对齐（R3）已完成（TD-06）"
 
 integration_gap_analysis:
-  summary: "Phase 2 全部完成：epi1-6 所有 story done，且 epi1-epi6 的 retrospective 全部完成（17/17 epics done、43/43 stories、0 backlog）。EPI6 服务层重构（epi6-04）已落地，File/Git 消费方全部切换到端口与适配器；AI 部分（R3 契约不匹配）defer 至后续独立处理。"
+  summary: "Phase 2 全部完成：epi1-6 所有 story done，且 epi1-epi6 的 retrospective 全部完成（17/17 epics done、43/43 stories、0 backlog）。EPI6 服务层重构（epi6-04）已落地，File/Git 消费方全部切换到端口与适配器；AI 契约对齐（R3）已通过 TD-06 完成。跨 Epic 技术债务 backlog 中 TD-02（range-formatting E2E 激活）与 TD-06（AI 适配器契约）已处理完成。"
   affected_areas: []
   recommended_next_steps:
-    - "从 technical_debt_backlog 中挑选条目启动后续处理（TD-02、TD-06 为高优先级）"
+    - "技术债务 backlog 剩余条目（TD-01、TD-03、TD-04、TD-05）可按优先级后续处理"
 
 # ========== 跨 Epic 技术债务 Backlog ==========
 # 来自 epi1-epi6 retrospective 中标记为「转技术债务」/「遗留」的条目
@@ -404,8 +404,9 @@ technical_debt_backlog:
     source_epic: "epi2"
     source_story: "epi2-03"
     priority: "high"
-    status: "backlog"
+    status: "done"
     description: "激活 range-formatting.spec.ts 中 7 个被 test.skip 的 E2E 测试，补齐范围格式化（formatRange）端到端覆盖。"
+    status_note: "done: 7 个 test.skip 已激活；修复 Monaco 懒加载（点击 code-editor-placeholder 触发）与虚拟滚动导致的 .view-line:nth 行选失效（改用 __test_setSelection helper）；新增 __test_getEditorValue/__test_setSelection 测试 helper；7/7 E2E 通过"
   - id: "TD-03"
     title: "修复 LSPContext providers 未 dispose 内存泄漏"
     source_epic: "epi2"
@@ -432,5 +433,6 @@ technical_debt_backlog:
     source_epic: "epi6"
     source_story: "epi6-03 / epi6-04"
     priority: "high"
-    status: "backlog"
+    status: "done"
     description: "对齐 IAIRepository 与 aiService 的真实后端端点与请求字段（epi6-04 R3 defer 项）。"
+    status_note: "done: domain/Chat.ts 类型（AICompletionRequest/Response、AIModelInfo、AITestConnection*）对齐后端 aiHandler.ts/aiService.ts 契约；IAIRepository 接口签名对齐；AIApiAdapter 实现对齐（testConnection/getModels/getCompletion）；tsc 0 错误 + container/AIConfigPanel/AIContext 30 测试通过"

@@ -84,6 +84,12 @@ test.describe('[E2E] 范围格式化与增量更新', () => {
     await expect(fileItem).toBeVisible({ timeout: 15000 });
     await fileItem.click();
 
+    // Monaco 懒加载：点击占位符触发加载，再等待真实编辑器挂载
+    const placeholder = page.getByTestId('code-editor-placeholder');
+    await expect(placeholder).toBeVisible({ timeout: 10000 });
+    await placeholder.click();
+    await page.waitForSelector('[data-testid="code-editor"]', { timeout: 15000 });
+
     const codeEditor = page.locator('[data-testid="code-editor"]');
     await expect(codeEditor).toBeVisible({ timeout: 10000 });
 
@@ -94,7 +100,7 @@ test.describe('[E2E] 范围格式化与增量更新', () => {
   // AC1: 大文件选中区域格式化 < 100ms
   // ============================================================
 
-  test.skip('[P0] EPI2.03-E2E-001: 大文件选中区域格式化在 100ms 内完成', async ({ page }) => {
+  test('[P0] EPI2.03-E2E-001: 大文件选中区域格式化在 100ms 内完成', async ({ page }) => {
     // Given: 创建并打开 >10K 行的大文件
     const largeFileContent = Array(10500).fill('// large file line').join('\n');
     const codeEditor = await createAndOpenFile(page, 'range-format-large.ts', 10500, largeFileContent);
@@ -104,13 +110,9 @@ test.describe('[E2E] 范围格式化与增量更新', () => {
     const viewLines = monacoEditor.locator('.view-lines');
     await expect(viewLines).toBeVisible({ timeout: 10000 });
 
-    const line500 = viewLines.locator('.view-line').nth(499);
-    await line500.click({ position: { x: 0, y: 0 } });
-
-    const line510 = viewLines.locator('.view-line').nth(509);
-    await page.keyboard.down('Shift');
-    await line510.click({ position: { x: 200, y: 0 } });
-    await page.keyboard.up('Shift');
+    await page.evaluate(() => {
+      (window as any).__test_setSelection(500, 1, 510, 1);
+    });
 
     // Then: 触发格式化并测量耗时
     const startTime = Date.now();
@@ -122,11 +124,11 @@ test.describe('[E2E] 范围格式化与增量更新', () => {
     // 验证格式化在 500ms 内完成 (含前端处理时间)
     expect(elapsed).toBeLessThan(500);
 
-    const editorContent = await codeEditor.evaluate((editor: any) => editor.getModel()?.getValue());
+    const editorContent = await page.evaluate(() => (window as any).__test_getEditorValue());
     expect(editorContent).toBeTruthy();
   });
 
-  test.skip('[P1] EPI2.03-E2E-007: 大文件部分区域格式化不影响其他区域', async ({ page }) => {
+  test('[P1] EPI2.03-E2E-007: 大文件部分区域格式化不影响其他区域', async ({ page }) => {
     // Given: 创建包含标记行的大文件
     const lines: string[] = [];
     lines.push('// HEADER_MARKER_START');
@@ -148,24 +150,21 @@ test.describe('[E2E] 范围格式化与增量更新', () => {
     await expect(viewLines).toBeVisible({ timeout: 10000 });
 
     // 获取格式化前的文件开头和结尾内容
-    const beforeContent = await codeEditor.evaluate((editor: any) => editor.getModel()?.getValue());
+    const beforeContent = await page.evaluate(() => (window as any).__test_getEditorValue());
     const beforeLines = beforeContent?.split('\n') || [];
     const headerBefore = beforeLines.slice(0, 101).join('\n');
     const tailBefore = beforeLines.slice(-101).join('\n');
 
     // When: 选择中间区域 (第200-300行)
-    const line200 = viewLines.locator('.view-line').nth(199);
-    await line200.click({ position: { x: 0, y: 0 } });
-    const line300 = viewLines.locator('.view-line').nth(299);
-    await page.keyboard.down('Shift');
-    await line300.click({ position: { x: 200, y: 0 } });
-    await page.keyboard.up('Shift');
+    await page.evaluate(() => {
+      (window as any).__test_setSelection(200, 1, 300, 1);
+    });
 
     await page.keyboard.press('Control+Shift+F');
     await page.waitForTimeout(500);
 
     // Then: 验证文件开头和结尾内容不变
-    const afterContent = await codeEditor.evaluate((editor: any) => editor.getModel()?.getValue());
+    const afterContent = await page.evaluate(() => (window as any).__test_getEditorValue());
     const afterLines = afterContent?.split('\n') || [];
     const headerAfter = afterLines.slice(0, 101).join('\n');
     const tailAfter = afterLines.slice(-101).join('\n');
@@ -180,7 +179,7 @@ test.describe('[E2E] 范围格式化与增量更新', () => {
   // AC2: 普通文件全文件格式化保持
   // ============================================================
 
-  test.skip('[P0] EPI2.03-E2E-002: 普通文件完整格式化行为保持不变', async ({ page }) => {
+  test('[P0] EPI2.03-E2E-002: 普通文件完整格式化行为保持不变', async ({ page }) => {
     // Given: 创建并打开 ≤10K 行的普通文件
     const normalFileContent = Array(500).fill('function test(){const x=1;return x;}').join('\n');
     const codeEditor = await createAndOpenFile(page, 'range-format-normal.ts', 500, normalFileContent);
@@ -193,7 +192,7 @@ test.describe('[E2E] 范围格式化与增量更新', () => {
     await page.waitForTimeout(1000);
 
     // Then: 验证格式化成功
-    const editorContent = await codeEditor.evaluate((editor: any) => editor.getModel()?.getValue());
+    const editorContent = await page.evaluate(() => (window as any).__test_getEditorValue());
     expect(editorContent).toBeTruthy();
 
     const firstLine = viewLines.locator('.view-line').first();
@@ -204,7 +203,7 @@ test.describe('[E2E] 范围格式化与增量更新', () => {
   // AC3: 缓存命中率 ≥80%
   // ============================================================
 
-  test.skip('[P1] EPI2.03-E2E-004: 重复格式化时缓存命中率 ≥80%', async ({ page }) => {
+  test('[P1] EPI2.03-E2E-004: 重复格式化时缓存命中率 ≥80%', async ({ page }) => {
     // Given: 创建并打开 >10K 行的大文件
     const largeFileContent = Array(10500).fill('function testCache(){const value=42;return value;}').join('\n');
     const codeEditor = await createAndOpenFile(page, 'range-format-cache.ts', 10500, largeFileContent);
@@ -213,42 +212,33 @@ test.describe('[E2E] 范围格式化与增量更新', () => {
     await expect(viewLines).toBeVisible({ timeout: 10000 });
 
     // 选择第100-110行区域
-    const line100 = viewLines.locator('.view-line').nth(99);
-    await line100.click({ position: { x: 0, y: 0 } });
-    const line110 = viewLines.locator('.view-line').nth(109);
-    await page.keyboard.down('Shift');
-    await line110.click({ position: { x: 200, y: 0 } });
-    await page.keyboard.up('Shift');
+    await page.evaluate(() => {
+      (window as any).__test_setSelection(100, 1, 110, 1);
+    });
 
     // 第一次格式化 (建立缓存)
     await page.keyboard.press('Control+Shift+F');
     await page.waitForTimeout(500);
 
     // 修改选中区域的代码
-    await codeEditor.evaluate((editor: any) => {
-      const model = editor.getModel();
-      if (model) {
-        const lines = model.getValue().split('\n');
-        lines[100] = 'function testCache(){const newValue=99;return newValue;}';
-        model.setValue(lines.join('\n'));
-      }
+    await page.evaluate(() => {
+      const lines = (window as any).__test_getEditorValue().split('\n');
+      lines[100] = 'function testCache(){const newValue=99;return newValue;}';
+      (window as any).__test_setEditorValue(lines.join('\n'));
     });
     await page.waitForTimeout(200);
 
     // 再次选择相同区域
-    const line100New = viewLines.locator('.view-line').nth(99);
-    await line100New.click({ position: { x: 0, y: 0 } });
-    const line110New = viewLines.locator('.view-line').nth(109);
-    await page.keyboard.down('Shift');
-    await line110New.click({ position: { x: 200, y: 0 } });
-    await page.keyboard.up('Shift');
+    await page.evaluate(() => {
+      (window as any).__test_setSelection(100, 1, 110, 1);
+    });
 
     // 第二次格式化 (使用缓存)
     await page.keyboard.press('Control+Shift+F');
     await page.waitForTimeout(500);
 
     // 验证编辑器仍正常工作
-    const editorContent = await codeEditor.evaluate((editor: any) => editor.getModel()?.getValue());
+    const editorContent = await page.evaluate(() => (window as any).__test_getEditorValue());
     expect(editorContent).toBeTruthy();
   });
 
@@ -256,7 +246,7 @@ test.describe('[E2E] 范围格式化与增量更新', () => {
   // AC4: 大文件无选择回退 + 进度指示
   // ============================================================
 
-  test.skip('[P1] EPI2.03-E2E-003: 大文件无选择时回退到完整文件格式化', async ({ page }) => {
+  test('[P1] EPI2.03-E2E-003: 大文件无选择时回退到完整文件格式化', async ({ page }) => {
     // Given: 创建并打开 >10K 行的大文件
     const largeFileContent = Array(10500).fill('// large file no selection').join('\n');
     const codeEditor = await createAndOpenFile(page, 'range-format-large-noselect.ts', 10500, largeFileContent);
@@ -276,7 +266,7 @@ test.describe('[E2E] 范围格式化与增量更新', () => {
     const firstLine = viewLines.locator('.view-line').first();
     await expect(firstLine).toBeVisible({ timeout: 5000 });
 
-    const editorContent = await codeEditor.evaluate((editor: any) => editor.getModel()?.getValue());
+    const editorContent = await page.evaluate(() => (window as any).__test_getEditorValue());
     expect(editorContent).toBeTruthy();
   });
 
@@ -284,7 +274,7 @@ test.describe('[E2E] 范围格式化与增量更新', () => {
   // AC5: 快捷键行为不变
   // ============================================================
 
-  test.skip('[P1] EPI2.03-E2E-005: Ctrl+S 保存快捷键不受格式化影响', async ({ page }) => {
+  test('[P1] EPI2.03-E2E-005: Ctrl+S 保存快捷键不受格式化影响', async ({ page }) => {
     // Given: 创建并打开测试文件
     const codeEditor = await createAndOpenFile(page, 'save-shortcut-test.ts', 50, 'const x = 1;');
 
@@ -292,11 +282,8 @@ test.describe('[E2E] 范围格式化与增量更新', () => {
     await expect(viewLines).toBeVisible({ timeout: 10000 });
 
     // When: 修改文件内容
-    await codeEditor.evaluate((editor: any) => {
-      const model = editor.getModel();
-      if (model) {
-        model.setValue('const x = 42;\nconst y = 99;');
-      }
+    await page.evaluate(() => {
+      (window as any).__test_setEditorValue('const x = 42;\nconst y = 99;');
     });
     await page.waitForTimeout(300);
 
@@ -304,11 +291,11 @@ test.describe('[E2E] 范围格式化与增量更新', () => {
     await page.keyboard.press('Control+S');
     await page.waitForTimeout(1000);
 
-    const editorContent = await codeEditor.evaluate((editor: any) => editor.getModel()?.getValue());
+    const editorContent = await page.evaluate(() => (window as any).__test_getEditorValue());
     expect(editorContent).toBe('const x = 42;\nconst y = 99;');
   });
 
-  test.skip('[P1] EPI2.03-E2E-006: Ctrl+Shift+F 快捷键正常触发格式化', async ({ page }) => {
+  test('[P1] EPI2.03-E2E-006: Ctrl+Shift+F 快捷键正常触发格式化', async ({ page }) => {
     // Given: 创建并打开普通文件
     const codeEditor = await createAndOpenFile(page, 'format-shortcut-test.ts', 100, 'const x=1;const y=2;function test(){return x+y;}');
 
@@ -320,7 +307,7 @@ test.describe('[E2E] 范围格式化与增量更新', () => {
     await page.waitForTimeout(1000);
 
     // Then: 验证格式化成功
-    const editorContent = await codeEditor.evaluate((editor: any) => editor.getModel()?.getValue());
+    const editorContent = await page.evaluate(() => (window as any).__test_getEditorValue());
     expect(editorContent).toBeTruthy();
 
     const firstLine = viewLines.locator('.view-line').first();

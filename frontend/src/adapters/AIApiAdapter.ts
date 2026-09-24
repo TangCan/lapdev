@@ -1,8 +1,10 @@
 import type { IAIRepository } from '../domain/ports/IAIRepository';
 import type {
-  AIModelConfig,
   AICompletionRequest,
   AICompletionResponse,
+  AIModelInfo,
+  AITestConnectionRequest,
+  AITestConnectionResponse,
   ChatContextItem,
 } from '../domain/Chat';
 import { API_URL } from '../config';
@@ -39,26 +41,30 @@ export class AIApiAdapter implements IAIRepository {
     });
 
     const result = await response.json();
+    if (result.status !== 'success') {
+      throw new Error(result.message || '补全请求失败');
+    }
     return {
-      text: result.data?.text || '',
-      suggestions: result.data?.suggestions,
+      completion: result.data?.completion || '',
+      stopReason: result.data?.stopReason,
+      model: result.data?.model,
     };
   }
 
-  async testConnection(config: AIModelConfig): Promise<boolean> {
+  async testConnection(config: AITestConnectionRequest): Promise<AITestConnectionResponse> {
     try {
       const response = await fetch(`${API_URL}/v1/ai/test`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config),
       });
-      return response.ok;
+      return await response.json();
     } catch {
-      return false;
+      return { status: 'error', message: '网络连接失败，请检查网络或稍后重试' };
     }
   }
 
-  async getModels(): Promise<string[]> {
+  async getModels(): Promise<AIModelInfo[]> {
     const response = await fetch(`${API_URL}/v1/ai/models`);
     const result = await response.json();
     return result.data || [];
