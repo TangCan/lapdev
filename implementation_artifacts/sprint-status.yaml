@@ -1,5 +1,5 @@
 # generated: 2026-07-27
-# last_updated: 2026-09-24 (TD-02 range-formatting E2E 激活 done; TD-06 AI 适配器契约对齐 done; 17/17 epics done, 43/43 stories, 0 backlog)
+# last_updated: 2026-09-24 (TD-02 range-formatting E2E 激活 done; TD-06 AI 适配器契约对齐 done; 新增 TD-07 Ctrl+Shift+F 未校验 Shift; 17/17 epics done, 43/43 stories, 0 backlog)
 # project: lapdev
 # project_key: NOKEY
 # tracking_system: file-system
@@ -386,7 +386,7 @@ integration_gap_analysis:
   summary: "Phase 2 全部完成：epi1-6 所有 story done，且 epi1-epi6 的 retrospective 全部完成（17/17 epics done、43/43 stories、0 backlog）。EPI6 服务层重构（epi6-04）已落地，File/Git 消费方全部切换到端口与适配器；AI 契约对齐（R3）已通过 TD-06 完成。跨 Epic 技术债务 backlog 中 TD-02（range-formatting E2E 激活）与 TD-06（AI 适配器契约）已处理完成。"
   affected_areas: []
   recommended_next_steps:
-    - "技术债务 backlog 剩余条目（TD-01、TD-03、TD-04、TD-05）可按优先级后续处理"
+    - "技术债务 backlog 剩余条目（TD-01、TD-03、TD-04、TD-05、TD-07）可按优先级后续处理"
 
 # ========== 跨 Epic 技术债务 Backlog ==========
 # 来自 epi1-epi6 retrospective 中标记为「转技术债务」/「遗留」的条目
@@ -436,3 +436,10 @@ technical_debt_backlog:
     status: "done"
     description: "对齐 IAIRepository 与 aiService 的真实后端端点与请求字段（epi6-04 R3 defer 项）。"
     status_note: "done: domain/Chat.ts 类型（AICompletionRequest/Response、AIModelInfo、AITestConnection*）对齐后端 aiHandler.ts/aiService.ts 契约；IAIRepository 接口签名对齐；AIApiAdapter 实现对齐（testConnection/getModels/getCompletion）；tsc 0 错误 + container/AIConfigPanel/AIContext 30 测试通过"
+  - id: "TD-07"
+    title: "Ctrl+Shift+F 快捷键处理器未校验 Shift"
+    source_epic: "epi2"
+    source_story: "epi2-03"
+    priority: "low"
+    status: "backlog"
+    description: "LspCodeEditor 的 handleKeyDown 中 Ctrl+Shift+F 格式化处理器仅判断 e.ctrlKey && e.key === 'F'，未校验 shiftKey；功能当前正确，但语义与快捷键声明（Ctrl+Shift+F）不一致，仅 Ctrl+F 也会触发格式化。"
