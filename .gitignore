@@ -31,6 +31,7 @@ Thumbs.db
 # Testing
 playwright-report/
 test-results/
+.playwright-browsers/
 
 # Temporary
 *.tmp

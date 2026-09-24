@@ -1,5 +1,5 @@
 # generated: 2026-07-27
-# last_updated: 2026-09-24 (epi3-02 done; epi3-03 → review; epi4-6 待 backlog; summary 计数对齐)
+# last_updated: 2026-09-24 (epi3-03 done; epi3/4/5 → done; epi6-01..03 done, epi6-04 backlog; summary 计数对齐)
 # project: lapdev
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-07-27
-# last_updated: 2026-09-24 (epi3-02 done; epi3-03 → review; epi4-6 待 backlog; summary 计数对齐)
+# last_updated: 2026-09-24 (epi3-03 done; epi3/4/5 → done; epi6-01..03 done, epi6-04 backlog; summary 计数对齐)
 project: lapdev
 project_key: NOKEY
 tracking_system: file-system
@@ -130,45 +130,45 @@ development_status:
   epi2-retrospective: optional
 
   # Epic EPI3: 性能优化 - 并发渲染与虚拟滚动 (3 stories)
-  epi3: in-progress
+  epi3: done
   epi3-01-file-search-concurrent-optimization: done
   epi3-02-file-tree-virtual-scrolling: done
   epi3-03-complex-operation-concurrent-processing: done
   epi3-retrospective: optional
 
   # Epic EPI4: 架构改进 - Zustand 状态管理迁移 (3 stories)
-  epi4: in-progress
-  epi4-01-zustand-store-gitcontext: backlog
-  epi4-02-zustand-store-chatcontext: backlog
-  epi4-03-zustand-store-themecontext: backlog
+  epi4: done
+  epi4-01-zustand-store-gitcontext: done
+  epi4-02-zustand-store-chatcontext: done
+  epi4-03-zustand-store-themecontext: done
   epi4-retrospective: optional
 
   # Epic EPI5: 架构改进 - IDE 组件职责拆分 (4 stories)
-  epi5: in-progress
-  epi5-01-create-useeditortabs-hook: backlog
-  epi5-02-create-usefileoperations-hook: backlog
-  epi5-03-create-usekeyboardshortcuts-hook: backlog
-  epi5-04-create-independent-components: backlog
+  epi5: done
+  epi5-01-create-useeditortabs-hook: done
+  epi5-02-create-usefileoperations-hook: done
+  epi5-03-create-usekeyboardshortcuts-hook: done
+  epi5-04-create-independent-components: done
   epi5-retrospective: optional
 
   # Epic EPI6: 架构改进 - 服务层重构 (4 stories)
   epi6: in-progress
-  epi6-01-create-core-domain-models: backlog
-  epi6-02-create-port-interfaces: backlog
-  epi6-03-create-api-adapter-implementation: backlog
+  epi6-01-create-core-domain-models: done
+  epi6-02-create-port-interfaces: done
+  epi6-03-create-api-adapter-implementation: done
   epi6-04-refactor-service-layer-ports-adapters: backlog
   epi6-retrospective: optional
 
 summary:
   total_epics: 17
   total_stories: 43
-  epics_done: 11
-  epics_in_progress: 6
-  stories_done: 32
+  epics_done: 14
+  epics_in_progress: 3
+  stories_done: 42
   stories_in_progress: 0
   stories_ready_for_dev: 0
   stories_in_review: 0
-  stories_backlog: 11
+  stories_backlog: 1
 
 story_mapping:
   # Phase 1: 基础功能
@@ -330,74 +330,64 @@ story_mapping:
       title: "创建 Zustand Store 替换 GitContext"
       key: "epi4-01-zustand-store-gitcontext"
       frs: []
-      status_note: "gitStore.ts 已创建但 IDE.tsx 仍使用 GitContext"
+      status_note: "done: gitStore.ts 替换 GitContext（3670ea3 feat(epi4)）"
     - id: "EPI4.02"
       title: "创建 Zustand Store 替换 ChatContext"
       key: "epi4-02-zustand-store-chatcontext"
       frs: []
-      status_note: "chatStore.ts 已创建但 IDE.tsx 仍使用 ChatContext"
+      status_note: "done: chatStore.ts 替换 ChatContext（3670ea3）"
     - id: "EPI4.03"
       title: "创建 Zustand Store 替换 ThemeContext"
       key: "epi4-03-zustand-store-themecontext"
       frs: []
-      status_note: "themeStore.ts 已创建但旧 ThemeContext 仍在使用"
+      status_note: "done: themeStore.ts 替换 ThemeContext，ThemeSettings 测试更新（3670ea3）"
   epi5:
     - id: "EPI5.01"
       title: "创建 useEditorTabs Hook"
       key: "epi5-01-create-useeditortabs-hook"
       frs: []
-      status_note: "useEditorTabs.ts 已创建但 IDE.tsx 未集成"
+      status_note: "done: useEditorTabs.ts 集成（c292b04 feat(epi5)）"
     - id: "EPI5.02"
       title: "创建 useFileOperations Hook"
       key: "epi5-02-create-usefileoperations-hook"
       frs: []
-      status_note: "useFileOperations.ts 已创建但 IDE.tsx 未集成"
+      status_note: "done: useFileOperations.ts 集成（c292b04）"
     - id: "EPI5.03"
       title: "创建 useKeyboardShortcuts Hook"
       key: "epi5-03-create-usekeyboardshortcuts-hook"
       frs: []
-      status_note: "useKeyboardShortcuts.ts 已创建但 IDE.tsx 未集成"
+      status_note: "done: useKeyboardShortcuts.ts 集成（c292b04）"
     - id: "EPI5.04"
       title: "创建独立组件（Header、StatusBar、PanelManager）"
       key: "epi5-04-create-independent-components"
       frs: []
-      status_note: "组件已创建但 IDE.tsx 仍为 550 行未重构"
+      status_note: "done: IDE.tsx 645→192 行拆分（EditorArea/TerminalArea/CloseTabModal）（c292b04）"
   epi6:
     - id: "EPI6.01"
       title: "创建核心领域模型"
       key: "epi6-01-create-core-domain-models"
       frs: []
-      status_note: "File.ts/Git.ts/Chat.ts 已创建，框架无关"
+      status_note: "done: File.ts/Git.ts/Chat.ts 领域模型（domain/，1751e75）"
     - id: "EPI6.02"
       title: "创建端口接口"
       key: "epi6-02-create-port-interfaces"
       frs: []
-      status_note: "IFileRepository/IGitRepository/IAIRepository 已创建"
+      status_note: "done: IFileRepository/IGitRepository/IAIRepository 端口接口（domain/ports/）"
     - id: "EPI6.03"
       title: "创建 API 适配器实现"
       key: "epi6-03-create-api-adapter-implementation"
       frs: []
-      status_note: "三个适配器已实现，符合端口接口"
+      status_note: "done: FileApi/GitApi/AIApi 适配器实现（adapters/）"
     - id: "EPI6.04"
       title: "重构服务层使用端口与适配器"
       key: "epi6-04-refactor-service-layer-ports-adapters"
       frs: []
-      status_note: "DI 容器已创建但未被任何服务/组件使用"
+      status_note: "backlog: DIContainer 已创建（adapters/index.ts）但 services/ 层尚未改用 adapter"
 
 integration_gap_analysis:
-  summary: "Phase 2 代码文件已创建，但未集成到应用中"
+  summary: "Phase 2 大部分已完成：epi1-5 全部 story done；epi6-01..03 模型/端口/适配器已落地。剩余唯一 gap 为 EPI6 服务层重构。"
   affected_areas:
-    - "IDE.tsx 仍为 550 行上帝组件，未使用新的 Hooks 和组件"
-    - "GitContext/ChatContext/ThemeContext 未被 Zustand stores 替换"
-    - "LazyCodeEditor 和 monacoOptimizer 未接入编辑器"
-    - "VirtualList 未接入 FileTree"
-    - "useFileSearch 已集成到 FileTree.tsx"
-    - "DI 容器未被任何服务/组件引用"
-    - "startTransition 已落地 3 处（handleFormat/ProblemsPanel/inline completion），epi3-03 待 review"
+    - "DI 容器（adapters/index.ts）已创建但 services/ 层仍直接使用 fileService/gitService/aiService，未切换到 adapter（epi6-04 backlog）"
   recommended_next_steps:
-    - "优先集成 EPI5（IDE.tsx 拆分）—— 影响面最大"
-    - "集成 EPI4（Zustand 替换 Context）—— 与 EPI5 并行"
-    - "集成 EPI2（编辑器优化）—— 替换 LspCodeEditor 为 LazyCodeEditor"
-    - "集成 EPI3（并发渲染 + 虚拟滚动）—— 接入 useFileSearch 和 VirtualList"
-    - "EPI1（React Compiler + 清理 useMemo）—— 已完成，159→89 (-44%)"
-    - "集成 EPI6（DI 容器）—— 重构服务层"
+    - "完成 EPI6 服务层重构：让 services/ 通过 DIContainer 使用 adapter，替换直接调用的 services"
+    - "补齐 epi1/epi2/epi6 的 retrospective（当前 optional）"
