@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useTransition } from 'react';
 import { writeFile, formatCode } from '../services/fileService';
 import type { Tab } from './useEditorTabs';
 
@@ -24,6 +24,8 @@ export function useFileOperations({
   const [isSaving, setIsSaving] = useState(false);
   const [isFormatting, setIsFormatting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // startTransition 将格式化结果的内容更新标记为低优先级，避免大文件重渲染阻塞 UI
+  const [, startTransition] = useTransition();
 
   const showError = useCallback((message: string) => {
     setErrorMessage(message);
@@ -60,7 +62,10 @@ export function useFileOperations({
       const result = await formatCode(activeTab.content, activeTab.language);
 
       if (result.status === 'success' && result.data && result.data.formatted) {
-        updateTabContent(activeTabId!, result.data.formatted);
+        const formatted = result.data.formatted;
+        startTransition(() => {
+          updateTabContent(activeTabId!, formatted);
+        });
       } else {
         showError(result.message || '格式化失败');
       }
@@ -69,7 +74,7 @@ export function useFileOperations({
     } finally {
       setIsFormatting(false);
     }
-  }, [tabs, activeTabId, updateTabContent, showError]);
+  }, [tabs, activeTabId, updateTabContent, showError, startTransition]);
 
   const saveFile = useCallback(async (tab: Tab) => {
     setIsSaving(true);

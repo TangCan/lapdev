@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback, forwardRef, useImperativeHandle, useState } from 'react';
+import React, { useEffect, useRef, useCallback, forwardRef, useImperativeHandle, useState, useTransition } from 'react';
 import { getMonaco, getMonacoSync, loadLanguage, type MonacoModule } from '../../services/monacoLoader';
 import type { Position, editor } from 'monaco-editor';
 import { useLSP } from '../../context/LSPContext';
@@ -120,6 +120,8 @@ function LspCodeEditorComponent(props: LspCodeEditorProps, ref: React.ForwardedR
 
   const { isConnected } = useAI();
   const { inlineCompletionEnabled, inlineCompletionVisible, setInlineCompletionVisible, ghostText, setGhostText } = useInlineCompletion();
+  // startTransition 将补全建议的幽灵文本展示标记为低优先级，避免阻塞用户继续输入
+  const [, startTransition] = useTransition();
 
   const inlineCompletionEnabledRef = useRef(inlineCompletionEnabled);
   const isConnectedRef = useRef(isConnected);
@@ -324,8 +326,11 @@ function LspCodeEditorComponent(props: LspCodeEditorProps, ref: React.ForwardedR
 
           if (result.completion && result.completion.trim()) {
             console.log('triggerCompletion: got completion result:', result.completion);
-            setGhostText(result.completion.trim());
-            setInlineCompletionVisible(true);
+            const completion = result.completion.trim();
+            startTransition(() => {
+              setGhostText(completion);
+              setInlineCompletionVisible(true);
+            });
           } else {
             console.log('triggerCompletion: empty completion result');
             clearGhostText();
@@ -341,7 +346,7 @@ function LspCodeEditorComponent(props: LspCodeEditorProps, ref: React.ForwardedR
         console.error('Unhandled inline completion error:', error);
       });
     }, DEBOUNCE_DELAY);
-  }, [language, cancelCurrentCompletion, clearGhostText, setGhostText, setInlineCompletionVisible]);
+  }, [language, cancelCurrentCompletion, clearGhostText, setGhostText, setInlineCompletionVisible, startTransition]);
 
   useEffect(() => {
     let cancelled = false;

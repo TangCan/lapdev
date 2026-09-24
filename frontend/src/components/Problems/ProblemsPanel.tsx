@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useTransition } from 'react';
 import { getMonacoSync } from '../../services/monacoLoader';
 import { useLSP } from '../../context/LSPContext';
 
@@ -22,13 +22,15 @@ const ProblemsPanel: React.FC<ProblemsPanelProps> = ({ onSelectProblem }) => {
     message: string;
     source: string;
   }>>([]);
+  // startTransition 将诊断批量更新标记为低优先级，避免 LSP 推送时阻塞编辑器输入
+  const [, startTransition] = useTransition();
 
   const updateProblems = useCallback(() => {
     const allProblems: typeof problems = [];
 
     const monacoMod = getMonacoSync();
     if (!monacoMod) {
-      setProblems([]);
+      startTransition(() => setProblems([]));
       return;
     }
 
@@ -50,8 +52,8 @@ const ProblemsPanel: React.FC<ProblemsPanelProps> = ({ onSelectProblem }) => {
       });
     }
 
-    setProblems(allProblems);
-  }, [getDiagnostics]);
+    startTransition(() => setProblems(allProblems));
+  }, [getDiagnostics, startTransition]);
 
   useEffect(() => {
     updateProblems();
