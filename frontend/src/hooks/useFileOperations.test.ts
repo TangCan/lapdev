@@ -87,6 +87,41 @@ describe('useFileOperations Hook', () => {
     expect(mockUpdateTabContent).not.toHaveBeenCalled();
   });
 
+  it('[P1] handleFormat 返回 success 但 data 为 null 时应显示错误', async () => {
+    vi.mocked(formatCode).mockResolvedValue({
+      status: 'success',
+      data: null,
+    } as never);
+
+    const { result } = renderOp();
+
+    await act(async () => {
+      await result.current.handleFormat();
+    });
+
+    await waitFor(() => {
+      expect(result.current.errorMessage).toBe('格式化失败');
+    });
+    expect(mockUpdateTabContent).not.toHaveBeenCalled();
+    expect(result.current.isFormatting).toBe(false);
+  });
+
+  it('[P1] handleFormat formatCode 抛异常时应显示错误信息', async () => {
+    vi.mocked(formatCode).mockRejectedValue(new Error('后端格式化崩溃'));
+
+    const { result } = renderOp();
+
+    await act(async () => {
+      await result.current.handleFormat();
+    });
+
+    await waitFor(() => {
+      expect(result.current.errorMessage).toBe('后端格式化崩溃');
+    });
+    expect(mockUpdateTabContent).not.toHaveBeenCalled();
+    expect(result.current.isFormatting).toBe(false);
+  });
+
   it('[P1] handleSave 成功时应调用 markSaved 并刷新 git 状态', async () => {
     const { result } = renderOp();
 

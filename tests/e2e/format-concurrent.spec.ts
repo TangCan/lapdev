@@ -62,9 +62,10 @@ test.describe('[E2E] 复杂操作并发处理 (EPI3.03)', () => {
     await page.keyboard.press('Control+Shift+F');
     await page.waitForTimeout(1000);
 
-    // 格式化后编辑器内容应仍然存在（startTransition 不丢失更新）
-    const editorContent = await codeEditor.evaluate((editor: any) => editor.getModel()?.getValue());
-    expect(editorContent).toBeTruthy();
+    // 格式化后编辑器内容应展示格式化结果（formatter 会给 = 补空格）
+    const editorContent = await viewLines.innerText();
+    expect(editorContent).toContain('const x = 1');
+    expect(editorContent).not.toContain('const x=1');
 
     const firstLine = viewLines.locator('.view-line').first();
     await expect(firstLine).toBeVisible({ timeout: 5000 });
@@ -84,8 +85,7 @@ test.describe('[E2E] 复杂操作并发处理 (EPI3.03)', () => {
     await page.keyboard.type('\n// appended after format');
     await page.waitForTimeout(500);
 
-    const editorContent = await codeEditor.evaluate((editor: any) => editor.getModel()?.getValue());
-    expect(editorContent).toBeTruthy();
+    const editorContent = await codeEditor.locator('.view-lines').innerText();
     expect(editorContent).toContain('appended after format');
   });
 
@@ -99,10 +99,9 @@ test.describe('[E2E] 复杂操作并发处理 (EPI3.03)', () => {
     const viewLines = codeEditor.locator('.view-lines');
     await expect(viewLines).toBeVisible({ timeout: 5000 });
 
-    // 编辑器仍响应（可获取模型内容）
-    const editorContent = await codeEditor.evaluate((editor: any) => {
-      return editor.getModel()?.getValue() ?? null;
-    });
-    expect(editorContent).toBeTruthy();
+    // 编辑器仍响应，内容非空且保留代码（格式化不破坏原有代码）
+    const editorContent = await viewLines.innerText();
+    expect(editorContent.length).toBeGreaterThan(0);
+    expect(editorContent).toContain('function big');
   });
 });
