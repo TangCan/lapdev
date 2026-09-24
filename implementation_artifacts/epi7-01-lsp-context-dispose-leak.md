@@ -1,6 +1,6 @@
 # Story EPI7.01: 修复 LSPContext providers 未 dispose 内存泄漏
 
-Status: backlog
+Status: done
 
 ## Story
 
@@ -31,13 +31,13 @@ so that 长时间会话或频繁开关标签页不会累积已失效的 provider
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: 修复 `registerEditor` 重复注册未先 dispose（AC: #1）
-  - [ ] 在 `disposersRef.current.set(uri, disposers)` 前，检查并 dispose 已有 disposers
-- [ ] Task 2: 修复 `disconnect` 未清理 disposersRef（AC: #2）
-  - [ ] 遍历 `disposersRef` 调用 dispose，并 clear `disposersRef`
-- [ ] Task 3: 核对 `unregisterEditor` / `editorsRef` 一致性（AC: #3）
-- [ ] Task 4: 编写单元测试（AC: #1-#3）
-- [ ] Task 5: 回归验证 LSP 功能（AC: #4）
+- [x] Task 1: 修复 `registerEditor` 重复注册未先 dispose（AC: #1）
+  - [x] 在 `disposersRef.current.set(uri, disposers)` 前，检查并 dispose 已有 disposers
+- [x] Task 2: 修复 `disconnect` 未清理 disposersRef（AC: #2）
+  - [x] 遍历 `disposersRef` 调用 dispose，并 clear `disposersRef`
+- [x] Task 3: 核对 `unregisterEditor` / `editorsRef` 一致性（AC: #3）
+- [x] Task 4: 编写单元测试（AC: #1-#3）
+- [x] Task 5: 回归验证 LSP 功能（AC: #4）
 
 ## Technical Context
 
@@ -93,14 +93,51 @@ LSPProvider 卸载时的 `useEffect` cleanup（L374-378）调用 `disconnect()`�
 ## Success Criteria
 
 ### 功能完整性
-- [ ] 重复注册同 URI 时旧 disposers 先被 dispose
-- [ ] disconnect 时所有 disposers 被 dispose
+- [x] 重复注册同 URI 时旧 disposers 先被 dispose
+- [x] disconnect 时所有 disposers 被 dispose
 
 ### 代码质量
-- [ ] TypeScript 类型安全
-- [ ] 单元测试覆盖 dispose 路径
-- [ ] 无 ESLint 错误
+- [x] TypeScript 类型安全
+- [x] 单元测试覆盖 dispose 路径
+- [x] 无 ESLint 错误
+
+## Dev Agent Record
+
+### Agent Model Used
+
+DeepSeek-V4-Pro 正式版
+
+### Completion Notes
+
+1. **registerEditor 修复**：在 `disposersRef.current.set(uri, disposers)` 前，先 `get(uri)` 并 `forEach(d => d.dispose())` 旧的 disposers，避免重复注册同 URI 时 8 个 provider 的 dispose 引用被覆盖丢失。
+2. **disconnect 修复**：遍历 `disposersRef` 对所有 URI 的 disposers 调用 `dispose()`，再 `clear()`；与 `editorsRef.current.clear()` 保持一致。
+3. **unregisterEditor 保持既有逻辑**（已正确 dispose 并 delete），未改动。
+4. **新增单测**：`frontend/src/context/LSPContext.test.tsx` 4 用例（重复注册先 dispose、disconnect 全 dispose、unregisterEditor dispose、useLSP 越界抛错）。红阶段验证：重复注册/disconnect 两用例 RED，修复后 GREEN。
+5. **验证**：`tsc --noEmit` 0 错误；`vitest run` 完整套件 679/680 通过（1 个既有 flaky 的 `VirtualList.performance.test.tsx` 计时阈值偶发超 10ms，单独运行 12/12 通过，与本次改动无关）。
+
+### File List
+
+| 文件 | 操作 | 说明 |
+|------|------|------|
+| `frontend/src/context/LSPContext.tsx` | UPDATE | registerEditor 重复注册先 dispose 旧 disposers；disconnect 遍历 disposersRef dispose 后 clear |
+| `frontend/src/context/LSPContext.test.tsx` | NEW | ATDD 红阶段 dispose 生命周期验收测试（4 用例） |
+
+## Review Findings
+
+代码审查（bmad-code-review，三层对抗式：Blind Hunter / Edge Case Hunter / Acceptance Auditor）结论：**通过，无阻断性问题，无需修改**。
+
+- `registerEditor` 修复正确：写入新 disposers 前先 `get(uri)` 并 dispose 旧 disposers，避免了重复注册同 URI 时 8 个 provider 的 dispose 引用被覆盖丢失。
+- `disconnect` 修复正确：遍历 `disposersRef` 全部 dispose 后 `clear()`，与 `editorsRef.current.clear()` 保持一致性，且 `unregisterEditor` 已从 Map 删除，不会产生双重 dispose。
+- `unregisterEditor` 既有逻辑正确，未改动。
+- 边界验证：首次注册 `get(uri)` 返回 undefined 时 `if (existingDisposers)` 守卫正确跳过；Monaco `dispose()` 幂等，重复调用安全。
+- 测试质量：4 用例覆盖 AC#1-#3 及 Provider 越界抛错，red-green 已被正确记录（红阶段 2 用例 RED）。
+
+非阻断性备注（无需处理）：
+1. 旧 disposers 的 dispose 发生在新 8 个 provider 注册之后（顺序对正确性无影响）。
 
 ## Change Log
 
 - 2026-09-24: 创建 story（EPI7.01），源自 TD-03（LSPContext providers 未 dispose 内存泄漏），供 dev-story 实施
+- 2026-09-24: dev-story 实施完成——registerEditor/disconnect 两处 dispose 修复，新增 LSPContext.test.tsx 4 用例，红→绿验证通过，tsc 0 错误，全量回归通过；Status → review
+- 2026-09-24: code-review 通过（无阻断性问题，无明显修改需求）
+- 2026-09-24: testarch-automate 完成——现有 4 用例已覆盖 dispose 生命周期 AC#1-#3，AC#4 由全量回归覆盖，无新增自动化缺口；regression 全通过（tsc 0 错误、targeted 4/4、全量 vitest 679/680 其中 1 个既有 flaky 性能测试、lint 变更文件 0 错误、build 成功）；Status → done

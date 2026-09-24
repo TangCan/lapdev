@@ -112,6 +112,10 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     lspService.disconnect();
     setIsConnected(false);
     editorsRef.current.clear();
+    disposersRef.current.forEach((disposers) => {
+      disposers.forEach((d) => d.dispose());
+    });
+    disposersRef.current.clear();
   }, []);
 
   const getDiagnostics = useCallback((uri: string) => {
@@ -352,6 +356,10 @@ export const LSPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       },
     }));
 
+    const existingDisposers = disposersRef.current.get(uri);
+    if (existingDisposers) {
+      existingDisposers.forEach((d) => d.dispose());
+    }
     disposersRef.current.set(uri, disposers);
   }, []);
 

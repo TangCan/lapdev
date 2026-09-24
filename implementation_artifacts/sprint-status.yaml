@@ -163,8 +163,8 @@ development_status:
   # ========== Phase 3: 技术债清偿（稳定性与工程成熟度）— 规划中 ==========
 
   # Epic EPI7: 运行时稳定性（P0 技术债）（2 stories）
-  epi7: backlog
-  epi7-01-lsp-context-dispose-leak: backlog
+  epi7: in-progress
+  epi7-01-lsp-context-dispose-leak: done
   epi7-02-formatting-boundary-fixes: backlog
 
   # Epic EPI8: 交互体验与度量（P1 技术债）（2 stories）
@@ -176,13 +176,13 @@ summary:
   total_epics: 19
   total_stories: 47
   epics_done: 17
-  epics_in_progress: 0
-  epics_backlog: 2
-  stories_done: 43
+  epics_in_progress: 1
+  epics_backlog: 1
+  stories_done: 44
   stories_in_progress: 0
   stories_ready_for_dev: 0
   stories_in_review: 0
-  stories_backlog: 4
+  stories_backlog: 3
 
 story_mapping:
   # Phase 1: 基础功能
@@ -455,9 +455,9 @@ technical_debt_backlog:
     source_epic: "epi2"
     source_story: "epi2-01"
     priority: "high"
-    status: "backlog"
+    status: "done"
     description: "排查 LSPContext 相关 providers（language feature providers）未调用 dispose 导致的内存泄漏。"
-    status_note: "planned: 纳入 epi7-01-lsp-context-dispose-leak（Phase 3 首批）；priority medium→high"
+    status_note: "done: epi7-01 完成（LSPContext.tsx registerEditor 重复注册先 dispose 旧 disposers、disconnect 遍历 dispose 后 clear；LSPContext.test.tsx 4 用例红→绿；tsc 0 错误、vitest 679/680、build 成功）"
   - id: "TD-04"
     title: "幽灵文本 transition 取消机制"
     source_epic: "epi3"
