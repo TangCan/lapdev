@@ -1,5 +1,5 @@
 # generated: 2026-07-27
-# last_updated: 2026-09-24 (epi6-04 done; epi1/epi2 → done; 17/17 epics done, 43/43 stories, 0 backlog)
+# last_updated: 2026-09-24 (epi1-epi6 retrospective done; 17/17 epics done, 43/43 stories, 0 backlog)
 # project: lapdev
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-07-27
-# last_updated: 2026-09-24 (epi6-04 done; epi1/epi2 → done; 17/17 epics done, 43/43 stories, 0 backlog)
+# last_updated: 2026-09-24 (epi1-epi6 retrospective done; 17/17 epics done, 43/43 stories, 0 backlog)
 project: lapdev
 project_key: NOKEY
 tracking_system: file-system
@@ -118,28 +118,28 @@ development_status:
   epi1-01-react-19-dependency-upgrade: done
   epi1-02-enable-react-compiler: done
   epi1-03-remove-manual-memoization: done
-  epi1-retrospective: optional
+  epi1-retrospective: done
 
   # Epic EPI2: 性能优化 - Monaco Editor 深度优化 (3 stories)
   epi2: done
   epi2-01-monaco-editor-lazy-loading: done
   epi2-02-large-file-optimization: done
   epi2-03-range-formatting-incremental-update: done
-  epi2-retrospective: optional
+  epi2-retrospective: done
 
   # Epic EPI3: 性能优化 - 并发渲染与虚拟滚动 (3 stories)
   epi3: done
   epi3-01-file-search-concurrent-optimization: done
   epi3-02-file-tree-virtual-scrolling: done
   epi3-03-complex-operation-concurrent-processing: done
-  epi3-retrospective: optional
+  epi3-retrospective: done
 
   # Epic EPI4: 架构改进 - Zustand 状态管理迁移 (3 stories)
   epi4: done
   epi4-01-zustand-store-gitcontext: done
   epi4-02-zustand-store-chatcontext: done
   epi4-03-zustand-store-themecontext: done
-  epi4-retrospective: optional
+  epi4-retrospective: done
 
   # Epic EPI5: 架构改进 - IDE 组件职责拆分 (4 stories)
   epi5: done
@@ -147,7 +147,7 @@ development_status:
   epi5-02-create-usefileoperations-hook: done
   epi5-03-create-usekeyboardshortcuts-hook: done
   epi5-04-create-independent-components: done
-  epi5-retrospective: optional
+  epi5-retrospective: done
 
   # Epic EPI6: 架构改进 - 服务层重构 (4 stories)
   epi6: done
@@ -155,7 +155,7 @@ development_status:
   epi6-02-create-port-interfaces: done
   epi6-03-create-api-adapter-implementation: done
   epi6-04-refactor-service-layer-ports-adapters: done
-  epi6-retrospective: optional
+  epi6-retrospective: done
 
 summary:
   total_epics: 17
@@ -383,8 +383,8 @@ story_mapping:
       status_note: "done: File/Git 消费方全部切换到 container.getXxxRepository()；GitOperationResult 泛型化；新增 container.test.ts（DI 可替换性）；AI 部分按 R3 defer"
 
 integration_gap_analysis:
-  summary: "Phase 2 全部完成：epi1-6 所有 story done（17/17 epics done、43/43 stories、0 backlog）。EPI6 服务层重构（epi6-04）已落地，File/Git 消费方全部切换到端口与适配器；AI 部分（R3 契约不匹配）defer 至后续独立处理。"
+  summary: "Phase 2 全部完成：epi1-6 所有 story done，且 epi1-epi6 的 retrospective 全部完成（17/17 epics done、43/43 stories、0 backlog）。EPI6 服务层重构（epi6-04）已落地，File/Git 消费方全部切换到端口与适配器；AI 部分（R3 契约不匹配）defer 至后续独立处理。"
   affected_areas: []
   recommended_next_steps:
-    - "补齐 epi1-epi6 的 retrospective（当前均 optional，非阻塞）"
     - "后续决策 AI 适配器契约：对齐 IAIRepository 与 aiService 的真实后端端点与请求字段"
+    - "清理跨 Epic 技术债务：激活 epi2 range-formatting E2E test.skip、修复 LSPContext providers 未 dispose 内存泄漏"
