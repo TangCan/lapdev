@@ -1,5 +1,5 @@
 # generated: 2026-07-27
-# last_updated: 2026-08-05 (epi3-02 ready-for-dev; 文件树虚拟滚动 story 创建)
+# last_updated: 2026-09-24 (epi3-02 done; epi3-03 create-story → ready-for-dev; epi4-6 待 backlog; summary 计数对齐)
 # project: lapdev
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-07-27
-# last_updated: 2026-08-05 (epi3-02 ready-for-dev; 文件树虚拟滚动 story 创建)
+# last_updated: 2026-09-24 (epi3-02 done; epi3-03 create-story → ready-for-dev; epi4-6 待 backlog; summary 计数对齐)
 project: lapdev
 project_key: NOKEY
 tracking_system: file-system
@@ -112,7 +112,8 @@ development_status:
   epic-11-retrospective: done
 
   # ========== Phase 2: 性能优化与架构改进 (EPI1-EPI6) — 进行中 ==========
-  # 说明：代码文件已创建，但尚未集成到应用中（未被实际使用）
+  # 说明：epi1/epi2 已全部集成完成；epi3-03 及 epi4-6 代码文件已预创建
+  #       但缺 story 文件且未集成到应用，状态标为 backlog，待重走 create-story → dev-story
 
   # Epic EPI1: 性能优化 - React 19 升级与编译器优化 (3 stories)
   epi1: in-progress
@@ -131,42 +132,43 @@ development_status:
   # Epic EPI3: 性能优化 - 并发渲染与虚拟滚动 (3 stories)
   epi3: in-progress
   epi3-01-file-search-concurrent-optimization: done
-  epi3-02-file-tree-virtual-scrolling: review
-  epi3-03-complex-operation-concurrent-processing: in-progress
+  epi3-02-file-tree-virtual-scrolling: done
+  epi3-03-complex-operation-concurrent-processing: ready-for-dev
   epi3-retrospective: optional
 
   # Epic EPI4: 架构改进 - Zustand 状态管理迁移 (3 stories)
   epi4: in-progress
-  epi4-01-zustand-store-gitcontext: in-progress
-  epi4-02-zustand-store-chatcontext: in-progress
-  epi4-03-zustand-store-themecontext: in-progress
+  epi4-01-zustand-store-gitcontext: backlog
+  epi4-02-zustand-store-chatcontext: backlog
+  epi4-03-zustand-store-themecontext: backlog
   epi4-retrospective: optional
 
   # Epic EPI5: 架构改进 - IDE 组件职责拆分 (4 stories)
   epi5: in-progress
-  epi5-01-create-useeditortabs-hook: in-progress
-  epi5-02-create-usefileoperations-hook: in-progress
-  epi5-03-create-usekeyboardshortcuts-hook: in-progress
-  epi5-04-create-independent-components: in-progress
+  epi5-01-create-useeditortabs-hook: backlog
+  epi5-02-create-usefileoperations-hook: backlog
+  epi5-03-create-usekeyboardshortcuts-hook: backlog
+  epi5-04-create-independent-components: backlog
   epi5-retrospective: optional
 
   # Epic EPI6: 架构改进 - 服务层重构 (4 stories)
   epi6: in-progress
-  epi6-01-create-core-domain-models: in-progress
-  epi6-02-create-port-interfaces: in-progress
-  epi6-03-create-api-adapter-implementation: in-progress
-  epi6-04-refactor-service-layer-ports-adapters: in-progress
+  epi6-01-create-core-domain-models: backlog
+  epi6-02-create-port-interfaces: backlog
+  epi6-03-create-api-adapter-implementation: backlog
+  epi6-04-refactor-service-layer-ports-adapters: backlog
   epi6-retrospective: optional
 
 summary:
   total_epics: 17
-  total_stories: 45
+  total_stories: 43
   epics_done: 11
   epics_in_progress: 6
   stories_done: 31
-  stories_in_progress: 11
-  stories_ready_for_dev: 4
+  stories_in_progress: 0
+  stories_ready_for_dev: 1
   stories_in_review: 0
+  stories_backlog: 11
 
 story_mapping:
   # Phase 1: 基础功能
@@ -317,7 +319,7 @@ story_mapping:
       title: "文件树虚拟滚动"
       key: "epi3-02-file-tree-virtual-scrolling"
       frs: ["UX-DR4"]
-      status_note: "VirtualList.tsx 已创建但未集成"
+      status_note: "done: useFileTreeFlatten + VirtualList 增强 + FileTree 集成，20 新单元测试；code review 12 项全部解决"
     - id: "EPI3.03"
       title: "复杂操作并发处理"
       key: "epi3-03-complex-operation-concurrent-processing"
