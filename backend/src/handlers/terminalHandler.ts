@@ -10,6 +10,18 @@ interface TerminalSession {
 
 const sessions = new Map<string, TerminalSession>();
 
+const HIGH_RISK_COMMANDS = [
+  /\bsudo\b/i,
+  /\bshutdown\b|\breboot\b|\bmkfs\b/i,
+  /rm\s+(-[^ ]*r[^ ]*f|--recursive).*\s+\//i,
+  /git\s+reset\s+--hard/i,
+  /:\(\)\s*\{.*:\|.*\}/,
+];
+
+export function isHighRiskCommand(command: string): boolean {
+  return HIGH_RISK_COMMANDS.some((pattern) => pattern.test(command));
+}
+
 export async function handleCreateTerminal(_req: Request): Promise<Response> {
   console.log('[handleCreateTerminal] Received request');
   const sessionId = crypto.randomUUID();
@@ -83,8 +95,7 @@ async function sendOrBufferOutput(sessionId: string, output: string): Promise<vo
   const session = sessions.get(sessionId);
   if (!session) return;
 
-  const displayOutput = output.replace(/[\x00-\x1F\x7F-\xFF]/g, c => `\\x${c.charCodeAt(0).toString(16).padStart(2, '0')}`);
-  console.log(`[sendOrBufferOutput] sessionId: ${sessionId}, raw output length: ${output.length}, display: "${displayOutput.substring(0, 80)}${displayOutput.length > 80 ? '...' : ''}"`);
+  console.log(`[sendOrBufferOutput] sessionId: ${sessionId}, output length: ${output.length}`);
 
   const ws = await import('../websocket/fileWatcher.ts').then(m => m.getTerminalClient(sessionId));
   if (ws) {
@@ -136,6 +147,15 @@ export async function handleTerminalCommand(req: Request): Promise<Response> {
       }), {
         headers: { 'Content-Type': 'application/json' },
         status: 400,
+      });
+    }
+
+    if (isHighRiskCommand(command)) {
+      const requestId = req.headers.get('X-Request-Id') || crypto.randomUUID();
+      console.info(JSON.stringify({ type: 'terminal_command_denied', requestId, sessionId, reason: 'high-risk-command' }));
+      return new Response(JSON.stringify({ error: { code: 'HIGH_RISK_COMMAND', message: 'Command denied by active policy', requestId } }), {
+        headers: { 'Content-Type': 'application/json', 'X-Request-Id': requestId },
+        status: 403,
       });
     }
 

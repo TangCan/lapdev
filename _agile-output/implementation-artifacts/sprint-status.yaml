@@ -22,7 +22,7 @@ development_status:
   epic-2: backlog
   2-1-unified-capability-context-and-policy-profile: done
   2-2-workspace-path-boundary-and-file-authorization: done
-  2-3-terminal-git-and-subprocess-least-privilege: backlog
+  2-3-terminal-git-and-subprocess-least-privilege: done
   2-4-websocket-session-auth-and-sensitive-data-protection: backlog
   epic-2-retrospective: optional
 

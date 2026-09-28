@@ -375,3 +375,10 @@ None。未生成 Pact 工件。
 - 修复：真实 symlink 目标及最近存在父目录均进行边界校验；修复 `/workspace-evil` 前缀误判。
 - UI/API 自动化：本 Story 无新增浏览器旅程，沿用后端边界测试。
 - 回归：Rust 测试通过；Rust fmt check 因既有 core 格式差异失败。仓库没有 `justfile`。
+
+## Story 2.3 自动化校验记录（2026-09-28）
+
+- 目标：验证高风险终端命令拒绝、审计信息脱敏以及正常终端行为保持。
+- 测试：`backend/src/handlers/terminalPolicy.test.ts`；`npm run test:backend` 11 tests / 39 steps passed。
+- 覆盖：sudo、rm -rf、git reset --hard、系统命令和 fork bomb 模式；普通 printf 命令允许。
+- 回归：Rust 测试通过；Rust fmt check 因既有 core 格式差异失败；无 `justfile`。
