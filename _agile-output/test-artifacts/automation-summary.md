@@ -407,3 +407,10 @@ None。未生成 Pact 工件。
 - `test-result-classifier.test.ts` 覆盖环境限制、断言失败和通过分类。
 - `redaction.test.ts` 覆盖 API key/prompt 脱敏和大字段截断。
 - `./scripts/validate-runtime-contract.sh`：passed；Rust test passed；Rust fmt 仍有既有差异；仓库没有 `justfile`。
+
+## Final regression baseline (2026-09-28)
+
+- `npm test`: frontend/backend/unit/API layers passed; E2E `163 passed, 9 failed, 40 skipped, 3 did not run`.
+- E2E failures: four code-editor journeys, three format-concurrent journeys, large-file save, and range-formatting Ctrl+S save. These are existing editor/formatting/large-file baseline failures and are not attributed to the BMAD/security/state infrastructure changes.
+- `cargo clean --manifest-path core/Cargo.toml`: passed; `cargo test --manifest-path core/Cargo.toml --all`: passed with zero Rust tests; `cargo fmt --check`: failed on pre-existing formatting differences in `core/src/fs.rs`, `core/src/lib.rs`, and `core/src/types.rs`.
+- `just test`: unavailable because the repository has no `justfile`.

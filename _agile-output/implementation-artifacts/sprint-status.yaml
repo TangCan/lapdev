@@ -13,34 +13,34 @@ tracking_system: file-system
 story_location: "_agile-output/planning-artifacts/epics.md"
 
 development_status:
-  epic-1: backlog
+  epic-1: done
   1-1-unified-runtime-command-and-project-contract: done
   1-2-unified-bmad-artifact-path-and-migration: done
   1-3-codex-bmad-skill-discovery-diagnostics: done
   epic-1-retrospective: optional
 
-  epic-2: backlog
+  epic-2: done
   2-1-unified-capability-context-and-policy-profile: done
   2-2-workspace-path-boundary-and-file-authorization: done
   2-3-terminal-git-and-subprocess-least-privilege: done
   2-4-websocket-session-auth-and-sensitive-data-protection: done
   epic-2-retrospective: optional
 
-  epic-3: backlog
+  epic-3: done
   3-1-backend-authoritative-state-and-revision-model: done
   3-2-versioned-event-envelope: done
   3-3-reconnect-sync-and-stale-event-handling: done
   3-4-file-agent-and-live-capability-event-coordination: done
   epic-3-retrospective: optional
 
-  epic-4: backlog
+  epic-4: done
   4-1-configurable-skill-source-registry: done
   4-2-skill-parse-refresh-and-health-diagnostics: done
   4-3-lsp-manager-workspace-session-lifecycle: done
   4-4-language-adapter-health-and-recovery: done
   epic-4-retrospective: optional
 
-  epic-5: backlog
+  epic-5: done
   5-1-layered-tests-and-environment-failure-classification: done
   5-2-docs-runtime-contract-drift-gate: done
   5-3-least-privilege-container-and-deployment-gate: done
