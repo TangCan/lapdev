@@ -1,7 +1,7 @@
 ---
-stepsCompleted: ['step-01-preflight-and-context', 'step-02-identify-targets', 'step-01-preflight-and-context-epi202']
-lastStep: 'step-01-preflight-and-context-epi202'
-lastSaved: '2026-07-29'
+stepsCompleted: ['step-01-preflight-and-context', 'step-02-identify-targets', 'step-01-preflight-and-context-epi202', 'step-03-generate-tests', 'step-03c-aggregate', 'step-04-validate-and-summarize']
+lastStep: 'step-04-validate-and-summarize'
+lastSaved: '2026-09-28'
 inputDocuments:
   - implementation_artifacts/epi2-02-large-file-optimization.md
   - frontend/src/utils/monacoOptimizer.ts
@@ -14,9 +14,59 @@ inputDocuments:
   - .trae/skills/bmad-testarch-automate/resources/knowledge/test-quality.md
   - .trae/skills/bmad-testarch-automate/resources/knowledge/overview.md
   - .trae/skills/bmad-testarch-automate/resources/knowledge/playwright-cli.md
+  - _agile-output/specs/spec-lapdev-platform/stories/1-1-unified-runtime-command-and-project-contract.md
+  - scripts/validate-runtime-contract.sh
+  - tests/unit/runtime-contract.test.ts
 ---
 
 # EPI2.02 大文件优化配置 - 测试自动化扩展计划
+
+## Story 1.1 自动化校验记录（2026-09-28）
+
+### 预检与上下文
+
+- 检测栈：Fullstack（React/Vite/Playwright + Deno 后端）。
+- 测试框架：根目录 Playwright、前端 Vitest、Deno 单元/后端测试框架均已存在。
+- BMad 集成：加载 Story 1.1、Epic 1 context、运行时配置和现有测试结构。
+- 浏览器探索：跳过；`playwright-cli` 未安装，且本 Story 没有 UI 验收目标。
+- Pact：跳过；本 Story 没有服务契约交互或 Pact 工件。
+
+### 覆盖计划
+
+| AC | 目标 | 层级 | 优先级 | 现有自动化覆盖 |
+| --- | --- | --- | --- | --- |
+| AC-1 | README 命令、前端 `dev` 脚本和生产发布脚本可解析 | Deno unit + shell fixture | P1 | `runtime-contract.test.ts` valid case |
+| AC-2 | package/config/backend/CI/README/architecture 版本和端口一致 | Deno unit + shell fixture | P1 | source-derived assertions |
+| AC-3 | 文档或命令漂移返回 `DRIFT` 和退出码 1 | Deno unit integration-style fixture | P1 | temporary drift fixture |
+| AC-4 | 缺少 shell 工具返回 `ENVIRONMENT` 和退出码 2 | Deno unit integration-style fixture | P1 | restricted PATH fixture |
+
+没有新增 API、E2E 或后端业务测试目标：这些层级会重复覆盖本 Story 的静态运行时契约。生成阶段采用 Codex 当前会话可用的 sequential inline fallback，没有伪造不可用子代理的输出文件。
+
+### 文件与验证
+
+- 更新：`scripts/validate-runtime-contract.sh`、`README.md`、`docs/architecture.md`。
+- 更新：`tests/unit/runtime-contract.test.ts`，从源码字符串检查扩展为真实 checker 执行、漂移 fixture 和环境 fixture。
+- 验证：6 个 Story 聚焦测试通过；全量 Deno 单元测试 142 passed / 0 failed。
+- 验证：`./scripts/validate-runtime-contract.sh` 输出 `OK: runtime contract is consistent`。
+- 回归：`cargo test --manifest-path core/Cargo.toml --all` 通过；`cargo fmt --manifest-path core/Cargo.toml --all -- --check` 因既有 `core/src/fs.rs`、`core/src/lib.rs`、`core/src/types.rs` 格式差异失败，未扩大本 Story 范围自动改写。
+- 回归：仓库没有 `justfile`，因此用户示例中的 `just test` 无法执行；按仓库实际入口运行 `npm test`，结果为 162 passed、10 failed、40 skipped、3 did not run。失败集中在既有 AI/编辑器/格式化/大文件 E2E，未发现与运行时契约变更直接相关的失败。
+
+### Playwright Utils deviations
+
+None。无新增 Playwright 测试文件。
+
+### Pact.js Utils deviations
+
+None。未生成 Pact 工件。
+
+### 风险与假设
+
+- 环境 fixture 使用绝对路径 `/usr/bin/bash`，适用于当前 Linux CI/开发环境；如果未来需要跨平台执行，应将 shell checker 迁移为跨平台运行器或在 CI 中明确 Linux 约束。
+- `docs/research/` 和历史规划文档中的旧版本声明未被强行改写；当前运行时文档 `docs/architecture.md` 已纳入检查。
+
+### 下一步
+
+执行项目回归测试；后续 Story 若包含 UI/API 行为，再单独生成 Playwright/API 自动化测试。
 
 ## Step 1: 预检与上下文加载 (EPI2.02)
 

@@ -84,3 +84,8 @@ Requirements: FR1, NFR8
 - `./scripts/validate-runtime-contract.sh` -- expected: `OK: runtime contract is consistent`.
 - `deno test --allow-read --allow-run --allow-write --allow-env --allow-sys tests/unit/runtime-contract.test.ts` -- expected: 6 tests pass, including valid, drift and environment fixtures.
 - `npm run test:unit` -- expected: full Deno unit suite passes.
+
+- `cargo test --manifest-path core/Cargo.toml --all` -- passed (crate currently has no Rust tests).
+- `cargo fmt --manifest-path core/Cargo.toml --all -- --check` -- failed on pre-existing formatting differences in `core/src/fs.rs`, `core/src/lib.rs`, and `core/src/types.rs`; no unrelated formatting rewrite was applied.
+- `npm test` -- failed with 162 passed, 10 failed, 40 skipped, and 3 not run; failures were in existing AI/editor/formatting/large-file E2E scenarios and are recorded as regression baseline, not attributed to this Story.
+- `just test` -- not runnable because the repository has no `justfile`; the repository-defined `npm test` suite was used instead.
