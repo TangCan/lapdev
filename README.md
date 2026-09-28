@@ -41,14 +41,14 @@ Lapdev 是一款现代化的开源 Web IDE，集成了 AI 智能辅助功能，�
 
 | 层级 | 技术 | 版本 |
 |------|------|------|
-| **前端框架** | React | 18.2.0 |
+| **前端框架** | React | 19.2.0 |
 | **前端语言** | TypeScript | 5.5.0 |
 | **构建工具** | Vite | 6.0.0 |
 | **样式框架** | Tailwind CSS | 4.3.2 |
 | **代码编辑器** | Monaco Editor | 0.55.1 |
 | **终端组件** | xterm.js | 5.5.0 |
 | **后端语言** | Deno | - |
-| **测试框架** | Vitest / Playwright | 2.0.5 / 1.44.0 |
+| **测试框架** | Vitest / Playwright | 2.0.5 / 1.60.0 |
 
 ---
 
@@ -57,7 +57,7 @@ Lapdev 是一款现代化的开源 Web IDE，集成了 AI 智能辅助功能，�
 ### 环境要求
 
 - Node.js >= 20.x
-- Deno >= 1.42.0
+- Deno >= 2.8.2
 - Docker / Podman（可选，用于容器部署）
 
 ### 开发环境
@@ -74,7 +74,7 @@ npm install
 # 返回项目根目录
 cd ..
 
-# 启动开发服务器
+# 启动前端开发服务器
 npm run dev
 
 # 访问地址: http://localhost:5173
@@ -90,8 +90,8 @@ npm run build
 # 返回项目根目录
 cd ..
 
-# 启动生产服务器
-npm run start
+# 构建并启动容器化生产服务
+./scripts/release.sh
 ```
 
 ---
