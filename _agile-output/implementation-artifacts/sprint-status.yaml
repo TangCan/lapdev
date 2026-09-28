@@ -1,0 +1,50 @@
+# generated: 09-28-2026 18:32
+# last_updated: 09-28-2026 18:32
+# This status file was generated manually from the current epics.md because the
+# deterministic generator could not import ruamel.yaml in the current environment.
+# Legacy implementation_artifacts/sprint-status.yaml was not merged: it tracks a
+# completed, different performance-optimization plan.
+
+generated: 09-28-2026 18:32
+last_updated: 09-28-2026 18:32
+project: lapdev
+project_key: NOKEY
+tracking_system: file-system
+story_location: "_agile-output/planning-artifacts/epics.md"
+
+development_status:
+  epic-1: backlog
+  1-1-unified-runtime-command-and-project-contract: backlog
+  1-2-unified-bmad-artifact-path-and-migration: backlog
+  1-3-codex-bmad-skill-discovery-diagnostics: backlog
+  epic-1-retrospective: optional
+
+  epic-2: backlog
+  2-1-unified-capability-context-and-policy-profile: backlog
+  2-2-workspace-path-boundary-and-file-authorization: backlog
+  2-3-terminal-git-and-subprocess-least-privilege: backlog
+  2-4-websocket-session-auth-and-sensitive-data-protection: backlog
+  epic-2-retrospective: optional
+
+  epic-3: backlog
+  3-1-backend-authoritative-state-and-revision-model: backlog
+  3-2-versioned-event-envelope: backlog
+  3-3-reconnect-sync-and-stale-event-handling: backlog
+  3-4-file-agent-and-live-capability-event-coordination: backlog
+  epic-3-retrospective: optional
+
+  epic-4: backlog
+  4-1-configurable-skill-source-registry: backlog
+  4-2-skill-parse-refresh-and-health-diagnostics: backlog
+  4-3-lsp-manager-workspace-session-lifecycle: backlog
+  4-4-language-adapter-health-and-recovery: backlog
+  epic-4-retrospective: optional
+
+  epic-5: backlog
+  5-1-layered-tests-and-environment-failure-classification: backlog
+  5-2-docs-runtime-contract-drift-gate: backlog
+  5-3-least-privilege-container-and-deployment-gate: backlog
+  5-4-observability-and-audit-quality-gate: backlog
+  epic-5-retrospective: optional
+
+action_items: []

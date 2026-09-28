@@ -1,0 +1,53 @@
+- id: "1"
+  title: 统一运行时、BMAD 产物与技能发现契约
+  description: >-
+    统一启动命令、端口、版本、_agile-output 产物路径和 .agents/skills 主发现路径，
+    同时为 legacy .lapdev/skills 与 implementation_artifacts 建立可解释的兼容/迁移边界。
+  invoke_dev_with: >-
+    先核对 package.json、frontend/package.json、_bmad 配置和 skillService.ts；不要把旧路径
+    静默复制为新路径，必须保留来源、冲突和迁移诊断。
+
+- id: "2"
+  title: Capability policy、安全边界与审计
+  description: >-
+    为文件、终端、Git、LSP、AI 和 Agent 操作建立统一 capability context、policy profile、
+    workspace 边界、WebSocket 会话绑定和高风险操作审计。
+  invoke_dev_with: >-
+    保持本地可信模式与远程共享模式可分层；不得用 Origin 检查或 Deno -A 替代应用授权，
+    并为越界路径、未认证连接和未授权能力编写测试。
+
+- id: "3"
+  title: 后端权威状态与版本化事件封装
+  description: >-
+    让后端成为 workspace/session/file 等外部状态的唯一 owner，并为 HTTP/WebSocket、文件、
+    终端、Agent 和 LSP 事件提供统一的 versioned envelope 与 revision 语义。
+  invoke_dev_with: >-
+    事件至少覆盖 type、version、workspaceId、sessionId、revision、requestId 和统一错误结构；
+    明确乱序、重复、重连和 stale mutation 的处理，不让前端与后端双重写入。
+
+- id: "4"
+  title: SkillRegistry 与 legacy 技能兼容
+  description: >-
+    实现 registry/source-adapter 模型，解析 SKILL.md、去重并暴露来源、启用状态、刷新时间、
+    版本和错误，使 Codex/BMAD 技能可见且 legacy 技能兼容边界可诊断。
+  invoke_dev_with: >-
+    .agents/skills 是主来源，.lapdev/skills 仅是明确标记的 legacy 来源；注册表不得复制或改写
+    技能内容，也不得静默解决同名技能冲突。
+
+- id: "5"
+  title: LSP Manager 生命周期管理
+  description: >-
+    将语言服务器进程、workspace/session 关联、能力协商、请求取消、诊断 revision、健康状态、
+    崩溃恢复和资源回收集中到后端 LSP Manager。
+  invoke_dev_with: >-
+    前端只能通过后端 LSP capability 使用语言服务；新增语言只增加 adapter/config，不能复制
+    transport、授权或进程生命周期逻辑。
+
+- id: "6"
+  title: CI、文档漂移检查与交付质量门禁
+  description: >-
+    把测试、lint、类型检查、文档命令/版本/端口/产物路径检查、最小权限启动和容器健康检查
+    组织成发布前可解释的质量门禁。
+  invoke_dev_with: >-
+    区分 sandbox/环境限制与真实断言失败；镜像发布前必须有分层测试和 docs drift 信号，
+    不要通过放宽断言来隐藏 React Compiler 或运行时契约问题。
