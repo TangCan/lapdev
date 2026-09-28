@@ -34,10 +34,10 @@ development_status:
   epic-3-retrospective: optional
 
   epic-4: backlog
-  4-1-configurable-skill-source-registry: backlog
-  4-2-skill-parse-refresh-and-health-diagnostics: backlog
-  4-3-lsp-manager-workspace-session-lifecycle: backlog
-  4-4-language-adapter-health-and-recovery: backlog
+  4-1-configurable-skill-source-registry: done
+  4-2-skill-parse-refresh-and-health-diagnostics: done
+  4-3-lsp-manager-workspace-session-lifecycle: done
+  4-4-language-adapter-health-and-recovery: done
   epic-4-retrospective: optional
 
   epic-5: backlog
