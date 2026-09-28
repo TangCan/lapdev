@@ -367,3 +367,11 @@ None。未生成 Pact 工件。
 - 覆盖：本地可信请求、远程未认证拒绝、allowlist 越权拒绝、HTTP 路由和 WebSocket upgrade 入口策略检查。
 - Pact/Playwright：无服务契约或 UI 验收目标，未生成重复测试。
 - 回归：Rust 测试通过；Rust fmt check 因既有 core 格式差异失败。仓库没有 `justfile`，因此未执行 `just test`。
+
+## Story 2.2 自动化校验记录（2026-09-28）
+
+- 目标：验证文件服务和 Agent 操作在 lexical 与 real-path 层面均不越出 workspace。
+- 测试：`npm run test:backend` 10 tests / 39 steps passed；现有 Agent 测试覆盖遍历、越权和嵌套创建。
+- 修复：真实 symlink 目标及最近存在父目录均进行边界校验；修复 `/workspace-evil` 前缀误判。
+- UI/API 自动化：本 Story 无新增浏览器旅程，沿用后端边界测试。
+- 回归：Rust 测试通过；Rust fmt check 因既有 core 格式差异失败。仓库没有 `justfile`。
