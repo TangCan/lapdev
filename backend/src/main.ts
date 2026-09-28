@@ -130,7 +130,7 @@ async function handleRequest(req: Request): Promise<Response> {
     auditCapabilityDecision(context, 'files', decision);
     if (!decision.allowed) return capabilityError(context, decision);
     const { socket, response } = Deno.upgradeWebSocket(req);
-    handleWebSocket(socket as unknown as WebSocket);
+    handleWebSocket(socket as unknown as WebSocket, context);
     return response;
   }
 

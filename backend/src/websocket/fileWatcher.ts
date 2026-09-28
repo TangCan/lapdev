@@ -1,4 +1,5 @@
 // Deno WebSocket API is built-in, no external import needed
+import type { CapabilityContext } from '../security/capability.ts';
 
 const WORKSPACE_DIR = Deno.env.get('WORKSPACE_PATH') || `${Deno.cwd()}/../workspace`;
 
@@ -20,6 +21,10 @@ let watcher: Deno.FsWatcher | null = null;
 // Terminal sessions mapped by session ID
 const terminalClients = new Map<string, WebSocket>();
 
+export function isSessionBound(context: CapabilityContext | undefined, sessionId: string): boolean {
+  return !context?.sessionId || context.sessionId === 'http-request' || context.sessionId === sessionId;
+}
+
 // Track client subscriptions
 interface ClientState {
   ws: WebSocket;
@@ -27,6 +32,7 @@ interface ClientState {
   isAlive: boolean;
   heartbeatTimer?: number;
   subscribedToGit: boolean;
+  context?: CapabilityContext;
 }
 const clientStates = new Map<WebSocket, ClientState>();
 
@@ -87,7 +93,7 @@ export function getTerminalClient(sessionId: string): WebSocket | undefined {
   return terminalClients.get(sessionId);
 }
 
-export function handleWebSocket(ws: WebSocket): void {
+export function handleWebSocket(ws: WebSocket, context?: CapabilityContext): void {
   clients.add(ws);
   
   // Initialize client state for heartbeat tracking
@@ -96,6 +102,7 @@ export function handleWebSocket(ws: WebSocket): void {
     lastActivity: Date.now(),
     isAlive: true,
     subscribedToGit: false,
+    context,
   };
   clientStates.set(ws, clientState);
   
@@ -141,6 +148,10 @@ export function handleWebSocket(ws: WebSocket): void {
           break;
         case 'terminalRegister':
           if (message.sessionId) {
+            if (!isSessionBound(clientState.context, message.sessionId)) {
+              await ws.send(JSON.stringify({ type: 'error', code: 'SESSION_MISMATCH', message: 'WebSocket session does not match terminal session' }));
+              break;
+            }
             console.log(`[terminalRegister] Received for session ${message.sessionId}`);
             registerTerminalClient(message.sessionId, ws);
             const { flushPendingOutput } = await import('../handlers/terminalHandler.ts');

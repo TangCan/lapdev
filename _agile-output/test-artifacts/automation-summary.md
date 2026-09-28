@@ -382,3 +382,10 @@ None。未生成 Pact 工件。
 - 测试：`backend/src/handlers/terminalPolicy.test.ts`；`npm run test:backend` 11 tests / 39 steps passed。
 - 覆盖：sudo、rm -rf、git reset --hard、系统命令和 fork bomb 模式；普通 printf 命令允许。
 - 回归：Rust 测试通过；Rust fmt check 因既有 core 格式差异失败；无 `justfile`。
+
+## Story 2.4 自动化校验记录（2026-09-28）
+
+- 目标：验证 WebSocket policy gate、会话绑定和敏感输出日志保护。
+- 测试：`backend/src/websocket/sessionBinding.test.ts`；`npm run test:backend` 12 tests / 39 steps passed。
+- 覆盖：绑定会话匹配、跨会话终端注册拒绝、WebSocket upgrade policy gate、输出仅记录长度。
+- 回归：Rust 测试通过；Rust fmt check 因既有 core 格式差异失败；无 `justfile`。
