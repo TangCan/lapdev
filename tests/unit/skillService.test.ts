@@ -158,3 +158,16 @@ Deno.test({
     await Deno.remove(tempDir);
   },
 });
+
+Deno.test({
+  name: "@p1 skillService - reports Codex primary source and diagnostics",
+  fn: () => {
+    const result = skillService.reload();
+    const primary = result.sources?.find((source) => source.label === "codex-primary");
+    assertEquals(primary?.path, ".agents/skills");
+    assertEquals(primary?.available, true);
+    assert(result.skills.some((skill) => skill.source === "codex-primary"));
+    assert(Array.isArray(result.diagnostics));
+    assertEquals(skillService.getDiscoveryDiagnostics(), result.diagnostics);
+  },
+});

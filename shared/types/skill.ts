@@ -17,12 +17,23 @@ export interface Skill {
   publishedBy?: string;
   downloadUrl?: string;
   matchScore?: number;
+  source?: 'codex-primary' | 'lapdev-legacy' | 'lapdev-global';
+}
+
+export interface SkillDiscoveryDiagnostic {
+  code: 'duplicate' | 'missing-skill-file' | 'parse-failure' | 'source-unavailable';
+  source: string;
+  path: string;
+  message: string;
+  severity: 'warning' | 'error';
 }
 
 export interface SkillLoadResult {
   skills: Skill[];
   globalCount: number;
   projectCount: number;
+  diagnostics?: SkillDiscoveryDiagnostic[];
+  sources?: Array<{ path: string; label: 'codex-primary' | 'lapdev-legacy' | 'lapdev-global'; available: boolean }>;
 }
 
 export interface SkillPublishRequest {

@@ -2,6 +2,7 @@ export type {
   SkillTrigger,
   Skill,
   SkillLoadResult,
+  SkillDiscoveryDiagnostic,
   SkillPublishRequest,
   SkillPublishResponse,
   SkillMarketEntry,

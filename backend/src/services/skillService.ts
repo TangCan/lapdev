@@ -1,5 +1,5 @@
 import * as yaml from 'js-yaml';
-import type { Skill, SkillTrigger, SkillLoadResult } from '../types/skill.ts';
+import type { Skill, SkillTrigger, SkillLoadResult, SkillDiscoveryDiagnostic } from '../types/skill.ts';
 
 const PATH_TRAVERSAL_PATTERN = /\.\.[\/\\]/;
 const VALID_PATH_PATTERN = /^[a-zA-Z0-9_\-\.\/\\:~]+$/;
@@ -8,11 +8,14 @@ export class SkillService {
   private skills: Skill[] = [];
   private globalSkillsDir: string;
   private projectSkillsDir: string;
+  private codexSkillsDir: string;
+  private diagnostics: SkillDiscoveryDiagnostic[] = [];
 
   constructor() {
     const home = Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '/';
     this.globalSkillsDir = `${home}/.lapdev/skills`;
     this.projectSkillsDir = `${Deno.cwd()}/.lapdev/skills`;
+    this.codexSkillsDir = `${Deno.cwd()}/.agents/skills`;
   }
 
   validateSkillPath(filePath: string): void {
@@ -60,22 +63,43 @@ export class SkillService {
 
   loadSkills(): SkillLoadResult {
     const allSkills: Skill[] = [];
+    this.diagnostics = [];
     let globalCount = 0;
     let projectCount = 0;
 
+    const sources: SkillLoadResult['sources'] = [
+      { path: '.agents/skills', label: 'codex-primary', available: this.existsSync(this.codexSkillsDir) },
+      { path: '.lapdev/skills', label: 'lapdev-legacy', available: this.existsSync(this.projectSkillsDir) },
+      { path: '~/.lapdev/skills', label: 'lapdev-global', available: this.existsSync(this.globalSkillsDir) },
+    ];
+
+    if (this.existsSync(this.codexSkillsDir)) {
+      const primary = this.loadCodexSkills(this.codexSkillsDir);
+      allSkills.push(...primary);
+      projectCount += primary.length;
+    } else {
+      this.diagnostics.push({ code: 'source-unavailable', source: 'codex-primary', path: '.agents/skills', message: 'Codex primary skill source is unavailable', severity: 'warning' });
+    }
+
     if (this.existsSync(this.globalSkillsDir)) {
       const globalSkills = this.loadSkillsFromDir(this.globalSkillsDir);
-      allSkills.push(...globalSkills);
+      for (const globalSkill of globalSkills) {
+        if (allSkills.some((skill) => skill.name === globalSkill.name)) {
+          this.diagnostics.push({ code: 'duplicate', source: 'lapdev-global', path: globalSkill.fileName, message: `Duplicate skill identity "${globalSkill.name}"; global source is lower precedence`, severity: 'warning' });
+        } else {
+          allSkills.push({ ...globalSkill, source: 'lapdev-global' as const });
+        }
+      }
       globalCount = globalSkills.length;
     }
 
     if (this.existsSync(this.projectSkillsDir)) {
-      const projectSkills = this.loadSkillsFromDir(this.projectSkillsDir);
+      const projectSkills = this.loadSkillsFromDir(this.projectSkillsDir).map((skill) => ({ ...skill, source: 'lapdev-legacy' as const }));
       
       for (const projectSkill of projectSkills) {
         const existingIndex = allSkills.findIndex(s => s.name === projectSkill.name);
         if (existingIndex !== -1) {
-          allSkills[existingIndex] = projectSkill;
+          this.diagnostics.push({ code: 'duplicate', source: 'lapdev-legacy', path: projectSkill.fileName, message: `Duplicate skill identity "${projectSkill.name}"; legacy source is lower precedence`, severity: 'warning' });
         } else {
           allSkills.push(projectSkill);
         }
@@ -84,7 +108,36 @@ export class SkillService {
     }
 
     this.skills = allSkills;
-    return { skills: allSkills, globalCount, projectCount };
+    return { skills: allSkills, globalCount, projectCount, diagnostics: this.diagnostics, sources };
+  }
+
+  private loadCodexSkills(dir: string): Skill[] {
+    const skills: Skill[] = [];
+    try {
+      for (const entry of Deno.readDirSync(dir)) {
+        if (!entry.isDirectory) continue;
+        const skillPath = `${dir}/${entry.name}/SKILL.md`;
+        if (!this.existsSync(skillPath)) {
+          this.diagnostics.push({ code: 'missing-skill-file', source: 'codex-primary', path: skillPath, message: 'Skill directory has no SKILL.md', severity: 'warning' });
+          continue;
+        }
+        try {
+          const skill = this.parseSkillContent(Deno.readTextFileSync(skillPath), 'SKILL.md');
+          const withSource = { ...skill, source: 'codex-primary' as const };
+          const duplicate = skills.some((candidate) => candidate.name === withSource.name);
+          if (duplicate) {
+            this.diagnostics.push({ code: 'duplicate', source: 'codex-primary', path: skillPath, message: `Duplicate skill identity "${withSource.name}"`, severity: 'error' });
+            continue;
+          }
+          skills.push(withSource);
+        } catch (error) {
+          this.diagnostics.push({ code: 'parse-failure', source: 'codex-primary', path: skillPath, message: error instanceof Error ? error.message : String(error), severity: 'error' });
+        }
+      }
+    } catch (error) {
+      this.diagnostics.push({ code: 'source-unavailable', source: 'codex-primary', path: dir, message: error instanceof Error ? error.message : String(error), severity: 'error' });
+    }
+    return skills;
   }
 
   private existsSync(path: string): boolean {
@@ -128,6 +181,10 @@ export class SkillService {
 
   getSkills(): Skill[] {
     return this.skills;
+  }
+
+  getDiscoveryDiagnostics(): SkillDiscoveryDiagnostic[] {
+    return [...this.diagnostics];
   }
 
   getSkillByName(name: string): Skill | undefined {
