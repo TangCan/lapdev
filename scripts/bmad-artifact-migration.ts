@@ -45,11 +45,6 @@ try {
     } catch (error) {
       if (!(error instanceof Deno.errors.NotFound)) throw error;
     }
-    if (status === "pending" && migrate) {
-      await Deno.mkdir(destination.substring(0, destination.lastIndexOf("/")), { recursive: true });
-      await Deno.copyFile(source, destination);
-      status = "migrated";
-    }
     entries.push({ source: relative, destination: relative, status });
   }
 } catch (error) {
@@ -57,6 +52,16 @@ try {
 }
 
 const hasConflict = entries.some((entry) => entry.status === "conflict");
+if (migrate && !hasConflict) {
+  for (const entry of entries) {
+    if (entry.status !== "pending") continue;
+    const source = `${sourceRoot}/${entry.source}`;
+    const destination = `${destinationRoot}/${entry.destination}`;
+    await Deno.mkdir(destination.substring(0, destination.lastIndexOf("/")), { recursive: true });
+    await Deno.copyFile(source, destination);
+    entry.status = "migrated";
+  }
+}
 console.log(JSON.stringify({
   currentStatus: "_agile-output/implementation-artifacts/sprint-status.yaml",
   currentRoot: "_agile-output",

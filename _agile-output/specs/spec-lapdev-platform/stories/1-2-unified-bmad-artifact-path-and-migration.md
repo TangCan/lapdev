@@ -45,3 +45,11 @@ story: 2
 - `deno test --allow-read --allow-run --allow-write tests/unit/bmad-artifact-migration.test.ts` — 3 passed.
 - `deno run --allow-read --allow-write scripts/bmad-artifact-migration.ts` — report generated; legacy files remain `pending` until explicit migration.
 - `git diff --check` — passed.
+- `cargo clean --manifest-path core/Cargo.toml` — passed.
+- `cargo test --manifest-path core/Cargo.toml --all` — passed (crate currently has no Rust tests).
+- `cargo fmt --manifest-path core/Cargo.toml --all -- --check` — failed on pre-existing formatting differences; no unrelated rewrite was applied.
+- `just test` — unavailable because the repository has no `justfile`.
+
+## Review Triage Log
+
+- `[patch]` Review identified that a conflict could otherwise leave a partial migration. The implementation now performs a complete preflight and copies nothing when any conflict exists; the regression test covers this behavior.

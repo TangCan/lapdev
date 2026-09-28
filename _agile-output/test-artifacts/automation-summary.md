@@ -68,6 +68,15 @@ None。未生成 Pact 工件。
 
 执行项目回归测试；后续 Story 若包含 UI/API 行为，再单独生成 Playwright/API 自动化测试。
 
+## Story 1.2 自动化校验记录（2026-09-28）
+
+- 目标：验证 BMAD 当前产物根、legacy 目录映射、显式迁移和冲突保护。
+- 自动化层级：Deno unit/integration-style subprocess tests；本 Story 无 UI/API 行为，因此未新增 Playwright 或 Pact 测试。
+- 测试文件：`tests/unit/bmad-artifact-migration.test.ts`。
+- 覆盖：只读 `pending` 报告、相同文件 `migrated`、差异文件 `conflict`、冲突时不发生部分迁移；4 passed。
+- 工具：`scripts/bmad-artifact-migration.ts` 默认只读，`--migrate` 才复制到 `_agile-output/implementation-artifacts/legacy-migrated/`。
+- 回归：Rust 测试通过；Rust fmt check 仍因既有 core 格式差异失败。仓库没有 `justfile`，因此未执行 `just test`。
+
 ## Step 1: 预检与上下文加载 (EPI2.02)
 
 ### 栈检测

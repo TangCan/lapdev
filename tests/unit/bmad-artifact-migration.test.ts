@@ -53,3 +53,15 @@ Deno.test("refuses a conflicting destination and never overwrites it", async () 
   assertEquals(JSON.parse(result.stdout).entries[0].status, "conflict");
   assertEquals(await Deno.readTextFile(`${root}/_agile-output/implementation-artifacts/legacy-migrated/conflict.md`), "current");
 });
+
+Deno.test("does not partially migrate when any conflict exists", async () => {
+  const root = await Deno.makeTempDir({ prefix: "bmad-migration-" });
+  await Deno.mkdir(`${root}/implementation_artifacts`, { recursive: true });
+  await Deno.mkdir(`${root}/_agile-output/implementation-artifacts/legacy-migrated`, { recursive: true });
+  await Deno.writeTextFile(`${root}/implementation_artifacts/a.md`, "a");
+  await Deno.writeTextFile(`${root}/implementation_artifacts/conflict.md`, "legacy");
+  await Deno.writeTextFile(`${root}/_agile-output/implementation-artifacts/legacy-migrated/conflict.md`, "current");
+  const result = await run(["--root", root, "--migrate"]);
+  assertEquals(result.code, 2);
+  assert(!(await Deno.stat(`${root}/_agile-output/implementation-artifacts/legacy-migrated/a.md`).catch(() => null)));
+});
