@@ -21,7 +21,7 @@ story: 3
 - [x] Report primary, legacy and global sources without copying or rewriting skill files.
 - [x] Report duplicate identities, missing `SKILL.md`, parse failures and unavailable sources.
 - [x] Add focused discovery tests and expose diagnostics through the load result.
-- [ ] Run code review, automation and regression checks; record findings.
+- [x] Run code review, automation and regression checks; record findings.
 
 ### Acceptance Criteria
 
@@ -40,3 +40,16 @@ story: 3
 ## Dev Notes
 
 `bmad-create-story` is not installed in this Codex workspace; this colocated spec is the documented fallback. `.agents/skills` has precedence over legacy/global sources and skill content remains read-only.
+
+## Verification
+
+- `deno test --allow-all tests/unit/skillService.test.ts` — 11 passed.
+- `npm run test:unit` — 147 passed / 0 failed.
+- `cargo test --manifest-path core/Cargo.toml --all` — passed; crate currently has no Rust tests.
+- `cargo fmt --manifest-path core/Cargo.toml --all -- --check` — failed on pre-existing formatting differences in core sources.
+- `just test` — unavailable because the repository has no `justfile`.
+
+## Review Triage Log
+
+- `[pass]` Primary Codex source wins over legacy/global duplicate identities; duplicate diagnostics identify the lower-precedence source.
+- `[pass]` Discovery is read-only and reports missing, malformed and unavailable source conditions without rewriting skill files.

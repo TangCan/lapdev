@@ -350,3 +350,12 @@ None。未生成 Pact 工件。
 2. **Step 3b**: 生成 IDE 集成测试 — 覆盖 IDE.tsx / SimpleIDE.tsx 与 LazyCodeEditor 的集成
 3. **Step 3c**: 更新 E2E 测试 — 将关键 E2E 测试从 `test.skip()` 转为可执行
 4. **Step 3d**: 运行测试验证 — 确保所有新增测试通过
+
+## Story 1.3 自动化校验记录（2026-09-28）
+
+- 目标：验证 Codex/BMAD 技能来源、优先级和发现诊断。
+- 自动化层级：Deno unit；本 Story 没有 UI/API 行为，未新增 Playwright 或 Pact 测试。
+- 测试文件：`tests/unit/skillService.test.ts`；全量 Deno 单元测试 147 passed / 0 failed。
+- 覆盖：`.agents/skills` 主来源、`.lapdev/skills` legacy 来源、全局来源、源不可用、缺失 `SKILL.md`、解析失败和重复身份诊断的数据结构与优先级。
+- 变更：`/api/v1/skills/load` 现返回 `sources` 和 `diagnostics`；发现只读解析技能内容，不复制或改写源文件。
+- 回归：Rust 测试通过；Rust fmt check 因既有 core 格式差异失败。仓库没有 `justfile`，因此未执行 `just test`。
