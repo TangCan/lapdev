@@ -52,7 +52,33 @@ function sanitizePath(path: string): string {
     (error as any).code = 'FORBIDDEN';
     throw error;
   }
-  
+
+  // Resolve existing symlinks (and the parent for new files) before any I/O.
+  // Lexical prefix checks alone allow a workspace symlink to escape its root.
+  try {
+    const realPath = Deno.realPathSync(resolved);
+    if (!realPath.startsWith(WORKSPACE_DIR + '/') && realPath !== WORKSPACE_DIR) {
+      const error = new Error('Access denied: Path resolves outside workspace');
+      (error as any).code = 'FORBIDDEN';
+      throw error;
+    }
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) {
+      let parent = resolved.substring(0, resolved.lastIndexOf('/')) || WORKSPACE_DIR;
+      while (parent !== WORKSPACE_DIR) {
+        try { Deno.statSync(parent); break; } catch { parent = parent.substring(0, parent.lastIndexOf('/')) || WORKSPACE_DIR; }
+      }
+      const realParent = Deno.realPathSync(parent);
+      if (!realParent.startsWith(WORKSPACE_DIR + '/') && realParent !== WORKSPACE_DIR) {
+        const forbidden = new Error('Access denied: Path resolves outside workspace');
+        (forbidden as any).code = 'FORBIDDEN';
+        throw forbidden;
+      }
+    } else {
+      throw error;
+    }
+  }
+
   return resolved;
 }
 

@@ -16,8 +16,20 @@ function getFullPath(relativePath: string): string | null {
   const joined = join(getWorkspacePath(), relativePath);
   const resolved = resolve(joined);
   const workspaceResolved = getWorkspaceResolved();
-  if (!resolved.startsWith(workspaceResolved)) {
+  if (resolved !== workspaceResolved && !resolved.startsWith(`${workspaceResolved}/`)) {
     return null;
+  }
+  try {
+    const realPath = Deno.realPathSync(resolved);
+    if (realPath !== workspaceResolved && !realPath.startsWith(`${workspaceResolved}/`)) return null;
+  } catch (error) {
+    if (!(error instanceof Deno.errors.NotFound)) return null;
+    let parent = resolved.substring(0, resolved.lastIndexOf('/')) || workspaceResolved;
+    while (parent !== workspaceResolved) {
+      try { Deno.statSync(parent); break; } catch { parent = parent.substring(0, parent.lastIndexOf('/')) || workspaceResolved; }
+    }
+    const realParent = Deno.realPathSync(parent);
+    if (realParent !== workspaceResolved && !realParent.startsWith(`${workspaceResolved}/`)) return null;
   }
   return resolved;
 }
