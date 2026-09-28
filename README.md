@@ -213,6 +213,18 @@ lapdev/
 └── package.json          # 项目配置
 ```
 
+### BMAD 产物迁移
+
+当前 BMAD 状态位于 `_agile-output/implementation-artifacts/sprint-status.yaml`。旧的
+`implementation_artifacts/` 仅作为迁移/归档输入；可先生成只读映射报告：
+
+```bash
+deno run --allow-read --allow-write scripts/bmad-artifact-migration.ts
+```
+
+确认后使用 `--migrate` 复制到 `_agile-output/implementation-artifacts/legacy-migrated/`。
+相同内容会标记为 `migrated`，冲突内容会拒绝覆盖并以退出码 2 报告。
+
 ### 代码规范
 
 - **TypeScript**: 使用严格模式，所有类型必须明确
