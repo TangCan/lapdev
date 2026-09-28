@@ -27,10 +27,10 @@ development_status:
   epic-2-retrospective: optional
 
   epic-3: backlog
-  3-1-backend-authoritative-state-and-revision-model: backlog
-  3-2-versioned-event-envelope: backlog
-  3-3-reconnect-sync-and-stale-event-handling: backlog
-  3-4-file-agent-and-live-capability-event-coordination: backlog
+  3-1-backend-authoritative-state-and-revision-model: done
+  3-2-versioned-event-envelope: done
+  3-3-reconnect-sync-and-stale-event-handling: done
+  3-4-file-agent-and-live-capability-event-coordination: done
   epic-3-retrospective: optional
 
   epic-4: backlog
