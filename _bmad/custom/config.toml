@@ -5,3 +5,20 @@
 #
 # [agents.bmad-agent-pm]
 # description = "Prefers short, bulleted PRDs over narrative drafts."
+
+[core]
+output_folder = "{project-root}/_agile-output"
+
+[modules.bmm]
+planning_artifacts = "{project-root}/_agile-output/planning-artifacts"
+implementation_artifacts = "{project-root}/_agile-output/implementation-artifacts"
+
+[modules.tea]
+test_artifacts = "{project-root}/_agile-output/test-artifacts"
+test_design_output = "_agile-output/test-artifacts/test-design"
+test_review_output = "_agile-output/test-artifacts/test-reviews"
+trace_output = "_agile-output/test-artifacts/traceability"
+
+[modules.gds]
+planning_artifacts = "{project-root}/_agile-output/planning-artifacts"
+implementation_artifacts = "{project-root}/_agile-output/implementation-artifacts"

@@ -52,7 +52,7 @@ After every outcome, present what was learned and pause for the user before cont
 
 ### Step 1: Resolve the workflow block
 
-Run: `python3 {project-root}/_bmad/scripts/resolve_customization.py --skill {skill-root} --key workflow`
+Run: `uv run {project-root}/_bmad/scripts/resolve_customization.py --skill {skill-root} --project-root {project-root} --key workflow`
 
 If the script fails, stop and surface the error.
 
@@ -78,6 +78,8 @@ Greet `{user_name}` in `{communication_language}`.
 ### Step 6: Execute append steps
 
 Run each entry in `{workflow.activation_steps_append}` in order.
+
+Activation is complete. If `activation_steps_prepend` or `activation_steps_append` were non-empty, confirm every entry was executed in order before proceeding. Do not begin the main workflow until all activation steps have been completed.
 
 ### Step 7: Acknowledge and route
 
