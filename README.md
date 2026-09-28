@@ -71,9 +71,6 @@ cd lapdev
 cd frontend
 npm install
 
-# 返回项目根目录
-cd ..
-
 # 启动前端开发服务器
 npm run dev
 
@@ -212,7 +209,7 @@ lapdev/
 │   └── src/              # 后端源代码
 ├── docs/                 # 项目文档
 ├── scripts/              # 脚本文件
-├── implementation_artifacts/  # 实施文档
+├── _agile-output/         # 当前 BMAD 规划、实施和测试产物
 └── package.json          # 项目配置
 ```
 

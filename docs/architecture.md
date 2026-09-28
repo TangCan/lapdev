@@ -20,12 +20,12 @@
 
 | 层级 | 技术 | 版本 | 职责 |
 |------|------|------|------|
-| **前端** | React 18 + TypeScript + Vite | React 18.2.0 / TS 5.5.0 / Vite 6.0.0 | Web UI 和代码编辑器 |
+| **前端** | React 19 + TypeScript + Vite | React 19.2.0 / TS 5.5.0 / Vite 6.0.0 | Web UI 和代码编辑器 |
 | **样式** | Tailwind CSS | 4.3.2 | 样式框架 |
 | **编辑器** | Monaco Editor | 0.55.1 | 代码编辑核心 |
 | **终端** | xterm.js | 5.5.0 | 终端渲染 |
 | **后端** | Deno | - | HTTP/WS 服务、会话管理 |
-| **测试** | Vitest / Playwright | 2.0.5 / 1.44.0 | 单元测试和 E2E 测试 |
+| **测试** | Vitest / Playwright | 2.0.5 / 1.60.0 | 单元测试和 E2E 测试 |
 
 ---
 
@@ -44,7 +44,7 @@ lapdev/
 ├── scripts/                     # 部署和构建脚本
 │   ├── release.sh               # 发布脚本
 │   └── start.sh                 # 启动脚本
-├── implementation_artifacts/    # 实施文档
+├── _agile-output/               # 当前 BMAD 规划、实施和测试产物
 │   ├── closure-report.md        # 结项报告
 │   └── epics/                   # Epic 文档
 ├── docs/                        # 技术文档
