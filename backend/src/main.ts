@@ -125,6 +125,10 @@ async function handleRequest(req: Request): Promise<Response> {
   
   // WebSocket upgrade
   if (req.headers.get('upgrade') === 'websocket' && url.pathname === '/ws') {
+    const context = resolveCapabilityContext(req);
+    const decision = authorizeCapability(context, 'files');
+    auditCapabilityDecision(context, 'files', decision);
+    if (!decision.allowed) return capabilityError(context, decision);
     const { socket, response } = Deno.upgradeWebSocket(req);
     handleWebSocket(socket as unknown as WebSocket);
     return response;

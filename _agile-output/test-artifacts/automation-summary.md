@@ -359,3 +359,11 @@ None。未生成 Pact 工件。
 - 覆盖：`.agents/skills` 主来源、`.lapdev/skills` legacy 来源、全局来源、源不可用、缺失 `SKILL.md`、解析失败和重复身份诊断的数据结构与优先级。
 - 变更：`/api/v1/skills/load` 现返回 `sources` 和 `diagnostics`；发现只读解析技能内容，不复制或改写源文件。
 - 回归：Rust 测试通过；Rust fmt check 因既有 core 格式差异失败。仓库没有 `justfile`，因此未执行 `just test`。
+
+## Story 2.1 自动化校验记录（2026-09-28）
+
+- 目标：验证统一 capability context、local-trusted/remote-shared profile、服务端 allowlist、统一拒绝响应和脱敏审计字段。
+- 测试：`backend/src/security/capability.test.ts` 3 passed；`npm run test:backend` 10 tests / 39 steps passed。
+- 覆盖：本地可信请求、远程未认证拒绝、allowlist 越权拒绝、HTTP 路由和 WebSocket upgrade 入口策略检查。
+- Pact/Playwright：无服务契约或 UI 验收目标，未生成重复测试。
+- 回归：Rust 测试通过；Rust fmt check 因既有 core 格式差异失败。仓库没有 `justfile`，因此未执行 `just test`。
