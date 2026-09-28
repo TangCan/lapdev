@@ -56,6 +56,7 @@ import { handleSkillLoad, handleSkillMatch, handleSkillRegister, handleSkillList
 import { handleAgentReadFile, handleAgentListFiles, handleAgentSearchCode, handleAgentWriteFile, handleAgentGetLogs, handleAgentClearLogs } from './handlers/agentHandler.ts';
 import { join, extname } from 'https://deno.land/std@0.224.0/path/mod.ts';
 import { PORT, ALLOWED_ORIGINS, TLS_ENABLED, TLS_CERT_PATH, TLS_KEY_PATH } from './config/index.ts';
+import { auditCapabilityDecision, authorizeCapability, capabilityError, capabilityForPath, resolveCapabilityContext } from './security/capability.ts';
 
 function parseAllowedOrigins(): string[] {
   const envValue = Deno.env.get('ALLOWED_ORIGINS');
@@ -113,6 +114,14 @@ function addCorsHeaders(response: Response, corsHeaders: Headers): Response {
 async function handleRequest(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const origin = req.headers.get('Origin');
+
+  const capability = capabilityForPath(url.pathname);
+  if (capability) {
+    const context = resolveCapabilityContext(req);
+    const decision = authorizeCapability(context, capability);
+    auditCapabilityDecision(context, capability, decision);
+    if (!decision.allowed) return capabilityError(context, decision);
+  }
   
   // WebSocket upgrade
   if (req.headers.get('upgrade') === 'websocket' && url.pathname === '/ws') {
