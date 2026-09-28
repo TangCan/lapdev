@@ -389,3 +389,21 @@ None。未生成 Pact 工件。
 - 测试：`backend/src/websocket/sessionBinding.test.ts`；`npm run test:backend` 12 tests / 39 steps passed。
 - 覆盖：绑定会话匹配、跨会话终端注册拒绝、WebSocket upgrade policy gate、输出仅记录长度。
 - 回归：Rust 测试通过；Rust fmt check 因既有 core 格式差异失败；无 `justfile`。
+
+## Epic 3 自动化校验记录（2026-09-28）
+
+- `backend/src/state/revisionState.test.ts` 覆盖 compare-and-swap revision、stale/duplicate mutation、versioned envelope 和 event apply gate。
+- `npm run test:backend`：14 tests / 39 steps passed。
+- 3.1–3.4 共用同一 revision/event contract，避免各能力重复实现排序和 stale 规则。
+
+## Epic 4 自动化校验记录（2026-09-28）
+
+- `skillSourceRegistry.test.ts` 覆盖 source identity/priority/failure metadata。
+- `lspManager.test.ts` 覆盖 workspace/session/language lifecycle、stop/restart 和 health counter。
+- `npm run test:backend`：16 tests / 39 steps passed。
+
+## Epic 5 自动化校验记录（2026-09-28）
+
+- `test-result-classifier.test.ts` 覆盖环境限制、断言失败和通过分类。
+- `redaction.test.ts` 覆盖 API key/prompt 脱敏和大字段截断。
+- `./scripts/validate-runtime-contract.sh`：passed；Rust test passed；Rust fmt 仍有既有差异；仓库没有 `justfile`。

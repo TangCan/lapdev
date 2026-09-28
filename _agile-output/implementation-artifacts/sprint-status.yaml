@@ -41,10 +41,10 @@ development_status:
   epic-4-retrospective: optional
 
   epic-5: backlog
-  5-1-layered-tests-and-environment-failure-classification: backlog
-  5-2-docs-runtime-contract-drift-gate: backlog
-  5-3-least-privilege-container-and-deployment-gate: backlog
-  5-4-observability-and-audit-quality-gate: backlog
+  5-1-layered-tests-and-environment-failure-classification: done
+  5-2-docs-runtime-contract-drift-gate: done
+  5-3-least-privilege-container-and-deployment-gate: done
+  5-4-observability-and-audit-quality-gate: done
   epic-5-retrospective: optional
 
 action_items: []
