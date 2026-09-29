@@ -20,6 +20,7 @@ jobs:
   build:
     name: Build and Push Image
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -107,8 +108,12 @@ jobs:
       - name: Publish after health gate
         if: github.event_name != 'pull_request'
         run: |
+          set -euo pipefail
           while IFS= read -r image_ref; do
-            [ -n "$image_ref" ] && docker push "$image_ref"
+            if [ -n "$image_ref" ]; then
+              echo "Publishing ${image_ref}"
+              timeout --signal=TERM --kill-after=30s 15m docker push "$image_ref"
+            fi
           done <<'IMAGE_TAGS'
           ${{ steps.meta.outputs.tags }}
           IMAGE_TAGS
