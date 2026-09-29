@@ -39,7 +39,7 @@ Lapdev remains a modular monolith. HTTP and WebSocket transport adapters resolve
 
 - **Binds:** CAP-1, CAP-2, HTTP and WebSocket transport
 - **Prevents:** HTTP and WebSocket implementing divergent identity, session or capability checks
-- **Rule:** Transport adapters must resolve the same `AuthenticatedCapabilityContext` containing principal, workspace, session, deployment profile and requested capability before invoking an application service; Origin checks are auxiliary only.
+- **Rule:** Transport adapters must resolve the same `AuthenticatedCapabilityContext` containing principal, workspace, session, deployment profile and requested capability before invoking an application service; remote-shared v1 exchanges a deployment-injected bootstrap token for a short-lived server-side opaque session, and Origin checks are auxiliary only.
 
 ### AD-9 — Workspace isolation is enforced by one backend boundary
 
@@ -51,7 +51,7 @@ Lapdev remains a modular monolith. HTTP and WebSocket transport adapters resolve
 
 - **Binds:** CAP-2, CAP-3 and remote-shared policy
 - **Prevents:** local-trusted permissions leaking into remote sessions or newly added capabilities becoming implicitly public
-- **Rule:** Remote policy explicitly evaluates capability, cwd, executable/arguments, environment, network target, resource limits and interactive mode; absent policy entries deny the request.
+- **Rule:** Remote policy explicitly evaluates capability, cwd, executable/arguments, environment, network target, resource limits and interactive mode; absent policy entries deny the request. In v1 arbitrary shell is disabled, Git is limited to an explicit read-only set, and LSP is limited to configured executables.
 
 ### AD-11 — Command execution has one policy gate and one bounded process port
 
@@ -63,13 +63,13 @@ Lapdev remains a modular monolith. HTTP and WebSocket transport adapters resolve
 
 - **Binds:** CAP-2, AI providers, configuration, logs, events and audit
 - **Prevents:** API keys or complete sensitive prompts crossing the browser or appearing in telemetry
-- **Rule:** Remote clients receive capability/configuration status, never secret material; secret-bearing operations resolve credentials inside the backend/deployment boundary and all logs, errors, events and audit payloads pass redaction before emission.
+- **Rule:** Remote clients receive capability/configuration status, never secret material; v1 resolves AI credentials from deployment environment injection inside backend provider adapters, and all logs, errors, events and audit payloads pass redaction before emission.
 
 ### AD-13 — Deployment permission profiles are executable contracts
 
 - **Binds:** CAP-4, entrypoint, Deno, container, health checks and release pipeline
 - **Prevents:** a green image relying on undocumented `-A` or container-wide permissions
-- **Rule:** Each deployment profile declares required filesystem, network, environment and subprocess permissions; startup self-checks the profile and the release gate proves health and representative capability behavior under the smallest tested permission set.
+- **Rule:** Each deployment profile declares required filesystem, network, environment and subprocess permissions; `remote-shared-v1` binds one workspace root, allows only fixed Git/LSP executables, denies arbitrary shell, startup self-checks the profile, and the release gate proves health plus representative allow/deny behavior under the smallest tested permission set.
 
 ### AD-14 — Security decisions are correlated and envelope-compatible
 
@@ -146,8 +146,8 @@ flowchart LR
 
 ## Deferred
 
-- Select the authentication provider, token/session lifecycle, revocation and rotation mechanism; the spine fixes the entry contract but not the vendor.
-- Select the workspace membership/tenant model before public multi-tenant deployment; the first target remains controlled remote sharing.
-- Publish the environment-specific command, network-target and resource policy catalog after deployment owners provide operational constraints.
-- Decide whether remote profiles may dynamically start LSP, Git and terminal subprocesses; the profile must deny unsupported capabilities explicitly.
-- Choose the concrete secret store and telemetry backend; adapters must preserve the server-side secret and redaction invariants regardless of vendor.
+- Replace the v1 deployment-injected token with an external identity provider when public or multi-user deployment becomes a committed product scope.
+- Define workspace membership and tenant hierarchy before enabling public multi-tenant access.
+- Expand the v1 command, network-target and resource policy catalog only after deployment owners provide operational constraints and tests.
+- Admit additional LSP executables only through explicit adapter review and profile tests.
+- Adopt an external secret store when deployment rotation, multi-user ownership or compliance requires it; v1 remains environment-injected.

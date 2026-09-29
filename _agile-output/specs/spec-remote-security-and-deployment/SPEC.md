@@ -39,6 +39,8 @@ Lapdev now has capability boundaries, workspace checks, session binding and deli
 
 - Continue evolving the existing React/Vite, Deno/TypeScript, Rust-core monorepo and single deployment unit; do not require a microservice split.
 - Every remote request must pass authentication, workspace isolation, capability policy and audit checks; Origin is not sufficient authorization.
+- Remote-shared v1 uses a deployment-injected bootstrap access token exchanged for a short-lived server-side opaque session; it targets controlled single-workspace deployments.
+- Remote-shared v1 denies arbitrary shell execution by default; only fixed Git/LSP adapters and explicitly configured capabilities may run subprocesses.
 - Production startup must not use Deno `-A` or container-wide permissions as the application security boundary.
 - Secrets must not enter tracked files, browser-persisted configuration, logs, events or test fixtures.
 - Preserve the existing backend-owned workspace/session state model and capability adapters.
@@ -58,11 +60,13 @@ A controlled remote deployment can authenticate a session, bind it to the correc
 
 - The initial target is a trusted-network or controlled remote-sharing deployment, not immediate public multi-tenant SaaS.
 - Existing capability context, workspace boundary, WebSocket binding, audit and test foundations are the implementation starting point.
+- The v1 workspace model is one deployment root bound to one remote session scope; multi-user membership and tenant switching are deferred.
+- AI secrets are injected by the deployment environment and used only inside backend provider adapters; rotation is deployment-driven in v1.
 
 ## Open Questions
 
-- Which authentication/session provider, token lifecycle and revocation strategy will govern remote access?
-- Is workspace isolation per-user, shared-workspace membership, or tenant/project scoped?
-- Which terminal commands, environment variables, network targets, resource limits and interactive modes are allowed remotely?
-- Are AI keys managed by a server-side secret store or injected into a single-tenant deployment environment?
-- Must the minimum deployment profile support dynamic LSP, Git and terminal subprocesses?
+- When should v1 replace the deployment-injected token with an external identity provider?
+- What workspace membership and tenant model is required before public multi-tenant deployment?
+- Which additional command, network and resource policies should be added after the v1 deny-by-default baseline?
+- When is an external secret store required instead of deployment environment injection?
+- Which additional language adapters can be admitted to the fixed LSP executable catalog?

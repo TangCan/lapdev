@@ -31,13 +31,20 @@ CAP-4: Lapdev can start and pass health checks under a selected least-privilege 
 - Keep secrets server/deployment-side and redact audit, event, telemetry and error output.
 - Treat Deno, container, entrypoint and health-check permissions as one tested deployment profile.
 
-### Open Decisions
+### Resolved Decisions for remote-shared-v1
 
-- Authentication provider and token/session lifecycle.
-- Workspace membership and tenant model.
-- Remote command, network and resource policy catalog.
-- Secret store strategy.
-- Whether remote profiles support dynamic LSP, Git and terminal subprocesses.
+- A deployment-injected bootstrap access token is exchanged for a short-lived server-side opaque session; no external IdP is required for v1.
+- One deployment exposes one workspace root; sessions cannot switch workspace or share membership across tenants.
+- Arbitrary remote shell is disabled; Git uses an explicit read-only subcommand set and LSP uses a fixed executable catalog.
+- AI secrets are injected by the deployment environment and never returned to remote clients; external secret storage is deferred.
+- Deno/container permissions are explicit; `allow-run` is limited to fixed Git/LSP executables and the release gate tests allow/deny behavior.
+
+### Deferred Decisions
+
+- External identity provider and multi-user membership before public deployment.
+- Additional command, network and resource policy entries after operational review.
+- Additional LSP executables after adapter and permission-profile review.
+- External secret store when rotation, ownership or compliance requires it.
 
 ## FR/Capability Coverage Map
 
