@@ -449,3 +449,8 @@ None。未生成 Pact 工件。
 - Added server-side current-session validation for existing capability contexts.
 - WebSocket messages now revalidate the session, emit a safe invalidation event, remove stale terminal registrations, and close the connection.
 - `npm run test:backend`: 29 passed / 39 steps.
+## Story 2.1 — Define explicit remote capability policy
+
+- Added `CapabilityPolicy` with deny-by-default rules and principal/workspace/session scope matching.
+- Integrated remote-shared authorization with explicit policy rules; local-trusted authorization remains separate.
+- `npm run test:backend`: 31 passed / 39 steps.

@@ -1,4 +1,5 @@
 import { AuthSessionStore } from './authSession.ts';
+import { CapabilityPolicy } from './remotePolicy.ts';
 
 export type PolicyProfile = 'local-trusted' | 'remote-shared';
 export type Capability = 'files' | 'terminal' | 'git' | 'lsp' | 'ai' | 'agent' | 'bmad' | 'skills';
@@ -102,6 +103,15 @@ export function authorizeCapability(context: CapabilityContext, capability: Capa
   }
   if (context.profile === 'remote-shared' && context.capabilities.length === 0) {
     return { allowed: false, code: 'CAPABILITY_DENIED', message: 'No privileged capabilities are enabled by policy' };
+  }
+  if (context.profile === 'remote-shared') {
+    const policy = new CapabilityPolicy(context.capabilities.map((configuredCapability) => ({
+      capability: configuredCapability,
+      workspaceId: context.workspaceId,
+    })));
+    if (!policy.evaluate(context, capability)) {
+      return { allowed: false, code: 'CAPABILITY_DENIED', message: `Capability denied: ${capability}` };
+    }
   }
   if (context.capabilities.length > 0 && !context.capabilities.includes(capability)) {
     return { allowed: false, code: 'CAPABILITY_DENIED', message: `Capability denied: ${capability}` };

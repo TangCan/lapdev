@@ -8,7 +8,7 @@ const context = {
 };
 
 Deno.test('remote policy denies capabilities without an explicit matching rule', () => {
-  const policy = new CapabilityPolicy([{ capability: 'files', workspaceId: 'workspace-1' }]);
+  const policy = new CapabilityPolicy([{ capability: 'files', workspaceId: 'workspace-1', sessionId: 'session-1' }]);
   assertEquals(policy.evaluate(context, 'terminal'), false);
   assertEquals(policy.evaluate({ ...context, workspaceId: 'workspace-2' }, 'files'), false);
   assertEquals(policy.evaluate({ ...context, sessionId: 'session-2' }, 'files'), false);

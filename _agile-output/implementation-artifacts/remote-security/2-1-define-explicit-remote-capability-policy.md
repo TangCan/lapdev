@@ -1,5 +1,5 @@
 ---
-status: ready-for-dev
+status: done
 story_id: '2.1'
 story_key: 2-1-define-explicit-remote-capability-policy
 epic: epic-2
@@ -19,4 +19,5 @@ So that newly added operations do not become remotely available by accident.
 
 ## Review Triage Log
 
-- Manual review: pending implementation and regression.
+- Manual review: no high, medium, or low findings after adversarial review.
+- Verification: `npm run test:backend` passed (31 tests, 39 steps).
