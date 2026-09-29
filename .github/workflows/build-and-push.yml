@@ -109,10 +109,23 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           set -euo pipefail
+          push_with_retry() {
+            local image_ref="$1"
+            local attempt
+            for attempt in 1 2 3; do
+              echo "Publishing ${image_ref} (attempt ${attempt}/3)"
+              if timeout --signal=TERM --kill-after=30s 5m docker push "$image_ref"; then
+                return 0
+              fi
+              echo "Publish attempt ${attempt} failed for ${image_ref}"
+              [ "$attempt" -lt 3 ] && sleep 10
+            done
+            return 1
+          }
+
           while IFS= read -r image_ref; do
             if [ -n "$image_ref" ]; then
-              echo "Publishing ${image_ref}"
-              timeout --signal=TERM --kill-after=30s 15m docker push "$image_ref"
+              push_with_retry "$image_ref"
             fi
           done <<'IMAGE_TAGS'
           ${{ steps.meta.outputs.tags }}
