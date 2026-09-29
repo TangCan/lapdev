@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { homedir, platform, arch } from 'node:os';
 import { dirname, join, normalize, relative, resolve } from 'node:path';
@@ -14,7 +15,7 @@ const EXIT_RUNTIME = 3;
 
 function usage() {
   console.error('Usage: lapdev <web|doctor|version> [options]');
-  console.error('  web [--runtime-dir DIR] [--workspace DIR] [--port PORT] [--no-open]');
+  console.error('  web [--runtime-dir DIR] [--workspace DIR] [--port PORT] [--no-open] [--offline]');
   console.error('  doctor [--runtime-dir DIR]');
   console.error('  version');
 }
@@ -27,11 +28,13 @@ function fail(message, code = EXIT_RUNTIME) {
 
 function parseArgs(argv) {
   const [command = '', ...rest] = argv;
-  const options = { command, noOpen: false };
+  const options = { command, noOpen: false, offline: false };
   for (let i = 0; i < rest.length; i += 1) {
     const arg = rest[i];
     if (arg === '--no-open') {
       options.noOpen = true;
+    } else if (arg === '--offline') {
+      options.offline = true;
     } else if (arg === '--runtime-dir' || arg === '--workspace' || arg === '--port') {
       const value = rest[++i];
       if (!value || value.startsWith('--')) return { error: `${arg} requires a value` };
@@ -64,6 +67,54 @@ function within(root, candidate) {
   return rel === '' || (rel !== '..' && !rel.startsWith(`..${normalize('/')}`) && !rel.startsWith('../') && !rel.startsWith('..\\') && !rel.includes('\0'));
 }
 
+function targetForCurrentPlatform() {
+  const key = `${platform()}-${arch()}`;
+  const targets = {
+    'linux-x64': 'x86_64-unknown-linux-gnu',
+    'darwin-arm64': 'aarch64-apple-darwin',
+  };
+  return targets[key] ? { platform: platform(), arch: arch(), target: targets[key] } : null;
+}
+
+function validateManifest(value) {
+  if (!value || typeof value !== 'object') return 'runtime manifest must be an object';
+  const entries = Array.isArray(value.runtimes) ? value.runtimes : [value];
+  const current = targetForCurrentPlatform();
+  if (!current) return `unsupported platform: ${platform()}-${arch()}`;
+  const entry = entries.find((candidate) => candidate?.version === PACKAGE.version
+    && candidate.platform === current.platform
+    && candidate.arch === current.arch);
+  if (!entry) return `runtime manifest has no entry for ${PACKAGE.version}/${current.platform}-${current.arch}`;
+  for (const field of ['version', 'platform', 'arch', 'target', 'asset', 'size', 'sha256', 'commit']) {
+    if (typeof entry[field] !== 'string' || entry[field].length === 0) return `runtime manifest field is missing: ${field}`;
+  }
+  if (entry.target !== current.target) return `unsupported runtime target: ${entry.target}`;
+  if (!/^\d+$/.test(entry.size) || !/^[a-f0-9]{64}$/i.test(entry.sha256)) {
+    return 'runtime manifest size or sha256 is invalid';
+  }
+  return null;
+}
+
+function validateLocalAsset(root, manifest) {
+  const asset = manifest.asset;
+  if (/^[a-z]+:\/\//i.test(asset)) return null;
+  const assetPath = resolve(root, asset);
+  if (!within(root, assetPath) || !existsSync(assetPath)) return 'runtime asset is missing or outside the runtime directory';
+  try {
+    const realAssetPath = realpathSync(assetPath);
+    if (!within(root, realAssetPath)) return 'runtime asset resolves outside the runtime directory';
+    const info = statSync(realAssetPath);
+    if (!info.isFile()) return 'runtime asset is not a regular file';
+    const observed = createHash('sha256').update(readFileSync(realAssetPath)).digest('hex');
+    if (String(info.size) !== manifest.size || observed !== manifest.sha256.toLowerCase()) {
+      return `runtime asset integrity mismatch (expected ${manifest.sha256}/${manifest.size}, observed ${observed}/${info.size})`;
+    }
+  } catch {
+    return 'runtime asset cannot be inspected';
+  }
+  return null;
+}
+
 function validateRuntime(runtimeDir) {
   const requestedRoot = resolve(runtimeDir);
   if (!existsSync(requestedRoot)) return { error: 'runtime directory does not exist' };
@@ -71,10 +122,14 @@ function validateRuntime(runtimeDir) {
   const manifest = loadManifest(root);
   if (manifest.error) return { error: manifest.error };
   if (!within(root, manifest.path)) return { error: 'runtime manifest resolves outside the runtime directory' };
-  if (!manifest.value || typeof manifest.value !== 'object' || typeof manifest.value.version !== 'string') {
-    return { error: 'runtime manifest must declare a version' };
-  }
-  const launcherName = manifest.value.launcher || 'bin/lapdev-runtime';
+  const manifestError = validateManifest(manifest.value);
+  if (manifestError) return { error: manifestError };
+  const selectedManifest = Array.isArray(manifest.value.runtimes)
+    ? manifest.value.runtimes.find((entry) => entry.version === PACKAGE.version && entry.platform === platform() && entry.arch === arch())
+    : manifest.value;
+  const assetError = validateLocalAsset(root, selectedManifest);
+  if (assetError) return { error: assetError };
+  const launcherName = selectedManifest.launcher || manifest.value.launcher || 'bin/lapdev-runtime';
   const launcher = resolve(root, launcherName);
   if (!within(root, launcher) || !existsSync(launcher)) return { error: 'runtime launcher is missing or outside the runtime directory' };
   let realLauncher;
@@ -86,11 +141,15 @@ function validateRuntime(runtimeDir) {
   } catch {
     return { error: 'runtime launcher cannot be inspected' };
   }
-  return { root, manifest: manifest.value, launcher: realLauncher };
+  return { root, manifest: selectedManifest, launcher: realLauncher };
 }
 
 function runtimeDirFrom(options) {
   return options.runtimeDir || process.env.LAPDEV_RUNTIME_DIR || join(homedir(), '.cache', 'lapdev', PACKAGE.version, `${platform()}-${arch()}`);
+}
+
+function hasExplicitRuntimeDir(options) {
+  return Boolean(options.runtimeDir || process.env.LAPDEV_RUNTIME_DIR);
 }
 
 function doctor(options) {
@@ -106,6 +165,9 @@ function doctor(options) {
 }
 
 function web(options) {
+  if (!hasExplicitRuntimeDir(options) && options.offline && !existsSync(runtimeDirFrom(options))) {
+    return fail(`offline cache miss for ${PACKAGE.version}/${platform()}-${arch()}`);
+  }
   const runtime = validateRuntime(runtimeDirFrom(options));
   if (runtime.error) return fail(runtime.error);
   const port = options.port || process.env.PORT || '3333';

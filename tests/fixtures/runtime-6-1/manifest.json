@@ -1,6 +1,11 @@
 {
   "version": "1.0.0",
-  "platform": "test",
-  "arch": "test",
+  "platform": "linux",
+  "arch": "x64",
+  "target": "x86_64-unknown-linux-gnu",
+  "asset": "runtime.tar.gz",
+  "size": "24",
+  "sha256": "379644ede4a870167614444c237bed801c6b180336854beaa5d43c8bdf3ef984",
+  "commit": "fixture-6-2",
   "launcher": "bin/lapdev-runtime.js"
 }
