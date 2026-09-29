@@ -3,6 +3,7 @@ id: SPEC-remote-security-and-deployment
 companions:
   - "../spec-lapdev-platform/SPEC.md"
   - "../../planning-artifacts/architecture/architecture-lapdev-2026-09-28/ARCHITECTURE-SPINE.md"
+  - "../../planning-artifacts/architecture/architecture-lapdev-remote-security-2026-09-29/ARCHITECTURE-SPINE.md"
   - "../../planning-artifacts/research/technical-lapdev-project-implementation-and-docume-2026-09-28/research.md"
   - "../../../AGENTS.md"
 sources: []
