@@ -16,4 +16,8 @@ Deno.test('remote entrypoint requires explicit profile and bounded optional gran
   assertStringIncludes(source, 'DENO_NET_ALLOWLIST');
   assertStringIncludes(source, 'DENO_RUN_ALLOWLIST');
   assert(source.includes('Invalid deployment profile'));
+
+  const workflow = await Deno.readTextFile(new URL('../../.github/workflows/build-and-push.yml', import.meta.url));
+  assertStringIncludes(workflow, 'DENO_BIN=./deno ./scripts/release-permission-gate.sh');
+  assertStringIncludes(workflow, 'DEPLOYMENT_PROFILE=remote-shared');
 });

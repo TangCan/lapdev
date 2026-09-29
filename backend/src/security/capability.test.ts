@@ -1,6 +1,6 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { AuthSessionStore } from './authSession.ts';
-import { authorizeCapability, capabilityForPath, currentPolicyProfile, resolveCapabilityContext } from './capability.ts';
+import { auditCapabilityDecision, authorizeCapability, capabilityForPath, currentPolicyProfile, nextAuditRevision, resolveCapabilityContext } from './capability.ts';
 
 Deno.test('local trusted context has a stable identity and allows default capability', () => {
   const context = resolveCapabilityContext(new Request('http://localhost/api/v1/files/tree'), ['files']);
@@ -63,4 +63,25 @@ Deno.test('remote HTTP and WebSocket-shaped requests resolve the same authentica
     if (previousAllowlist === undefined) Deno.env.delete('CAPABILITY_ALLOWLIST');
     else Deno.env.set('CAPABILITY_ALLOWLIST', previousAllowlist);
   }
+});
+
+Deno.test('audit revisions advance from a server-side workspace source', () => {
+  const workspaceId = `revision-test-${crypto.randomUUID()}`;
+  assertEquals(nextAuditRevision(workspaceId), 1);
+  assertEquals(nextAuditRevision(workspaceId), 2);
+});
+
+Deno.test('capability audit events carry a non-zero revision', () => {
+  const context = resolveCapabilityContext(new Request('http://localhost/api/v1/files/tree'), ['files']);
+  const originalInfo = console.info;
+  let serialized = '';
+  console.info = (value?: unknown) => {
+    serialized = String(value);
+  };
+  try {
+    auditCapabilityDecision(context, 'files', { allowed: true, code: 'ALLOWED', message: 'Allowed' });
+  } finally {
+    console.info = originalInfo;
+  }
+  assert(JSON.parse(serialized).correlation.revision > 0);
 });

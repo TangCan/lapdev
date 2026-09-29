@@ -505,3 +505,10 @@ None。未生成 Pact 工件。
 - Gate exit code 2 is reserved for environment limitations; drift and security failures use exit code 1.
 - CI now builds a locally loadable image, runs health checks, and publishes only after the health gate succeeds.
 - Local gate verification: runtime contract passed; 4 minimum-permission tests passed; shell syntax and `git diff --check` passed.
+
+## Retrospective action-item follow-through (2026-09-29)
+
+- 审计 revision：`npm run test:backend` 45 passed / 39 steps，新增非零 revision 事件测试通过。
+- CI Deno binary：workflow 静态契约验证通过，gate 明确使用下载的 `./deno`。
+- remote-shared health gate：workflow 静态契约验证通过，镜像 health check 显式设置 `DEPLOYMENT_PROFILE=remote-shared`；本地 Docker API 权限不足，未执行实际镜像启动。
+- Rust tests 与 `git diff --check` 通过。

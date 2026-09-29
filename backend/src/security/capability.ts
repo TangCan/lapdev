@@ -31,6 +31,14 @@ const remoteAuthStore = new AuthSessionStore({
   capabilities: (Deno.env.get('CAPABILITY_ALLOWLIST') || '').split(',').map((value) => value.trim()).filter(Boolean),
 });
 
+const auditRevisionByWorkspace = new Map<string, number>();
+
+export function nextAuditRevision(workspaceId: string): number {
+  const nextRevision = (auditRevisionByWorkspace.get(workspaceId) || 0) + 1;
+  auditRevisionByWorkspace.set(workspaceId, nextRevision);
+  return nextRevision;
+}
+
 export function getRemoteAuthSessionStore(): AuthSessionStore {
   return remoteAuthStore;
 }
@@ -135,7 +143,7 @@ export function auditCapabilityDecision(context: CapabilityContext, capability: 
     workspaceId: context.workspaceId,
     sessionId: context.sessionId,
     requestId: context.requestId,
-    revision: 0,
+    revision: nextAuditRevision(context.workspaceId),
     capability,
     profile: context.profile,
   });

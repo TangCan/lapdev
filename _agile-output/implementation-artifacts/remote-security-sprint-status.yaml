@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-29-2026 00:00
-last_updated: 09-29-2026 14:20
+last_updated: 09-29-2026 14:35
 project: lapdev-remote-security
 project_key: NOKEY
 tracking_system: file-system
@@ -63,17 +63,17 @@ action_items:
     epic: 3
     action: "补齐审计 revision 来源并增加非零 revision 关联测试"
     owner: "Backend security maintainer"
-    status: open
+    status: done
     ref: "_agile-output/implementation-artifacts/epic-3-retro-2026-09-29.md"
   - id: "epic-4-retro-item-1-ci-deno-binary"
     epic: 4
     action: "修正 CI 使用下载的 Deno 二进制"
     owner: "Release maintainer"
-    status: open
+    status: done
     ref: "_agile-output/implementation-artifacts/epic-4-retro-2026-09-29.md"
   - id: "epic-4-retro-item-2-remote-profile-health-gate"
     epic: 4
     action: "为 remote-shared profile 增加真实启动 gate"
     owner: "Deployment maintainer"
-    status: open
+    status: done
     ref: "_agile-output/implementation-artifacts/epic-4-retro-2026-09-29.md"
