@@ -1,4 +1,5 @@
 import { aiService, AIModelConfig, maskApiKey } from '../services/aiService.ts';
+import { resolveProviderSecret } from '../security/secretBoundary.ts';
 
 const VALID_PROVIDERS = ['openai', 'deepseek', 'custom'] as const;
 type Provider = typeof VALID_PROVIDERS[number];
@@ -60,7 +61,8 @@ export async function handleAiConfigGet(req: Request): Promise<Response> {
 export async function handleAiConfigPost(req: Request): Promise<Response> {
   try {
     const body = await req.json();
-    const { name, provider, apiKey, baseUrl, model } = body;
+    const { name, provider, apiKey: clientApiKey, baseUrl, model } = body;
+    const apiKey = resolveProviderSecret(clientApiKey);
 
     if (!name || !provider || !apiKey || !baseUrl || !model) {
       return new Response(
@@ -122,7 +124,7 @@ export async function handleAiConfigPost(req: Request): Promise<Response> {
 export async function handleAiConfigPut(req: Request): Promise<Response> {
   try {
     const body = await req.json();
-    const { id, name, provider, apiKey, baseUrl, model } = body;
+    const { id, name, provider, apiKey: clientApiKey, baseUrl, model } = body;
 
     if (!id) {
       return new Response(
@@ -159,7 +161,7 @@ export async function handleAiConfigPut(req: Request): Promise<Response> {
       ...existingConfig,
       name: name ?? existingConfig.name,
       provider: (provider as Provider) ?? existingConfig.provider,
-      apiKey: apiKey ?? existingConfig.apiKey,
+      apiKey: resolveProviderSecret(clientApiKey) ?? existingConfig.apiKey,
       baseUrl: baseUrl ?? existingConfig.baseUrl,
       model: model ?? existingConfig.model,
     };
@@ -301,7 +303,8 @@ export async function handleAiActiveModel(req: Request): Promise<Response> {
 export async function handleAiTest(req: Request): Promise<Response> {
   try {
     const body = await req.json();
-    const { apiKey, baseUrl, model } = body;
+    const { apiKey: clientApiKey, baseUrl, model } = body;
+    const apiKey = resolveProviderSecret(clientApiKey);
 
     if (!apiKey || !baseUrl || !model) {
       return new Response(

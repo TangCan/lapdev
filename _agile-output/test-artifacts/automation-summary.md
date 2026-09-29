@@ -470,3 +470,9 @@ None。未生成 Pact 工件。
 - Integrated policy before Git process creation and before terminal shell creation.
 - Remote-shared policy permits only fixed read-only Git/LSP entries and denies arbitrary interactive shell use.
 - `npm run test:backend`: 37 passed / 39 steps; Rust and full `npm test` passed (175 E2E passes / 40 skips).
+## Story 3.2 — Enforce server-side secret handling
+
+- Added `secretBoundary` to resolve remote provider keys only from `LAPDEV_AI_API_KEY`.
+- Updated AI configuration and connection testing handlers to ignore browser-supplied secrets in remote-shared.
+- Added masking/redaction contract coverage.
+- `npm run test:backend`: 39 passed / 39 steps; Rust passed; full `npm test` passed with 173 E2E passes / 40 skips and existing format-concurrency flaky signals.
