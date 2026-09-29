@@ -1,4 +1,5 @@
 import { sendTerminalOutput } from '../websocket/fileWatcher.ts';
+import { CommandPolicy } from '../security/commandPolicy.ts';
 
 interface TerminalSession {
   id: string;
@@ -24,6 +25,23 @@ export function isHighRiskCommand(command: string): boolean {
 
 export async function handleCreateTerminal(_req: Request): Promise<Response> {
   console.log('[handleCreateTerminal] Received request');
+  const policy = new CommandPolicy({
+    profile: Deno.env.get('CAPABILITY_POLICY_PROFILE') === 'remote-shared' ? 'remote-shared' : 'local-trusted',
+    workspaceRoot: Deno.env.get('WORKSPACE_PATH') || Deno.cwd(),
+  });
+  const decision = policy.evaluate({
+    executable: '/usr/bin/script',
+    args: ['-qc', '/bin/bash -i', '/dev/null'],
+    cwd: Deno.env.get('WORKSPACE_PATH') || Deno.cwd(),
+    env: {},
+    interactive: true,
+  });
+  if (!decision.allowed) {
+    return new Response(JSON.stringify({ error: { code: decision.code, message: decision.reason } }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
   const sessionId = crypto.randomUUID();
 
   const command = new Deno.Command('/usr/bin/script', {

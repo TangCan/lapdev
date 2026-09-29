@@ -464,3 +464,9 @@ None。未生成 Pact 工件。
 - Added coverage for all AI route families using the shared `ai` capability gate.
 - Added audit-data assertions that API keys and complete sensitive prompts are redacted.
 - `npm run test:backend`: 35 passed / 39 steps; Rust tests passed; adjacent full regression passed with existing E2E flaky signals.
+## Story 3.1 — Centralize command and subprocess policy
+
+- Added centralized `CommandPolicy` for executable, arguments, cwd, environment, and interactive mode.
+- Integrated policy before Git process creation and before terminal shell creation.
+- Remote-shared policy permits only fixed read-only Git/LSP entries and denies arbitrary interactive shell use.
+- `npm run test:backend`: 37 passed / 39 steps; Rust and full `npm test` passed (175 E2E passes / 40 skips).

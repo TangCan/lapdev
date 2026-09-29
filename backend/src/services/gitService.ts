@@ -1,4 +1,5 @@
 // Git服务层 - 使用Deno内置Git功能
+import { CommandPolicy } from '../security/commandPolicy.ts';
 interface GitStatus {
   branch: string;
   changes: GitChange[];
@@ -344,6 +345,11 @@ async function getUntrackedFiles(path: string): Promise<string[]> {
 }
 
 async function runGitCommand(args: string[], cwd: string): Promise<{ stdout: string; stderr: string }> {
+  const decision = new CommandPolicy({
+    profile: Deno.env.get('CAPABILITY_POLICY_PROFILE') === 'remote-shared' ? 'remote-shared' : 'local-trusted',
+    workspaceRoot: Deno.env.get('WORKSPACE_PATH') || cwd,
+  }).evaluate({ executable: 'git', args, cwd, env: {}, interactive: false });
+  if (!decision.allowed) throw new Error(`Command denied: ${decision.reason}`);
   // 验证命令参数 - 扩展检查
   for (const arg of args) {
     if (typeof arg !== 'string') {

@@ -39,7 +39,14 @@ export class CommandPolicy {
     const cwd = resolve(request.cwd);
     if (cwd !== this.workspaceRoot && !cwd.startsWith(`${this.workspaceRoot}/`)) return { allowed: false, code: 'CWD_DENIED', reason: 'cwd is outside the workspace' };
     if (request.args.some((arg) => SHELL_TOKENS.test(arg) || arg === '-c')) return { allowed: false, code: 'ARGUMENTS_DENIED', reason: 'shell composition is not allowed' };
+    if (this.isGit(request.executable) && !new Set(['status', 'diff', 'branch', 'ls-files', 'rev-parse']).has(request.args[0] || '')) {
+      return { allowed: false, code: 'ARGUMENTS_DENIED', reason: 'remote Git policy is read-only' };
+    }
     if (Object.keys(request.env).some((key) => !SAFE_ENVIRONMENT.has(key))) return { allowed: false, code: 'ENVIRONMENT_DENIED', reason: 'environment key is not approved' };
     return { allowed: true, code: 'ALLOWED', reason: 'matched remote command policy' };
+  }
+
+  private isGit(executable: string): boolean {
+    return executable === 'git' || executable.endsWith('/git');
   }
 }

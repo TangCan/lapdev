@@ -1,5 +1,5 @@
 ---
-status: ready-for-dev
+status: done
 story_id: '3.1'
 story_key: 3-1-centralize-command-and-subprocess-policy
 epic: epic-3
@@ -19,4 +19,5 @@ So that shell and process paths cannot bypass remote restrictions.
 
 ## Review Triage Log
 
-- Manual review: pending implementation.
+- Manual review: no high, medium, or low findings after adversarial review.
+- Verification: `npm run test:backend` passed (37 tests, 39 steps), Rust tests passed, and full `npm test` passed (175 E2E passes, 40 skips).
