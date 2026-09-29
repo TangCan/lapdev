@@ -1,5 +1,5 @@
 ---
-status: in-review
+status: done
 story_id: '4.3'
 story_key: 4-3-add-release-permission-and-health-gate
 epic: epic-4
