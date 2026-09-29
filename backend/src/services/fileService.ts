@@ -1,6 +1,11 @@
 import { FileInfo, FileTreeResult, FileContentResult, OperationResult } from '../types/file.ts';
+import { WorkspaceBoundary } from '../security/workspaceBoundary.ts';
 
 const WORKSPACE_DIR = Deno.env.get('WORKSPACE_PATH') || `${Deno.cwd()}/workspace`;
+const WORKSPACE_BOUNDARY = new WorkspaceBoundary({
+  root: WORKSPACE_DIR,
+  workspaceId: Deno.env.get('WORKSPACE_ID') || 'default-workspace',
+});
 const MAX_DEPTH = 20;
 
 /**
@@ -8,78 +13,14 @@ const MAX_DEPTH = 20;
  * Uses canonicalization to prevent path traversal attacks
  */
 function sanitizePath(path: string): string {
-  const normalized = path.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/\/$/, '');
-  
-  // Check for path traversal attempts in original path
-  if (normalized.includes('..')) {
-    const error = new Error('Path traversal attempt detected');
+  const workspaceId = Deno.env.get('WORKSPACE_ID') || 'default-workspace';
+  const authorizedPath = WORKSPACE_BOUNDARY.resolve(workspaceId, path);
+  if (!authorizedPath) {
+    const error = new Error('Invalid workspace path');
     (error as any).code = 'FORBIDDEN';
     throw error;
   }
-  
-  let resolved: string;
-  
-  // If path is /workspace, map directly to workspace directory
-  if (normalized === '/workspace') {
-    resolved = WORKSPACE_DIR;
-  }
-  // If path starts with /workspace/, treat it as relative to workspace root
-  else if (normalized.startsWith('/workspace/')) {
-    resolved = WORKSPACE_DIR + normalized.substring('/workspace'.length);
-  }
-  // If path starts with /workspace (exact match handled above)
-  else if (normalized === '/') {
-    throw new Error('Invalid path: root access denied');
-  }
-  // Reject absolute paths that bypass workspace
-  else if (normalized.startsWith('/')) {
-    throw new Error('Invalid path: absolute path not allowed');
-  } else {
-    // Build absolute path within workspace
-    try {
-      resolved = new URL(normalized, `file://${WORKSPACE_DIR}/`).pathname;
-    } catch {
-      throw new Error('Invalid path format');
-    }
-  }
-  
-  // Normalize path
-  resolved = resolved.replace(/\/+/g, '/').replace(/\/$/, '');
-  
-  // Verify path is within workspace
-  if (!resolved.startsWith(WORKSPACE_DIR + '/') && resolved !== WORKSPACE_DIR) {
-    const error = new Error('Access denied: Path outside workspace');
-    (error as any).code = 'FORBIDDEN';
-    throw error;
-  }
-
-  // Resolve existing symlinks (and the parent for new files) before any I/O.
-  // Lexical prefix checks alone allow a workspace symlink to escape its root.
-  try {
-    const realPath = Deno.realPathSync(resolved);
-    if (!realPath.startsWith(WORKSPACE_DIR + '/') && realPath !== WORKSPACE_DIR) {
-      const error = new Error('Access denied: Path resolves outside workspace');
-      (error as any).code = 'FORBIDDEN';
-      throw error;
-    }
-  } catch (error) {
-    if (error instanceof Deno.errors.NotFound) {
-      let parent = resolved.substring(0, resolved.lastIndexOf('/')) || WORKSPACE_DIR;
-      while (parent !== WORKSPACE_DIR) {
-        try { Deno.statSync(parent); break; } catch { parent = parent.substring(0, parent.lastIndexOf('/')) || WORKSPACE_DIR; }
-      }
-      const realParent = Deno.realPathSync(parent);
-      if (!realParent.startsWith(WORKSPACE_DIR + '/') && realParent !== WORKSPACE_DIR) {
-        const forbidden = new Error('Access denied: Path resolves outside workspace');
-        (forbidden as any).code = 'FORBIDDEN';
-        throw forbidden;
-      }
-    } else {
-      throw error;
-    }
-  }
-
-  return resolved;
+  return authorizedPath;
 }
 
 /**

@@ -1,6 +1,7 @@
 import { join, resolve } from 'https://deno.land/std@0.224.0/path/mod.ts';
 import { getWorkspacePath } from '../config/index.ts';
 import { OperationLogEntry } from '../../../shared/types/agent.ts';
+import { WorkspaceBoundary } from '../security/workspaceBoundary.ts';
 
 type SearchResult = { filePath: string; lineNumber: number; snippet: string };
 
@@ -8,30 +9,19 @@ function getWorkspaceResolved(): string {
   return resolve(getWorkspacePath());
 }
 
+function getWorkspaceBoundary(): WorkspaceBoundary {
+  return new WorkspaceBoundary({
+    root: getWorkspacePath(),
+    workspaceId: Deno.env.get('WORKSPACE_ID') || 'default-workspace',
+  });
+}
+
 function escapeRegex(pattern: string): string {
   return pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function getFullPath(relativePath: string): string | null {
-  const joined = join(getWorkspacePath(), relativePath);
-  const resolved = resolve(joined);
-  const workspaceResolved = getWorkspaceResolved();
-  if (resolved !== workspaceResolved && !resolved.startsWith(`${workspaceResolved}/`)) {
-    return null;
-  }
-  try {
-    const realPath = Deno.realPathSync(resolved);
-    if (realPath !== workspaceResolved && !realPath.startsWith(`${workspaceResolved}/`)) return null;
-  } catch (error) {
-    if (!(error instanceof Deno.errors.NotFound)) return null;
-    let parent = resolved.substring(0, resolved.lastIndexOf('/')) || workspaceResolved;
-    while (parent !== workspaceResolved) {
-      try { Deno.statSync(parent); break; } catch { parent = parent.substring(0, parent.lastIndexOf('/')) || workspaceResolved; }
-    }
-    const realParent = Deno.realPathSync(parent);
-    if (realParent !== workspaceResolved && !realParent.startsWith(`${workspaceResolved}/`)) return null;
-  }
-  return resolved;
+  return getWorkspaceBoundary().resolve(Deno.env.get('WORKSPACE_ID') || 'default-workspace', relativePath);
 }
 
 const ALLOWED_EXTENSIONS = [

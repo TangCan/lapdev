@@ -435,3 +435,11 @@ None。未生成 Pact 工件。
 - 覆盖：6 个会话测试、4 个能力上下文测试；`npm run test:backend` 为 24 passed / 0 failed。
 - 真实 HTTP 探测：无凭据 protected route 返回 401；auth exchange 返回 200 并发出安全 Cookie；带 Cookie 通过认证边界。
 - 回归：前端完整测试首次受既有 VirtualList 10ms 性能阈值抖动影响（11.59ms），单独重跑 12/12 通过；Rust `cargo test --manifest-path core/Cargo.toml --all` 通过。仓库无 justfile；Rust fmt check 仍因既有 core 格式差异失败，未自动改写。
+
+## Story 1.2 Workspace Boundary Automation (2026-09-29)
+
+- 目标：验证统一 WorkspaceBoundary 对 file 与 Agent 操作的 handle、traversal、host absolute path、workspace mismatch 和 symlink escape 隔离。
+- 自动化层级：Deno backend unit/integration boundary；无 UI/Pact 目标。
+- 测试文件：`backend/src/security/workspaceBoundary.test.ts`，并复跑 `backend/tests/agentHandler.test.ts`。
+- 覆盖：合法 root/child handle、不同 workspace、existing symlink、new-file parent symlink；后端全套 27 passed / 0 failed。
+- 生成/接入：`backend/src/security/workspaceBoundary.ts`，fileService 和 Agent handler 共用同一边界服务。

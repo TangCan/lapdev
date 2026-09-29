@@ -1,7 +1,8 @@
 ---
-status: ready-for-dev
+status: done
 story_id: '1.2'
 story_key: 1-2-enforce-workspace-handle-isolation
+baseline_commit: 88d32dc
 ---
 
 # Story 1.2: Enforce workspace handle isolation
@@ -62,3 +63,7 @@ Implement one `WorkspaceBoundary` service and use it for file and Agent path res
 - Story 1.1 shared context: `backend/src/security/capability.ts`
 - ATDD checklist: `_agile-output/test-artifacts/atdd-checklist-1-2-enforce-workspace-handle-isolation.md`
 - Red-phase tests: `backend/src/security/workspaceBoundary.test.ts`
+
+## Review Triage Log
+
+- 2026-09-29: 检查统一边界、fileService/Agent 接入、traversal/absolute/symlink 和 legacy fixture 回归；未发现需要修复或延期的 high/medium/low finding。
