@@ -1,0 +1,6 @@
+{
+  "version": "1.0.0",
+  "platform": "test",
+  "arch": "test",
+  "launcher": "bin/lapdev-runtime.js"
+}

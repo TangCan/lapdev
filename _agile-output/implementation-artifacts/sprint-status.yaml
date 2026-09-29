@@ -6,7 +6,7 @@
 # completed, different performance-optimization plan.
 
 generated: 09-28-2026 18:32
-last_updated: 09-29-2026 00:00
+last_updated: 09-29-2026 11:00
 project: lapdev
 project_key: NOKEY
 tracking_system: file-system
@@ -47,8 +47,8 @@ development_status:
   5-4-可观测性与审计质量门禁: done
   epic-5-retrospective: optional
 
-  epic-6: backlog
-  6-1-cli-命令与本地启动契约: ready-for-dev
+  epic-6: in-progress
+  6-1-cli-命令与本地启动契约: done
   6-2-runtime-manifest-平台选择与缓存: backlog
   6-3-deno-rust-与前端-runtime-archive: backlog
   6-4-runtime-完整性与安全启动: backlog

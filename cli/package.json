@@ -1,0 +1,19 @@
+{
+  "name": "@lapdev/cli",
+  "version": "1.0.0",
+  "description": "Install and run Lapdev from a verified platform runtime",
+  "type": "module",
+  "bin": {
+    "lapdev": "bin/lapdev.js"
+  },
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
