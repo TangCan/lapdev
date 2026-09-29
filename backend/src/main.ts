@@ -58,6 +58,15 @@ import { join, extname } from 'https://deno.land/std@0.224.0/path/mod.ts';
 import { PORT, ALLOWED_ORIGINS, TLS_ENABLED, TLS_CERT_PATH, TLS_KEY_PATH } from './config/index.ts';
 import { auditCapabilityDecision, authorizeCapability, capabilityError, capabilityForPath, currentPolicyProfile, getRemoteAuthSessionStore, resolveCapabilityContext } from './security/capability.ts';
 import { extractBootstrapToken } from './security/authSession.ts';
+import { validateDeploymentProfile } from './security/deploymentProfile.ts';
+
+try {
+  const deploymentProfile = validateDeploymentProfile();
+  console.log(`Deployment profile: ${deploymentProfile.name}`);
+} catch (error) {
+  console.error(error instanceof Error ? error.message : 'Invalid deployment profile');
+  Deno.exit(1);
+}
 
 function parseAllowedOrigins(): string[] {
   const envValue = Deno.env.get('ALLOWED_ORIGINS');

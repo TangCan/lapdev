@@ -484,3 +484,10 @@ None。未生成 Pact 工件。
 - Capability authorization now emits allowed and denied decisions through the shared emitter.
 - Focused audit/capability/redaction coverage: 7 passed; `npm run test:backend`: 41 passed / 39 steps.
 - Full regression: frontend 46 files / 684 tests passed; backend 41 passed / 39 steps; unit 148 passed / 166 steps; API 4 groups passed / 12 steps; E2E 174 passed / 40 skipped with one existing format-concurrency flaky retry; Rust tests and `git diff --check` passed.
+
+## Story 4.1 — Define named deployment permission profiles
+
+- Added explicit `local-trusted` and `remote-shared` deployment contracts for filesystem, network, environment, and subprocess permissions.
+- Added startup validation with safe failure for unknown or malformed profiles; no server is started after profile validation failure.
+- Added boundary tests for remote write scope, interactive subprocess denial, and unknown profile diagnostics.
+- `npm run test:backend`: 43 passed / 39 steps; Rust tests and `git diff --check` passed.
