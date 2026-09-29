@@ -50,7 +50,7 @@ development_status:
   epic-3: backlog
   3-1-centralize-command-and-subprocess-policy: done
   3-2-enforce-server-side-secret-handling: done
-  3-3-emit-correlated-security-audit-events: backlog
+  3-3-emit-correlated-security-audit-events: done
   epic-3-retrospective: optional
 
   epic-4: backlog

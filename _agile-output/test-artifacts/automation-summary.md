@@ -476,3 +476,11 @@ None。未生成 Pact 工件。
 - Updated AI configuration and connection testing handlers to ignore browser-supplied secrets in remote-shared.
 - Added masking/redaction contract coverage.
 - `npm run test:backend`: 39 passed / 39 steps; Rust passed; full `npm test` passed with 173 E2E passes / 40 skips and existing format-concurrency flaky signals.
+
+## Story 3.3 — Emit correlated security audit events
+
+- Added versioned `security_audit` envelopes with principal, workspace, session, request, and revision correlation fields.
+- Added explicit JSON sink behavior and reused the audit redaction boundary so prompts, API keys, and credential metadata are not serialized.
+- Capability authorization now emits allowed and denied decisions through the shared emitter.
+- Focused audit/capability/redaction coverage: 7 passed; `npm run test:backend`: 41 passed / 39 steps.
+- Full regression: frontend 46 files / 684 tests passed; backend 41 passed / 39 steps; unit 148 passed / 166 steps; API 4 groups passed / 12 steps; E2E 174 passed / 40 skipped with one existing format-concurrency flaky retry; Rust tests and `git diff --check` passed.

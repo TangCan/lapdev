@@ -1,5 +1,6 @@
 import { AuthSessionStore } from './authSession.ts';
 import { CapabilityPolicy } from './remotePolicy.ts';
+import { emitSecurityAuditEvent } from './audit.ts';
 
 export type PolicyProfile = 'local-trusted' | 'remote-shared';
 export type Capability = 'files' | 'terminal' | 'git' | 'lsp' | 'ai' | 'agent' | 'bmad' | 'skills';
@@ -127,7 +128,17 @@ export function capabilityError(context: CapabilityContext, decision: PolicyDeci
 }
 
 export function auditCapabilityDecision(context: CapabilityContext, capability: Capability, decision: PolicyDecision): void {
-  console.info(JSON.stringify({ type: 'capability_decision', requestId: context.requestId, userId: context.userId || 'anonymous', workspaceId: context.workspaceId, sessionId: context.sessionId, capability, profile: context.profile, allowed: decision.allowed, code: decision.code }));
+  emitSecurityAuditEvent({
+    outcome: decision.allowed ? 'allowed' : 'denied',
+    reason: decision.code,
+    principalId: context.principalId || 'anonymous',
+    workspaceId: context.workspaceId,
+    sessionId: context.sessionId,
+    requestId: context.requestId,
+    revision: 0,
+    capability,
+    profile: context.profile,
+  });
 }
 
 export function capabilityForPath(pathname: string): Capability | null {
