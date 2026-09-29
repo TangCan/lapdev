@@ -55,6 +55,6 @@ development_status:
 
   epic-4: in-progress
   4-1-define-named-deployment-permission-profiles: done
-  4-2-replace-full-permission-startup-with-tested-minimum-permissi: backlog
+  4-2-replace-full-permission-startup-with-tested-minimum-permissi: review
   4-3-add-release-permission-and-health-gate: backlog
   epic-4-retrospective: optional

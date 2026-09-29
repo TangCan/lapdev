@@ -53,4 +53,43 @@ adjust_workspace_permissions
 generate_tls_cert
 
 echo "[INFO] Starting Deno server..."
-exec deno run --no-lock -A backend/src/main.ts
+
+profile="${DEPLOYMENT_PROFILE:-local-trusted}"
+port="${PORT:-3333}"
+net_allowlist="${DENO_NET_ALLOWLIST:-}"
+run_allowlist="${DENO_RUN_ALLOWLIST:-}"
+
+case "$profile" in
+    local-trusted)
+        deno_flags=(
+            "--allow-read=/app,/workspace,/tmp"
+            "--allow-write=/workspace,/app/backend/cert"
+            "--allow-net"
+            "--allow-env"
+            "--allow-run=git,node,npx,deno,openssl,script"
+        )
+        ;;
+    remote-shared)
+        network_flag="--allow-net=0.0.0.0:${port},localhost:${port},127.0.0.1:${port}"
+        if [ -n "$net_allowlist" ]; then
+            network_flag="${network_flag},${net_allowlist}"
+        fi
+        run_flag="--allow-run=git"
+        if [ -n "$run_allowlist" ]; then
+            run_flag="${run_flag},${run_allowlist}"
+        fi
+        deno_flags=(
+            "--allow-read=/app/backend,/app/frontend/dist,/app/_bmad,/workspace,/tmp"
+            "--allow-write=/workspace"
+            "$network_flag"
+            "--allow-env=PORT,FRONTEND_PORT,ALLOWED_ORIGINS,WORKSPACE_PATH,TLS_ENABLED,TLS_CERT_PATH,TLS_KEY_PATH,VERSION,NODE_ENV,CAPABILITY_POLICY_PROFILE,CAPABILITY_ALLOWLIST,WORKSPACE_ID,LAPDEV_AI_API_KEY,LAPDEV_REMOTE_ACCESS_TOKEN,DEPLOYMENT_PROFILE,DENO_NET_ALLOWLIST,DENO_RUN_ALLOWLIST"
+            "$run_flag"
+        )
+        ;;
+    *)
+        echo "[ERROR] Invalid deployment profile: ${profile}" >&2
+        exit 1
+        ;;
+esac
+
+exec deno run --no-lock "${deno_flags[@]}" backend/src/main.ts

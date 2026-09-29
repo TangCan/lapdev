@@ -492,3 +492,9 @@ None。未生成 Pact 工件。
 - Added boundary tests for remote write scope, interactive subprocess denial, and unknown profile diagnostics.
 - `npm run test:backend`: 43 passed / 39 steps; Rust tests and `git diff --check` passed.
 - Full regression: frontend 46 files / 684 tests passed; backend 43 passed / 39 steps; unit 148 passed / 166 steps; API 4 groups passed / 12 steps; E2E 174 passed / 40 skipped with one existing format-concurrency flaky retry; Rust tests passed.
+
+## Story 4.2 — Replace full-permission startup with tested minimum permissions
+
+- Replaced production entrypoint `-A` with explicit profile-specific Deno read/write/net/env/run permissions.
+- Remote startup denies interactive process execution and unrestricted network by default; optional grants are deployment-configured.
+- Added shell syntax and static contract tests: backend 43 passed / 39 steps plus 2 permission-contract tests; Rust and `git diff --check` passed.
