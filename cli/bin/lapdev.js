@@ -1,10 +1,20 @@
 #!/usr/bin/env node
 
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { homedir, platform, arch } from 'node:os';
 import { dirname, join, normalize, relative, resolve } from 'node:path';
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const CLI_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -15,7 +25,7 @@ const EXIT_RUNTIME = 3;
 
 function usage() {
   console.error('Usage: lapdev <web|doctor|version> [options]');
-  console.error('  web [--runtime-dir DIR] [--workspace DIR] [--port PORT] [--no-open] [--offline]');
+  console.error('  web [--runtime-dir DIR] [--workspace DIR] [--port PORT] [--no-open] [--offline] [--manifest-url URL]');
   console.error('  doctor [--runtime-dir DIR]');
   console.error('  version');
 }
@@ -35,10 +45,12 @@ function parseArgs(argv) {
       options.noOpen = true;
     } else if (arg === '--offline') {
       options.offline = true;
-    } else if (arg === '--runtime-dir' || arg === '--workspace' || arg === '--port') {
+    } else if (arg === '--runtime-dir' || arg === '--workspace' || arg === '--port' || arg === '--manifest-url') {
       const value = rest[++i];
       if (!value || value.startsWith('--')) return { error: `${arg} requires a value` };
-      const optionName = arg === '--runtime-dir' ? 'runtimeDir' : arg === '--workspace' ? 'workspace' : 'port';
+      const optionName = arg === '--runtime-dir' ? 'runtimeDir'
+        : arg === '--workspace' ? 'workspace'
+          : arg === '--port' ? 'port' : 'manifestUrl';
       options[optionName] = value;
     } else if (arg === '--help' || arg === '-h') {
       options.help = true;
@@ -152,6 +164,83 @@ function hasExplicitRuntimeDir(options) {
   return Boolean(options.runtimeDir || process.env.LAPDEV_RUNTIME_DIR);
 }
 
+function manifestUrlFrom(options) {
+  return options.manifestUrl || process.env.LAPDEV_RUNTIME_MANIFEST_URL;
+}
+
+function allowedReleaseUrl(rawUrl) {
+  let url;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return null;
+  }
+  const hosts = new Set(['github.com', 'api.github.com', 'objects.githubusercontent.com', 'raw.githubusercontent.com']);
+  if (url.protocol !== 'https:' || !hosts.has(url.hostname)) return null;
+  return url;
+}
+
+function assertArchiveEntries(archivePath) {
+  let listing;
+  try {
+    listing = execFileSync('tar', ['-tzf', archivePath], { encoding: 'utf8' });
+  } catch {
+    throw new Error('runtime archive cannot be inspected');
+  }
+  for (const entry of listing.split('\n').filter(Boolean)) {
+    const normalized = entry.replace(/^\.\//, '');
+    if (normalized.startsWith('/') || normalized.split('/').includes('..') || normalized.includes('\\')) {
+      throw new Error(`runtime archive contains an unsafe path: ${entry}`);
+    }
+  }
+  for (const required of ['bin/lapdev-runtime', 'manifest.json']) {
+    if (!listing.split('\n').some((entry) => entry === `./${required}`)) {
+      throw new Error(`runtime archive is missing ${required}`);
+    }
+  }
+}
+
+async function downloadAndInstall(manifestUrl, cacheDir) {
+  const manifestEndpoint = allowedReleaseUrl(manifestUrl);
+  if (!manifestEndpoint) throw new Error('runtime manifest URL must use an allowed GitHub HTTPS source');
+  const manifestResponse = await fetch(manifestEndpoint, { redirect: 'manual' });
+  if (manifestResponse.status >= 300 && manifestResponse.status < 400) throw new Error('runtime manifest redirects are not allowed');
+  if (!manifestResponse.ok) throw new Error(`runtime manifest request failed: HTTP ${manifestResponse.status}`);
+  const manifest = await manifestResponse.json();
+  const manifestError = validateManifest(manifest);
+  if (manifestError) throw new Error(manifestError);
+  const selected = Array.isArray(manifest.runtimes)
+    ? manifest.runtimes.find((entry) => entry.version === PACKAGE.version && entry.platform === platform() && entry.arch === arch())
+    : manifest;
+  const assetUrl = allowedReleaseUrl(selected.asset);
+  if (!assetUrl) throw new Error('runtime asset URL must use an allowed GitHub HTTPS source');
+  const assetResponse = await fetch(assetUrl, { redirect: 'manual' });
+  if (assetResponse.status >= 300 && assetResponse.status < 400) throw new Error('runtime asset redirects are not allowed');
+  if (!assetResponse.ok) throw new Error(`runtime asset request failed: HTTP ${assetResponse.status}`);
+  const data = Buffer.from(await assetResponse.arrayBuffer());
+  const observedHash = createHash('sha256').update(data).digest('hex');
+  if (String(data.length) !== selected.size || observedHash !== selected.sha256.toLowerCase()) {
+    throw new Error(`runtime asset integrity mismatch (expected ${selected.sha256}/${selected.size}, observed ${observedHash}/${data.length})`);
+  }
+  const parent = dirname(cacheDir);
+  mkdirSync(parent, { recursive: true });
+  const tempRoot = mkdtempSync(join(parent, '.lapdev-runtime-'));
+  const archivePath = join(tempRoot, 'runtime.tar.gz');
+  const extractionPath = join(tempRoot, 'runtime');
+  try {
+    writeFileSync(archivePath, data, { flag: 'wx' });
+    assertArchiveEntries(archivePath);
+    mkdirSync(extractionPath);
+    execFileSync('tar', ['-xzf', archivePath, '-C', extractionPath]);
+    if (existsSync(cacheDir)) {
+      renameSync(cacheDir, `${cacheDir}.invalid-${Date.now()}`);
+    }
+    renameSync(extractionPath, cacheDir);
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+}
+
 function doctor(options) {
   const runtimeDir = runtimeDirFrom(options);
   const checks = [
@@ -164,9 +253,16 @@ function doctor(options) {
   return checks.some(([, ok]) => !ok) ? EXIT_RUNTIME : 0;
 }
 
-function web(options) {
+async function web(options) {
   if (!hasExplicitRuntimeDir(options) && options.offline && !existsSync(runtimeDirFrom(options))) {
     return fail(`offline cache miss for ${PACKAGE.version}/${platform()}-${arch()}`);
+  }
+  if (!hasExplicitRuntimeDir(options) && !options.offline && !existsSync(runtimeDirFrom(options)) && manifestUrlFrom(options)) {
+    try {
+      await downloadAndInstall(manifestUrlFrom(options), runtimeDirFrom(options));
+    } catch (error) {
+      return fail(error instanceof Error ? error.message : 'runtime download failed');
+    }
   }
   const runtime = validateRuntime(runtimeDirFrom(options));
   if (runtime.error) return fail(runtime.error);
@@ -203,7 +299,7 @@ if (options.error) {
 } else if (options.command === 'doctor') {
   process.exitCode = doctor(options);
 } else if (options.command === 'web') {
-  process.exitCode = web(options);
+  process.exitCode = await web(options);
 } else {
   fail(`unknown command: ${options.command}`, EXIT_USAGE);
   usage();
