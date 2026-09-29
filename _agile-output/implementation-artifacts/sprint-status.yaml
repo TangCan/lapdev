@@ -50,7 +50,7 @@ development_status:
   epic-6: in-progress
   6-1-cli-命令与本地启动契约: done
   6-2-runtime-manifest-平台选择与缓存: done
-  6-3-deno-rust-与前端-runtime-archive: backlog
+  6-3-deno-rust-与前端-runtime-archive: done
   6-4-runtime-完整性与安全启动: backlog
   6-5-github-release-平台发布: backlog
   6-6-npm-trusted-publishing-与端到端安装验证: backlog

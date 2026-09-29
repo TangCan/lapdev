@@ -569,7 +569,9 @@ async function handleRequest(req: Request): Promise<Response> {
 // Static file serving for frontend
 // Use absolute path based on current file location to work from any directory
 const __dirname = new URL('.', import.meta.url).pathname;
-const FRONTEND_DIST = join(__dirname, '../../frontend/dist');
+const FRONTEND_DIST = Deno.env.get('LAPDEV_RUNTIME_ROOT')
+  ? join(Deno.env.get('LAPDEV_RUNTIME_ROOT')!, 'app/frontend/dist')
+  : join(__dirname, '../../frontend/dist');
 
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html',
