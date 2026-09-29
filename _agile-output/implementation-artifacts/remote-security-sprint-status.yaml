@@ -43,7 +43,7 @@ development_status:
 
   epic-2: backlog
   2-1-define-explicit-remote-capability-policy: done
-  2-2-apply-policy-to-file-agent-git-and-lsp-operations: backlog
+  2-2-apply-policy-to-file-agent-git-and-lsp-operations: in-progress
   2-3-apply-policy-to-ai-operations: backlog
   epic-2-retrospective: optional
 
