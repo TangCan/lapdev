@@ -1,3 +1,5 @@
+import { AuthSessionStore } from './authSession.ts';
+
 export type PolicyProfile = 'local-trusted' | 'remote-shared';
 export type Capability = 'files' | 'terminal' | 'git' | 'lsp' | 'ai' | 'agent' | 'bmad' | 'skills';
 
@@ -9,6 +11,9 @@ export interface CapabilityContext {
   capabilities: Capability[];
   profile: PolicyProfile;
   authenticated: boolean;
+  principalId: string;
+  deploymentProfile: PolicyProfile;
+  requestedCapability?: Capability;
 }
 
 export interface PolicyDecision {
@@ -18,6 +23,15 @@ export interface PolicyDecision {
 }
 
 const PRIVILEGED = new Set<Capability>(['files', 'terminal', 'git', 'lsp', 'ai', 'agent', 'bmad', 'skills']);
+const remoteAuthStore = new AuthSessionStore({
+  bootstrapToken: Deno.env.get('LAPDEV_REMOTE_ACCESS_TOKEN') || '',
+  workspaceId: Deno.env.get('WORKSPACE_ID') || 'default-workspace',
+  capabilities: (Deno.env.get('CAPABILITY_ALLOWLIST') || '').split(',').map((value) => value.trim()).filter(Boolean),
+});
+
+export function getRemoteAuthSessionStore(): AuthSessionStore {
+  return remoteAuthStore;
+}
 
 function header(req: Request, name: string, fallback: string): string {
   return req.headers.get(name) || fallback;
@@ -27,20 +41,43 @@ export function currentPolicyProfile(): PolicyProfile {
   return Deno.env.get('CAPABILITY_POLICY_PROFILE') === 'remote-shared' ? 'remote-shared' : 'local-trusted';
 }
 
-export function resolveCapabilityContext(req: Request, capabilities: Capability[] = []): CapabilityContext {
-  const authorization = req.headers.get('Authorization');
+export function resolveCapabilityContext(
+  req: Request,
+  capabilities: Capability[] = [],
+  sessionStore: AuthSessionStore = remoteAuthStore,
+  requestedCapability?: Capability,
+): CapabilityContext {
   const profile = currentPolicyProfile();
   const requestId = header(req, 'X-Request-Id', crypto.randomUUID());
-  const authenticated = typeof authorization === 'string' && authorization.trim().length > 0;
   const configured = (Deno.env.get('CAPABILITY_ALLOWLIST') || '').split(',').map((value) => value.trim()).filter(Boolean) as Capability[];
+  if (profile === 'remote-shared') {
+    const session = sessionStore.resolveRequest(req);
+    return {
+      requestId,
+      userId: session?.principalId || '',
+      workspaceId: session?.workspaceId || '',
+      sessionId: session?.sessionId || '',
+      // Capabilities are resolved from the current policy on every request; the
+      // session only proves identity and workspace and cannot carry stale grants.
+      capabilities: [...new Set([...capabilities, ...configured])] as Capability[],
+      profile,
+      authenticated: Boolean(session),
+      principalId: session?.principalId || '',
+      deploymentProfile: profile,
+      requestedCapability,
+    };
+  }
   return {
     requestId,
-    userId: header(req, 'X-User-Id', profile === 'local-trusted' ? 'local-user' : ''),
+    userId: header(req, 'X-User-Id', 'local-user'),
     workspaceId: header(req, 'X-Workspace-Id', Deno.env.get('WORKSPACE_ID') || 'default-workspace'),
     sessionId: header(req, 'X-Session-Id', 'http-request'),
     capabilities: [...new Set([...capabilities, ...configured])],
     profile,
-    authenticated,
+    authenticated: true,
+    principalId: header(req, 'X-User-Id', 'local-user'),
+    deploymentProfile: profile,
+    requestedCapability,
   };
 }
 

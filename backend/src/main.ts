@@ -56,7 +56,8 @@ import { handleSkillLoad, handleSkillMatch, handleSkillRegister, handleSkillList
 import { handleAgentReadFile, handleAgentListFiles, handleAgentSearchCode, handleAgentWriteFile, handleAgentGetLogs, handleAgentClearLogs } from './handlers/agentHandler.ts';
 import { join, extname } from 'https://deno.land/std@0.224.0/path/mod.ts';
 import { PORT, ALLOWED_ORIGINS, TLS_ENABLED, TLS_CERT_PATH, TLS_KEY_PATH } from './config/index.ts';
-import { auditCapabilityDecision, authorizeCapability, capabilityError, capabilityForPath, resolveCapabilityContext } from './security/capability.ts';
+import { auditCapabilityDecision, authorizeCapability, capabilityError, capabilityForPath, currentPolicyProfile, getRemoteAuthSessionStore, resolveCapabilityContext } from './security/capability.ts';
+import { extractBootstrapToken } from './security/authSession.ts';
 
 function parseAllowedOrigins(): string[] {
   const envValue = Deno.env.get('ALLOWED_ORIGINS');
@@ -93,6 +94,8 @@ function getCorsHeaders(origin: string | null): Headers {
   // Only allow specified origins
   if (origin && allowedOrigins.includes(origin)) {
     headers.set('Access-Control-Allow-Origin', origin);
+    headers.set('Access-Control-Allow-Credentials', 'true');
+    headers.set('Vary', 'Origin');
   }
   
   return headers;
@@ -114,32 +117,54 @@ function addCorsHeaders(response: Response, corsHeaders: Headers): Response {
 async function handleRequest(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin);
+
+  // Preflight must remain public so the browser can negotiate the auth exchange.
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
 
   const capability = capabilityForPath(url.pathname);
   if (capability) {
-    const context = resolveCapabilityContext(req);
+    const context = resolveCapabilityContext(req, [], undefined, capability);
     const decision = authorizeCapability(context, capability);
     auditCapabilityDecision(context, capability, decision);
     if (!decision.allowed) return capabilityError(context, decision);
   }
+
+  if (url.pathname === '/api/v1/auth/session') {
+    if (req.method !== 'POST' || currentPolicyProfile() !== 'remote-shared') {
+      return new Response('Not Found', { status: 404 });
+    }
+    const token = extractBootstrapToken(req);
+    const exchange = token ? getRemoteAuthSessionStore().exchangeBootstrapToken(token) : null;
+    if (!exchange) {
+      return new Response(JSON.stringify({ error: { code: 'UNAUTHENTICATED', message: 'Authentication failed' } }), {
+        status: 401,
+        headers: new Headers({
+          ...Object.fromEntries(corsHeaders.entries()),
+          'Content-Type': 'application/json',
+        }),
+      });
+    }
+    return new Response(JSON.stringify({ expiresAt: exchange.session.expiresAt }), {
+      headers: new Headers({
+        ...Object.fromEntries(corsHeaders.entries()),
+        'Content-Type': 'application/json',
+        'Set-Cookie': exchange.setCookie,
+      }),
+    });
+  }
   
   // WebSocket upgrade
   if (req.headers.get('upgrade') === 'websocket' && url.pathname === '/ws') {
-    const context = resolveCapabilityContext(req);
+    const context = resolveCapabilityContext(req, [], undefined, 'files');
     const decision = authorizeCapability(context, 'files');
     auditCapabilityDecision(context, 'files', decision);
     if (!decision.allowed) return capabilityError(context, decision);
     const { socket, response } = Deno.upgradeWebSocket(req);
     handleWebSocket(socket as unknown as WebSocket, context);
     return response;
-  }
-
-  // Build CORS headers
-  const corsHeaders = getCorsHeaders(origin);
-
-  // Preflight OPTIONS request
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
   }
 
   // API routes

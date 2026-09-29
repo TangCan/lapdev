@@ -1,7 +1,8 @@
 ---
-status: ready-for-dev
+status: done
 story_id: '1.1'
 story_key: 1-1-resolve-a-shared-authenticated-capability-context
+baseline_commit: 835c391
 ---
 
 # Story 1.1: Resolve a shared authenticated capability context
@@ -78,3 +79,7 @@ This story does not implement multi-user membership, external identity providers
 
 - ATDD checklist: `_agile-output/test-artifacts/atdd-checklist-1-1-resolve-a-shared-authenticated-capability-context.md`
 - Red-phase test scaffold: `backend/src/security/authSession.test.ts`
+
+## Review Triage Log
+
+- 2026-09-29: 手工执行安全边界审查；未发现需要修复或延期的 high/medium/low finding。审查期间补齐了 auth exchange CORS、current capability policy 解析和 requested capability 上下文字段。

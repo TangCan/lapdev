@@ -426,3 +426,12 @@ None。未生成 Pact 工件。
 - Stabilized Code Editor lazy-loading assertions by waiting for either the editor or its placeholder before activation.
 - Parallel Code Editor regression with 4 workers — **7 passed**.
 - Final full regression: frontend 148 passed / 0 failed; API 4 passed / 0 failed; E2E 174 passed / 40 skipped, exit code 0. One initial Code Editor retry was observed during this run; the follow-up targeted run after the stabilization change passed without retries.
+
+## Story 1.1 Remote Security Automation (2026-09-29)
+
+- 目标：验证 remote-shared 的 bootstrap token exchange、opaque session、Secure/HttpOnly/SameSite=Lax/Path=/ Cookie、过期/revoke、malformed credential，以及 HTTP/WebSocket 共享上下文。
+- 自动化层级：Deno backend unit/integration boundary；本 Story 无 UI 行为，因此未新增 Playwright 或 Pact 测试。
+- 测试文件：`backend/src/security/authSession.test.ts`、`backend/src/security/capability.test.ts`。
+- 覆盖：6 个会话测试、4 个能力上下文测试；`npm run test:backend` 为 24 passed / 0 failed。
+- 真实 HTTP 探测：无凭据 protected route 返回 401；auth exchange 返回 200 并发出安全 Cookie；带 Cookie 通过认证边界。
+- 回归：前端完整测试首次受既有 VirtualList 10ms 性能阈值抖动影响（11.59ms），单独重跑 12/12 通过；Rust `cargo test --manifest-path core/Cargo.toml --all` 通过。仓库无 justfile；Rust fmt check 仍因既有 core 格式差异失败，未自动改写。

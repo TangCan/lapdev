@@ -1,5 +1,5 @@
 import { assert, assertEquals, assertNotEquals, assertStringIncludes } from 'jsr:@std/assert@1';
-import { AuthSessionStore } from './authSession.ts';
+import { AuthSessionStore, extractBootstrapToken } from './authSession.ts';
 
 const options = {
   bootstrapToken: 'bootstrap-secret-for-test',
@@ -61,4 +61,24 @@ Deno.test('accepts bearer sessions for websocket and non-browser clients', () =>
   }));
   assert(resolved);
   assertEquals(resolved.sessionId, exchange.session.sessionId);
+});
+
+Deno.test('does not treat malformed or unrelated cookies as session credentials', () => {
+  const store = new AuthSessionStore(options);
+  assertEquals(store.resolveRequest(new Request('http://localhost/', {
+    headers: { Cookie: 'other=value; __Host-lapdev_session=' },
+  })), null);
+  assertEquals(extractBootstrapToken(new Request('http://localhost/', {
+    headers: { Authorization: 'Basic bootstrap-secret-for-test' },
+  })), null);
+});
+
+Deno.test('revocation invalidates a session before its expiry', () => {
+  const store = new AuthSessionStore(options);
+  const exchange = store.exchangeBootstrapToken(options.bootstrapToken);
+  assert(exchange);
+  store.revoke(exchange.session.sessionId);
+  assertEquals(store.resolveRequest(new Request('http://localhost/', {
+    headers: { Authorization: `Bearer ${exchange.session.sessionId}` },
+  })), null);
 });
