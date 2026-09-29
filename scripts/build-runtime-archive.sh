@@ -5,6 +5,8 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TARGET="${1:-linux-x64}"
 VERSION="$(node -p "require('${PROJECT_ROOT}/package.json').version")"
 OUT_ROOT="${RUNTIME_OUTPUT_DIR:-${PROJECT_ROOT}/_agile-output/runtime-archives}"
+RELEASE_REPOSITORY="${GITHUB_REPOSITORY:-lapdev/lapdev}"
+ASSET_URL="${RUNTIME_ASSET_URL:-https://github.com/${RELEASE_REPOSITORY}/releases/download/v${VERSION}/lapdev-runtime-${VERSION}-${TARGET}.tar.gz}"
 STAGE="$(mktemp -d "${TMPDIR:-/tmp}/lapdev-runtime.XXXXXX")"
 trap 'rm -rf "${STAGE}"' EXIT
 
@@ -49,7 +51,7 @@ cat > "${STAGE}/manifest.json" <<MANIFEST
   "platform": "${PLATFORM}",
   "arch": "${ARCH}",
   "target": "${RUST_TARGET}",
-  "asset": "runtime-${TARGET}.tar.gz",
+  "asset": "${ASSET_URL}",
   "size": "0",
   "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
   "commit": "$(git -C "${PROJECT_ROOT}" rev-parse HEAD)",

@@ -1,0 +1,100 @@
+name: Runtime Release
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+
+permissions:
+  contents: read
+
+jobs:
+  build-runtime:
+    name: Build ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x64
+            runner: ubuntu-latest
+          - target: darwin-arm64
+            runner: macos-14
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+      - name: Check release version on tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: test "${GITHUB_REF_NAME#v}" = "$(node -p "require('./package.json').version")"
+      - name: Build runtime archive
+        run: RUNTIME_OUTPUT_DIR="$GITHUB_WORKSPACE/_agile-output/runtime-archives" ./scripts/build-runtime-archive.sh "${{ matrix.target }}"
+      - name: Verify runtime archive
+        run: ./scripts/verify-runtime-archive.sh "_agile-output/runtime-archives/lapdev-runtime-$(node -p "require('./package.json').version")-${{ matrix.target }}.tar.gz" "${{ matrix.target }}"
+      - name: Upload runtime artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-${{ matrix.target }}
+          path: _agile-output/runtime-archives/*.tar.gz
+          if-no-files-found: error
+
+  publish-release:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build-runtime
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: runtime-*
+          path: _release
+          merge-multiple: true
+      - name: Generate manifest and checksums
+        env:
+          RELEASE_VERSION: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_COMMIT: ${{ github.sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/generate-runtime-release-manifest.mjs _release _release
+      - name: Create immutable release or fail on existing assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" _release/*
+          else
+            gh release create "$GITHUB_REF_NAME" _release/* --verify-tag --generate-notes
+          fi
+
+  verify-release:
+    name: Verify Published Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: publish-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download published release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download "$GITHUB_REF_NAME" --pattern 'lapdev-runtime-*.tar.gz' --pattern 'runtime-manifest.json' --dir _release
+      - name: Verify release manifest and checksums
+        run: node scripts/verify-runtime-release.mjs _release

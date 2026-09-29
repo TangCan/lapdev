@@ -42,7 +42,7 @@ So that a partial, corrupted or unexpectedly replaced release cannot silently be
 
 ## Acceptance Verification
 
-- Focused tests: 16 passed, 0 failed across Stories 6.1–6.4.
+- Focused tests: 15 passed, 0 failed across Stories 6.1–6.4.
 - Full regression: frontend 684, backend 45, unit 166, API 4, E2E 175 passed; 41 skipped.
 - Failed download test confirmed no cache directory is created and no runtime process launches.
 
