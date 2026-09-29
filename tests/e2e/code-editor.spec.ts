@@ -137,6 +137,21 @@ test.describe('[E2E] Code Editor', () => {
     await testFile.first().click();
   }
 
+  async function waitForEditor(page: import('@playwright/test').Page, timeout = 15000) {
+    const editor = page.getByTestId('code-editor');
+    const placeholder = page.getByTestId('code-editor-placeholder');
+
+    await expect
+      .poll(async () => (await editor.isVisible()) || (await placeholder.isVisible()), { timeout })
+      .toBe(true);
+
+    if (!(await editor.isVisible())) {
+      await placeholder.click();
+    }
+    await expect(editor).toBeVisible({ timeout });
+    return editor;
+  }
+
   test('[P0] should display welcome screen on startup', async ({ page }) => {
     const welcomeScreen = page.getByText('欢迎使用 Lapdev');
     await expect(welcomeScreen).toBeVisible();
@@ -164,15 +179,7 @@ test.describe('[E2E] Code Editor', () => {
 
   test('[P0] should open file when clicked', async ({ page }) => {
     await expandWorkspaceAndClickFile(page, 'test-file.txt');
-    await page.waitForTimeout(500);
-
-    const placeholder = page.getByTestId('code-editor-placeholder');
-    if (await placeholder.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await placeholder.click();
-    }
-
-    const editor = page.getByTestId('code-editor');
-    await expect(editor).toBeVisible({ timeout: 10000 });
+    const editor = await waitForEditor(page);
 
     const editorTab = page.getByTestId('editor-tab');
     await expect(editorTab).toBeVisible();
@@ -181,15 +188,7 @@ test.describe('[E2E] Code Editor', () => {
 
   test('[P0] should allow editing file content', async ({ page }) => {
     await expandWorkspaceAndClickFile(page, 'test-file.txt');
-    await page.waitForTimeout(500);
-
-    const placeholder = page.getByTestId('code-editor-placeholder');
-    if (await placeholder.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await placeholder.click();
-    }
-
-    const editor = page.getByTestId('code-editor');
-    await expect(editor).toBeVisible({ timeout: 10000 });
+    const editor = await waitForEditor(page);
 
     const monacoEditor = editor.locator('.view-lines');
     await expect(monacoEditor).toBeVisible();
@@ -197,15 +196,7 @@ test.describe('[E2E] Code Editor', () => {
 
   test('[P1] should display line numbers', async ({ page }) => {
     await expandWorkspaceAndClickFile(page, 'test-file.txt');
-    await page.waitForTimeout(500);
-
-    const placeholder = page.getByTestId('code-editor-placeholder');
-    if (await placeholder.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await placeholder.click();
-    }
-
-    const editor = page.getByTestId('code-editor');
-    await expect(editor).toBeVisible({ timeout: 10000 });
+    const editor = await waitForEditor(page);
 
     const editorContent = await editor.innerText();
     expect(editorContent.length).toBeGreaterThan(0);
@@ -213,15 +204,7 @@ test.describe('[E2E] Code Editor', () => {
 
   test('[P2] should handle large files', async ({ page }) => {
     await expandWorkspaceAndClickFile(page, 'large-file.txt');
-    await page.waitForTimeout(500);
-
-    const placeholder = page.getByTestId('code-editor-placeholder');
-    if (await placeholder.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await placeholder.click();
-    }
-
-    const editor = page.getByTestId('code-editor');
-    await expect(editor).toBeVisible({ timeout: 15000 });
+    const editor = await waitForEditor(page, 20000);
 
     const monacoEditor = editor.locator('.view-lines');
     await expect(monacoEditor).toBeVisible({ timeout: 5000 });

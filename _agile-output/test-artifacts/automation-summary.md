@@ -421,3 +421,8 @@ None。未生成 Pact 工件。
 - Fixed lazy-editor fixture activation by clicking `code-editor-placeholder` when present.
 - Normalized Monaco non-breaking spaces in format-concurrency assertions.
 - Targeted regression: Code Editor, format-concurrent, large-file save and range-formatting Ctrl+S — **12 passed**.
+- Replaced the fixed format wait with a Playwright polling assertion for the actual formatted editor content, removing the parallel-load race.
+- Parallel `format-concurrent` regression with 3 workers — **3 passed**.
+- Stabilized Code Editor lazy-loading assertions by waiting for either the editor or its placeholder before activation.
+- Parallel Code Editor regression with 4 workers — **7 passed**.
+- Final full regression: frontend 148 passed / 0 failed; API 4 passed / 0 failed; E2E 174 passed / 40 skipped, exit code 0. One initial Code Editor retry was observed during this run; the follow-up targeted run after the stabilization change passed without retries.

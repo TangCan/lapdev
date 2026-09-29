@@ -66,11 +66,12 @@ test.describe('[E2E] 复杂操作并发处理 (EPI3.03)', () => {
 
     // 触发格式化
     await page.keyboard.press('Control+Shift+F');
-    await page.waitForTimeout(1000);
 
     // 格式化后编辑器内容应展示格式化结果（formatter 会给 = 补空格）
+    await expect
+      .poll(async () => normalizeEditorText(await viewLines.innerText()), { timeout: 15000 })
+      .toContain('const x = 1');
     const editorContent = normalizeEditorText(await viewLines.innerText());
-    expect(editorContent).toContain('const x = 1');
     expect(editorContent).not.toContain('const x=1');
 
     const firstLine = viewLines.locator('.view-line').first();
