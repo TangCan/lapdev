@@ -11,6 +11,30 @@ permissions:
   contents: read
 
 jobs:
+  package-cli:
+    name: Validate npm CLI package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Check CLI and repository versions
+        run: test "$(node -p "require('./cli/package.json').version")" = "$(node -p "require('./package.json').version")"
+      - name: Run packed npx install and smoke test
+        run: deno test --allow-all tests/unit/cli-6-6.test.ts
+      - name: Pack CLI
+        run: npm pack ./cli --pack-destination _npm
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-cli
+          path: _npm/*.tgz
+          if-no-files-found: error
+
   build-runtime:
     name: Build ${{ matrix.target }}
     strategy:
@@ -32,6 +56,9 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
       - name: Install frontend dependencies
         run: npm ci
         working-directory: frontend
@@ -98,3 +125,30 @@ jobs:
         run: gh release download "$GITHUB_REF_NAME" --pattern 'lapdev-runtime-*.tar.gz' --pattern 'runtime-manifest.json' --dir _release
       - name: Verify release manifest and checksums
         run: node scripts/verify-runtime-release.mjs _release
+
+  publish-cli:
+    name: Publish npm CLI with Trusted Publishing
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [package-cli, verify-release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-cli
+          path: _npm
+      - name: Download matching runtime manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download "$GITHUB_REF_NAME" --pattern 'runtime-manifest.json' --dir _release
+      - name: Verify package, tag and runtime versions
+        run: node scripts/verify-npm-release.mjs "$(find _npm -name '*.tgz' -print -quit)" _release/runtime-manifest.json
+      - name: Publish through npm Trusted Publishing
+        run: npm publish "$(find _npm -name '*.tgz' -print -quit)" --provenance --access public
