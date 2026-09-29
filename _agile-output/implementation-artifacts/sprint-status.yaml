@@ -6,7 +6,7 @@
 # completed, different performance-optimization plan.
 
 generated: 09-28-2026 18:32
-last_updated: 09-28-2026
+last_updated: 09-29-2026 00:00
 project: lapdev
 project_key: NOKEY
 tracking_system: file-system
@@ -14,37 +14,36 @@ story_location: "_agile-output/planning-artifacts/epics.md"
 
 development_status:
   epic-1: done
-  1-1-unified-runtime-command-and-project-contract: done
-  1-2-unified-bmad-artifact-path-and-migration: done
-  1-3-codex-bmad-skill-discovery-diagnostics: done
+  1-1-统一运行时命令与项目契约: done
+  1-2-统一-bmad-产物目录与迁移映射: done
+  1-3-统一-codex-bmad-技能发现诊断: done
   epic-1-retrospective: optional
 
   epic-2: done
-  2-1-unified-capability-context-and-policy-profile: done
-  2-2-workspace-path-boundary-and-file-authorization: done
-  2-3-terminal-git-and-subprocess-least-privilege: done
-  2-4-websocket-session-auth-and-sensitive-data-protection: done
+  2-1-统一-capability-context-与-policy-profile: done
+  2-2-工作区路径边界与文件操作授权: done
+  2-3-终端-git-与子进程最小权限: done
+  2-4-websocket-会话认证与敏感信息保护: done
   epic-2-retrospective: optional
 
   epic-3: done
-  3-1-backend-authoritative-state-and-revision-model: done
-  3-2-versioned-event-envelope: done
-  3-3-reconnect-sync-and-stale-event-handling: done
-  3-4-file-agent-and-live-capability-event-coordination: done
+  3-1-后端权威状态与-revision-模型: done
+  3-2-统一版本化-event-envelope: done
+  3-3-重连-同步与-stale-event-处理: done
+  3-4-文件监听-agent-和实时能力事件协调: done
   epic-3-retrospective: optional
 
   epic-4: done
-  4-1-configurable-skill-source-registry: done
-  4-2-skill-parse-refresh-and-health-diagnostics: done
-  4-3-lsp-manager-workspace-session-lifecycle: done
-  4-4-language-adapter-health-and-recovery: done
+  4-1-可配置的-skill-source-registry: done
+  4-2-技能解析-刷新与健康诊断: done
+  4-3-lsp-manager-workspace-session-生命周期: done
+  4-4-语言-adapter-健康与故障恢复: done
   epic-4-retrospective: optional
 
   epic-5: done
-  5-1-layered-tests-and-environment-failure-classification: done
-  5-2-docs-runtime-contract-drift-gate: done
-  5-3-least-privilege-container-and-deployment-gate: done
-  5-4-observability-and-audit-quality-gate: done
+  5-1-分层测试与环境限制分类: done
+  5-2-文档与运行时契约-drift-gate: done
+  5-3-最小权限容器与部署健康门禁: done
+  5-4-可观测性与审计质量门禁: done
   epic-5-retrospective: optional
-
 action_items: []
