@@ -454,3 +454,8 @@ None。未生成 Pact 工件。
 - Added `CapabilityPolicy` with deny-by-default rules and principal/workspace/session scope matching.
 - Integrated remote-shared authorization with explicit policy rules; local-trusted authorization remains separate.
 - `npm run test:backend`: 31 passed / 39 steps.
+## Story 2.2 — Apply policy to file, Agent, Git and LSP operations
+
+- Added route contract coverage for all workspace adapter families.
+- Confirmed the main request boundary authorizes and audits before invoking file, Agent, Git, or LSP handlers.
+- `npm run test:backend`: 33 passed / 39 steps; full `npm test` passed with 173 E2E passes / 40 skips and 2 existing flaky format-concurrency cases.

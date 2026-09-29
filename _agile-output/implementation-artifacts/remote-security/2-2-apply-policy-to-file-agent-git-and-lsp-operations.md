@@ -1,5 +1,5 @@
 ---
-status: ready-for-dev
+status: done
 story_id: '2.2'
 story_key: 2-2-apply-policy-to-file-agent-git-and-lsp-operations
 epic: epic-2
@@ -19,4 +19,5 @@ So that one operation cannot bypass restrictions enforced by another.
 
 ## Review Triage Log
 
-- Manual review: pending verification.
+- Manual review: no high, medium, or low findings; all adapter families use the existing pre-adapter gate.
+- Verification: `npm run test:backend` passed (33 tests, 39 steps); full `npm test` passed with 173 E2E passes, 40 skips, and 2 existing format-concurrency flaky cases.
