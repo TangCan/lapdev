@@ -498,3 +498,10 @@ None。未生成 Pact 工件。
 - Replaced production entrypoint `-A` with explicit profile-specific Deno read/write/net/env/run permissions.
 - Remote startup denies interactive process execution and unrestricted network by default; optional grants are deployment-configured.
 - Added shell syntax and static contract tests: backend 43 passed / 39 steps plus 2 permission-contract tests; Rust and `git diff --check` passed.
+
+## Story 4.3 — Add release permission and health gate
+
+- Added `scripts/release-permission-gate.sh` for runtime-contract, shell syntax, unrestricted-permission, and profile test checks.
+- Gate exit code 2 is reserved for environment limitations; drift and security failures use exit code 1.
+- CI now builds a locally loadable image, runs health checks, and publishes only after the health gate succeeds.
+- Local gate verification: runtime contract passed; 4 minimum-permission tests passed; shell syntax and `git diff --check` passed.
