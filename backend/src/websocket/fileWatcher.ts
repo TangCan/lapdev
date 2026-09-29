@@ -1,4 +1,5 @@
 // Deno WebSocket API is built-in, no external import needed
+import { getRemoteAuthSessionStore, isCapabilityContextCurrent } from '../security/capability.ts';
 import type { CapabilityContext } from '../security/capability.ts';
 
 const WORKSPACE_DIR = Deno.env.get('WORKSPACE_PATH') || `${Deno.cwd()}/../workspace`;
@@ -116,6 +117,19 @@ export function handleWebSocket(ws: WebSocket, context?: CapabilityContext): voi
 
   ws.onmessage = async (event: { data: string }) => {
     try {
+      if (clientState.context && !isCapabilityContextCurrent(clientState.context, getRemoteAuthSessionStore())) {
+        console.info(JSON.stringify({
+          type: 'security_session_invalidated',
+          requestId: clientState.context?.requestId || 'unknown',
+          principalId: clientState.context?.principalId || 'anonymous',
+          workspaceId: clientState.context?.workspaceId || 'unknown',
+          sessionId: clientState.context?.sessionId || 'unknown',
+          reason: 'expired-or-revoked',
+        }));
+        cleanupClient(ws);
+        if (typeof ws.close === 'function') ws.close(4001, 'Session expired or revoked');
+        return;
+      }
       const message = JSON.parse(event.data);
       clientState.lastActivity = Date.now();
       

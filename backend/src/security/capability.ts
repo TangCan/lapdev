@@ -33,6 +33,20 @@ export function getRemoteAuthSessionStore(): AuthSessionStore {
   return remoteAuthStore;
 }
 
+export function isCapabilityContextCurrent(
+  context: Pick<CapabilityContext, 'profile' | 'sessionId' | 'principalId' | 'workspaceId'>,
+  sessionStore: AuthSessionStore = remoteAuthStore,
+): boolean {
+  if (context.profile !== 'remote-shared') return true;
+  if (!context.sessionId || !context.principalId || !context.workspaceId) return false;
+  const session = sessionStore.resolveSession(context.sessionId);
+  return Boolean(
+    session &&
+      session.principalId === context.principalId &&
+      session.workspaceId === context.workspaceId,
+  );
+}
+
 function header(req: Request, name: string, fallback: string): string {
   return req.headers.get(name) || fallback;
 }

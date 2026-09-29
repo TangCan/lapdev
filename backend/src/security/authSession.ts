@@ -101,6 +101,15 @@ export class AuthSessionStore {
     return { ...session, capabilities: [...session.capabilities] };
   }
 
+  resolveSession(sessionId: string): AuthenticatedSession | null {
+    const session = this.sessions.get(sessionId);
+    if (!session || session.expiresAt <= this.now()) {
+      if (session) this.sessions.delete(sessionId);
+      return null;
+    }
+    return { ...session, capabilities: [...session.capabilities] };
+  }
+
   revoke(sessionId: string): void {
     this.sessions.delete(sessionId);
   }

@@ -1,5 +1,5 @@
 ---
-status: ready-for-dev
+status: done
 story_id: '1.3'
 story_key: 1-3-revalidate-session-changes-and-disconnects
 epic: epic-1
@@ -25,4 +25,5 @@ So that a previously valid session cannot retain stale access.
 
 ## Review Triage Log
 
-- Manual review: pending implementation and regression.
+- Manual review: no high, medium, or low findings after adversarial review.
+- Verification: `npm run test:backend` passed (29 tests, 39 steps).

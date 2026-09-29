@@ -443,3 +443,9 @@ None。未生成 Pact 工件。
 - 测试文件：`backend/src/security/workspaceBoundary.test.ts`，并复跑 `backend/tests/agentHandler.test.ts`。
 - 覆盖：合法 root/child handle、不同 workspace、existing symlink、new-file parent symlink；后端全套 27 passed / 0 failed。
 - 生成/接入：`backend/src/security/workspaceBoundary.ts`，fileService 和 Agent handler 共用同一边界服务。
+## Story 1.3 — Revalidate session changes and disconnects
+
+- Added ATDD coverage for session expiry/revocation and credential-free lifecycle metadata.
+- Added server-side current-session validation for existing capability contexts.
+- WebSocket messages now revalidate the session, emit a safe invalidation event, remove stale terminal registrations, and close the connection.
+- `npm run test:backend`: 29 passed / 39 steps.

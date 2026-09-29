@@ -38,7 +38,7 @@ development_status:
   epic-1: in-progress
   1-1-resolve-a-shared-authenticated-capability-context: done
   1-2-enforce-workspace-handle-isolation: done
-  1-3-revalidate-session-changes-and-disconnects: in-progress
+  1-3-revalidate-session-changes-and-disconnects: done
   epic-1-retrospective: optional
 
   epic-2: backlog
