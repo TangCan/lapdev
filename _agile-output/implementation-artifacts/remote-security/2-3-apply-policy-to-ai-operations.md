@@ -1,5 +1,5 @@
 ---
-status: ready-for-dev
+status: done
 story_id: '2.3'
 story_key: 2-3-apply-policy-to-ai-operations
 epic: epic-2
@@ -19,4 +19,5 @@ So that remote agents cannot use unauthorized tools or workspace data.
 
 ## Review Triage Log
 
-- Manual review: pending verification.
+- Manual review: no high, medium, or low findings; all AI routes use the shared pre-handler gate and redaction contract.
+- Verification: `npm run test:backend` passed (35 tests, 39 steps); Rust tests passed; adjacent full `npm test` regression passed with only existing E2E flaky signals.

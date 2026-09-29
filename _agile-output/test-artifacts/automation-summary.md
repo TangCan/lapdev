@@ -459,3 +459,8 @@ None。未生成 Pact 工件。
 - Added route contract coverage for all workspace adapter families.
 - Confirmed the main request boundary authorizes and audits before invoking file, Agent, Git, or LSP handlers.
 - `npm run test:backend`: 33 passed / 39 steps; full `npm test` passed with 173 E2E passes / 40 skips and 2 existing flaky format-concurrency cases.
+## Story 2.3 — Apply policy to AI operations
+
+- Added coverage for all AI route families using the shared `ai` capability gate.
+- Added audit-data assertions that API keys and complete sensitive prompts are redacted.
+- `npm run test:backend`: 35 passed / 39 steps; Rust tests passed; adjacent full regression passed with existing E2E flaky signals.
