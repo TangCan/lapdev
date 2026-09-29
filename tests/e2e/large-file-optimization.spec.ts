@@ -103,11 +103,16 @@ test.describe('[E2E] 大文件优化配置', () => {
     }
     
     if (!fileVisible) {
-      throw new Error(`[createAndOpenFile] 文件 ${fileName} 在文件树中未找到`);
+      const searchInput = page.getByTestId('file-tree-search-input');
+      await searchInput.fill(fileName);
+      await expect(fileItem.first()).toBeVisible({ timeout: 10000 });
+      fileVisible = true;
     }
 
     // 5. 点击文件项打开
     await fileItem.first().click();
+    const searchInput = page.getByTestId('file-tree-search-input');
+    if (await searchInput.inputValue() !== '') await searchInput.fill('');
 
     // 6. 等待占位符出现并点击 (LazyCodeEditor 的 placeholder)
     let placeholderClicked = false;

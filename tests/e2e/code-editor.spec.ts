@@ -41,6 +41,11 @@ test.describe('[E2E] Code Editor', () => {
         }
       }
 
+      // The file API and the editor's tree refresh are asynchronous. Reload once
+      // after fixture creation so the beforeAll assertion never races a stale tree.
+      await page.reload();
+      await page.waitForSelector('[data-testid="file-tree"]', { timeout: 15000 });
+
       // 点击刷新按钮触发文件树刷新
       const refreshButton = page.locator('.refresh-button');
       try {
@@ -64,6 +69,11 @@ test.describe('[E2E] Code Editor', () => {
 
       // 轮询验证每个文件都出现在文件树中
       for (const file of files) {
+        // The root uses virtual scrolling; search makes the newly-created file
+        // materialize instead of assuming it is in the first viewport.
+        const searchInput = page.getByTestId('file-tree-search-input');
+        await searchInput.fill(file.name);
+        await page.waitForTimeout(250);
         const fileItem = page.locator('[data-testid="file-item"]').filter({ hasText: file.name });
         let found = false;
         for (let retry = 1; retry <= 5; retry++) {
@@ -85,6 +95,7 @@ test.describe('[E2E] Code Editor', () => {
         if (!found) {
           throw new Error(`File ${file.name} not found in file tree after retries`);
         }
+        await searchInput.fill('');
       }
     } finally {
       await page.close();
@@ -112,7 +123,16 @@ test.describe('[E2E] Code Editor', () => {
     await workspaceFolder.first().click();
     await page.waitForTimeout(800);
 
-    // 等待文件出现
+    // The workspace is virtualized. Use the built-in search when the target is
+    // outside the current viewport instead of assuming it has a DOM node.
+    if (!(await testFile.first().isVisible({ timeout: 1000 }).catch(() => false))) {
+      const searchInput = page.getByTestId('file-tree-search-input');
+      await searchInput.fill(fileName);
+      await expect(testFile.first()).toBeVisible({ timeout: 10000 });
+      await testFile.first().click();
+      await searchInput.fill('');
+      return;
+    }
     await expect(testFile.first()).toBeVisible({ timeout: 10000 });
     await testFile.first().click();
   }

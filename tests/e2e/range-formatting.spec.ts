@@ -78,11 +78,12 @@ test.describe('[E2E] 范围格式化与增量更新', () => {
       // ignore
     }
 
-    await page.waitForTimeout(500);
-
     const fileItem = page.locator('[data-testid="file-item"]').filter({ hasText: fileName });
+    const searchInput = page.getByTestId('file-tree-search-input');
+    await searchInput.fill(fileName);
     await expect(fileItem).toBeVisible({ timeout: 15000 });
     await fileItem.click();
+    await searchInput.fill('');
 
     // Monaco 懒加载：点击占位符触发加载，再等待真实编辑器挂载
     const placeholder = page.getByTestId('code-editor-placeholder');

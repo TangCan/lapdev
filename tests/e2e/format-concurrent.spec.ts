@@ -16,6 +16,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('[E2E] 复杂操作并发处理 (EPI3.03)', () => {
+  const normalizeEditorText = (text: string) => text.replace(/\u00a0/g, ' ');
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('[data-testid="file-tree"]', { timeout: 10000 });
@@ -40,12 +41,17 @@ test.describe('[E2E] 复杂操作并发处理 (EPI3.03)', () => {
       throw new Error(`[createAndOpenFile] 文件创建失败`);
     }
 
-    await page.waitForTimeout(500);
-
     const fileItem = page.locator('[data-testid="file-item"]').filter({ hasText: fileName });
+    const searchInput = page.getByTestId('file-tree-search-input');
+    await searchInput.fill(fileName);
     await expect(fileItem).toBeVisible({ timeout: 15000 });
     await fileItem.click();
+    await searchInput.fill('');
 
+    const placeholder = page.getByTestId('code-editor-placeholder');
+    if (await placeholder.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await placeholder.click();
+    }
     const codeEditor = page.locator('[data-testid="code-editor"]');
     await expect(codeEditor).toBeVisible({ timeout: 10000 });
     return codeEditor;
@@ -63,7 +69,7 @@ test.describe('[E2E] 复杂操作并发处理 (EPI3.03)', () => {
     await page.waitForTimeout(1000);
 
     // 格式化后编辑器内容应展示格式化结果（formatter 会给 = 补空格）
-    const editorContent = await viewLines.innerText();
+    const editorContent = normalizeEditorText(await viewLines.innerText());
     expect(editorContent).toContain('const x = 1');
     expect(editorContent).not.toContain('const x=1');
 
@@ -85,7 +91,7 @@ test.describe('[E2E] 复杂操作并发处理 (EPI3.03)', () => {
     await page.keyboard.type('\n// appended after format');
     await page.waitForTimeout(500);
 
-    const editorContent = await codeEditor.locator('.view-lines').innerText();
+    const editorContent = normalizeEditorText(await codeEditor.locator('.view-lines').innerText());
     expect(editorContent).toContain('appended after format');
   });
 
@@ -100,7 +106,7 @@ test.describe('[E2E] 复杂操作并发处理 (EPI3.03)', () => {
     await expect(viewLines).toBeVisible({ timeout: 5000 });
 
     // 编辑器仍响应，内容非空且保留代码（格式化不破坏原有代码）
-    const editorContent = await viewLines.innerText();
+    const editorContent = normalizeEditorText(await viewLines.innerText());
     expect(editorContent.length).toBeGreaterThan(0);
     expect(editorContent).toContain('function big');
   });

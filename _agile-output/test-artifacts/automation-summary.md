@@ -414,3 +414,10 @@ None。未生成 Pact 工件。
 - E2E failures: four code-editor journeys, three format-concurrent journeys, large-file save, and range-formatting Ctrl+S save. These are existing editor/formatting/large-file baseline failures and are not attributed to the BMAD/security/state infrastructure changes.
 - `cargo clean --manifest-path core/Cargo.toml`: passed; `cargo test --manifest-path core/Cargo.toml --all`: passed with zero Rust tests; `cargo fmt --check`: failed on pre-existing formatting differences in `core/src/fs.rs`, `core/src/lib.rs`, and `core/src/types.rs`.
 - `just test`: unavailable because the repository has no `justfile`.
+
+## E2E stability follow-up (2026-09-29)
+
+- Fixed virtualized file-tree fixtures by locating newly-created files through the built-in search instead of assuming they are in the first viewport.
+- Fixed lazy-editor fixture activation by clicking `code-editor-placeholder` when present.
+- Normalized Monaco non-breaking spaces in format-concurrency assertions.
+- Targeted regression: Code Editor, format-concurrent, large-file save and range-formatting Ctrl+S — **12 passed**.
