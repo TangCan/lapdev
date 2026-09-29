@@ -9,6 +9,7 @@ Deno.test('release entrypoint uses explicit profile permissions', async () => {
   assertStringIncludes(source, '--allow-read=/app/backend,/app/frontend/dist,/app/_bmad,/workspace,/tmp');
   assertStringIncludes(source, '--allow-write=/workspace');
   assertStringIncludes(source, '--allow-run=git');
+  assertStringIncludes(source, '--allow-env=HOME,USERPROFILE,PORT');
 });
 
 Deno.test('remote entrypoint requires explicit profile and bounded optional grants', async () => {
