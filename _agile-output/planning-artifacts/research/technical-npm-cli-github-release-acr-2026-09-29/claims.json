@@ -1,0 +1,9 @@
+[
+  {"claim":"DeepSeek Harness uses an npm npx quick-start and source-install path.","class":"pattern","pub_date":"2026-09-29"},
+  {"claim":"Deno compile supports standalone executables and multiple target triples.","class":"compatibility","pub_date":"2026-09-29"},
+  {"claim":"Deno FFI requires explicit real-file handling for dynamic libraries.","class":"compatibility","pub_date":"2026-09-29"},
+  {"claim":"Cargo supports explicit target triples for cross-target builds.","class":"compatibility","pub_date":"2026-09-29"},
+  {"claim":"npm supports bin, files, and optionalDependencies for CLI packaging.","class":"integration","pub_date":"2026-09-29"},
+  {"claim":"npm Trusted Publishing uses GitHub Actions OIDC and provenance.","class":"security","pub_date":"2026-09-29"},
+  {"claim":"GitHub Releases provide tag-based downloadable release assets.","class":"integration","pub_date":"2026-09-29"}
+]

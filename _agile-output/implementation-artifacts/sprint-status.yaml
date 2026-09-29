@@ -46,4 +46,13 @@ development_status:
   5-3-最小权限容器与部署健康门禁: done
   5-4-可观测性与审计质量门禁: done
   epic-5-retrospective: optional
+
+  epic-6: backlog
+  6-1-cli-命令与本地启动契约: ready-for-dev
+  6-2-runtime-manifest-平台选择与缓存: backlog
+  6-3-deno-rust-与前端-runtime-archive: backlog
+  6-4-runtime-完整性与安全启动: backlog
+  6-5-github-release-平台发布: backlog
+  6-6-npm-trusted-publishing-与端到端安装验证: backlog
+  epic-6-retrospective: optional
 action_items: []

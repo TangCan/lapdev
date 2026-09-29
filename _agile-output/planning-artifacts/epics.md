@@ -4,6 +4,8 @@ inputDocuments:
   - "_agile-output/specs/spec-lapdev-platform/SPEC.md"
   - "_agile-output/planning-artifacts/architecture/architecture-lapdev-2026-09-28/ARCHITECTURE-SPINE.md"
   - "_agile-output/planning-artifacts/research/technical-lapdev-project-implementation-and-docume-2026-09-28/research.md"
+  - "_agile-output/planning-artifacts/research/technical-npm-cli-github-release-acr-2026-09-29/research.md"
+  - "_agile-output/specs/spec-lapdev-platform/release-runtime-contract.md"
   - "AGENTS.md"
 excludedDocuments:
   - "docs/prd.md"
@@ -31,6 +33,8 @@ FR4: Maintainers can add skill sources and language servers through registry and
 
 FR5: Maintainers can verify implementation, tests, documentation and deployment contracts as one delivery quality signal.
 
+FR6: Users can install a versioned npm CLI and start Lapdev locally without Docker/ACR or manually installing Deno/Rust, while maintainers retain a source-install path.
+
 ### NonFunctional Requirements
 
 NFR1: Every privileged operation must pass through a capability context and policy profile, with deployment permissions as a second least-privilege boundary.
@@ -49,6 +53,16 @@ NFR7: The initial implementation remains a single repository and single deployme
 
 NFR8: CI must distinguish restricted-environment failures from real product regressions and catch command, version, port, artifact-path and documentation drift before image release.
 
+NFR9: The primary release path must not require Docker or a Docker Registry; Docker/ACR is optional and not a release-success gate.
+
+NFR10: Runtime manifests must bind CLI version, Git tag, platform, architecture, target, asset, size, SHA-256 and build commit; downloads must be verified before atomic cache installation.
+
+NFR11: Rust FFI libraries must be built for explicit target triples and distributed as real platform files; the first supported targets are Linux x64 and macOS arm64.
+
+NFR12: npm publication must use GitHub Actions OIDC Trusted Publishing; pull requests must not publish and protected `v*` tags must be the release authority.
+
+NFR13: The CLI must cache runtime assets outside the workspace and bind the server to `127.0.0.1` by default; secrets and user workspace data must not enter release archives.
+
 ### Additional Requirements
 
 - Use a modular-monolith architecture with capability boundaries and ports-and-adapters.
@@ -60,6 +74,10 @@ NFR8: CI must distinguish restricted-environment failures from real product regr
 - Keep `_agile-output/` as the current BMAD output root; treat `implementation_artifacts/` as migration/archive input until explicitly resolved.
 - Preserve current stack reality: React 19.2.x, Vite 6.x, TypeScript 5.x, Deno 2.8.2 in CI, Vitest 2.0.5, Playwright 1.60.0 and Rust edition 2021.
 - Add observability and audit correlation for HTTP, WebSocket, terminal, LSP, file, Agent and AI operations without logging secrets or complete sensitive prompts.
+- Add an npm CLI with `web`, `doctor` and `version` commands; platform runtime selection, manifest lookup, checksum verification, cache isolation and local startup are explicit contracts.
+- Build target-specific runtime archives containing the Deno/backend launcher, React/Vite output, shared assets and Rust FFI library; publish archives as GitHub Release assets keyed by protected Git tags.
+- Keep source installation for contributors and add smoke tests for clean-cache startup, unsupported platforms, corrupt downloads and Deno/Rust FFI loading.
+- Confirm later whether offline/mirror installation, Windows first-wave support and signed attestations are required; do not silently assume them.
 
 ### UX Design Requirements
 
@@ -72,6 +90,7 @@ FR2: Epic 2 - 安全可控的工作区操作
 FR3: Epic 3 - 一致的多客户端与 Agent 状态
 FR4: Epic 4 - 可扩展的技能与语言能力
 FR5: Epic 5 - 可信的交付与发布验证
+FR6: Epic 6 - npm CLI 与平台运行时发布
 
 ## Epic List
 
@@ -99,6 +118,11 @@ FR5: Epic 5 - 可信的交付与发布验证
 
 维护者能在发布镜像前确认代码、测试、文档、版本、端口、产物路径和最小权限运行契约一致，并区分环境限制与真实回归。
 **FRs covered:** FR5
+
+### Epic 6: 一键安装与本地运行时发布
+
+用户可以通过固定版本的 npm CLI 启动 Lapdev，而不需要 Docker、ACR、Deno 或 Rust 工具链；维护者可以为受支持的平台构建、校验并发布对应 runtime，并保留源码安装路径。
+**FRs covered:** FR6
 
 ## Epic 1: 可靠的项目与技能发现
 
@@ -446,3 +470,229 @@ So that failures can be diagnosed without exposing secrets.
 **And** latency, errors, restarts, denials and relevant resource usage are observable
 **And** API keys, sensitive command arguments and complete sensitive prompts are redacted
 **And** audit and telemetry redaction rules have automated checks
+
+## Epic 6: 一键安装与本地运行时发布
+
+用户可以通过固定版本的 npm CLI 启动 Lapdev，而不需要 Docker、ACR、Deno 或 Rust 工具链；维护者可以为受支持平台构建、校验和发布 runtime，并保留源码安装路径。
+**FRs covered:** FR6
+
+### Story 6.1: CLI 命令与本地启动契约
+
+As a Lapdev user,
+I want a versioned npm CLI with web, doctor and version commands,
+So that I can start or diagnose Lapdev through one predictable local entry point.
+
+**Requirements:** FR6, NFR9, NFR13
+
+**Acceptance Criteria:**
+
+**Given** a clean Node.js installation and a packaged CLI tarball
+**When** a user runs `npx --yes --package <cli-tarball> lapdev version`
+**Then** the CLI prints its package version and supported command summary
+**And** it does not require Docker, Podman, Deno or a Rust toolchain to execute the CLI itself
+
+**Given** a valid local runtime fixture supplied through `--runtime-dir`
+**When** a user runs `npx --yes --package <cli-tarball> lapdev web --runtime-dir <fixture> --no-open`
+**Then** the CLI starts the runtime and prints the local HTTP URL
+**And** the default bind address is `127.0.0.1`
+**And** the process exits with a non-zero code and an actionable message if the fixture is missing or incomplete
+
+**Given** the CLI is invoked with `doctor`
+**When** the command checks the current platform, Node version, runtime directory and cache configuration
+**Then** it reports each check as pass, warning or failure without exposing secrets or workspace contents
+
+**Given** an unsupported command, option or platform
+**When** the CLI parses the invocation
+**Then** it prints concise usage guidance and a stable non-zero exit code
+**And** it does not download, execute or modify an untrusted path
+
+**Given** the existing source-install development path
+**When** maintainers run the documented source commands
+**Then** adding the CLI package does not change or break the source development entrypoints
+
+### Story 6.2: Runtime Manifest、平台选择与缓存
+
+As a Lapdev user,
+I want the CLI to select and cache the runtime that matches my platform and CLI version,
+So that installation is reproducible and does not mix incompatible native assets.
+
+**Requirements:** FR6, NFR10, NFR11, NFR13
+
+**Acceptance Criteria:**
+
+**Given** a CLI version and a manifest containing supported platform, architecture, target, asset URL, size, checksum and build commit
+**When** the CLI resolves a runtime
+**Then** it selects only the entry whose version, `process.platform` and `process.arch` match
+**And** it rejects an entry with a missing field, unsupported target or mismatched CLI version
+
+**Given** a runtime download is required
+**When** the CLI downloads the archive
+**Then** it writes the response to a temporary file outside the workspace
+**And** it verifies the declared size and SHA-256 before installation
+**And** it atomically moves the verified archive or extracted runtime into a versioned user cache directory
+
+**Given** a verified runtime already exists in the cache
+**When** the user runs `web` again with the same CLI version and platform
+**Then** the CLI reuses the cached runtime without downloading it again
+**And** the cache lookup confirms the manifest identity and integrity before startup
+
+**Given** a partial, corrupt, stale or incompatible cache entry
+**When** the CLI resolves the runtime
+**Then** it does not execute the entry
+**And** it removes or quarantines the invalid entry and reports the reason
+
+**Given** the user passes `--offline`
+**When** no verified matching cache entry exists
+**Then** the CLI fails without making a network request
+**And** the error identifies the required version and platform
+
+**Given** the user passes `--runtime-dir` for controlled development or testing
+**When** the CLI validates that directory
+**Then** it applies the same manifest/layout checks before startup
+**And** it never treats arbitrary workspace files as a trusted runtime by default
+
+### Story 6.3: Deno、Rust 与前端 Runtime Archive
+
+As a release maintainer,
+I want reproducible platform runtime archives containing all required Lapdev assets,
+So that a supported user platform can run Lapdev without installing the project toolchain.
+
+**Requirements:** FR6, NFR7, NFR10, NFR11, NFR13
+
+**Acceptance Criteria:**
+
+**Given** the release target is `linux-x64` or `darwin-arm64`
+**When** the runtime build runs with the target-specific configuration
+**Then** it produces an archive with a stable platform identifier and target triple
+**And** the archive contains a runnable Deno/backend launcher, the built React/Vite assets, backend/shared runtime files and the target Rust FFI library
+
+**Given** the Rust core is built for a release target
+**When** the archive is assembled
+**Then** the dynamic library uses the expected platform extension and ABI target
+**And** the runtime layout allows Deno FFI to load it as a real file without relying on the caller's current working directory
+
+**Given** the runtime archive is inspected before publication
+**When** the packaging check runs
+**Then** it includes `bin`, `lib`, `app`, manifest and license areas according to the runtime contract
+**And** it contains no API keys, user workspace files, browser-persisted secrets, test fixtures or unrelated build caches
+
+**Given** the archive is extracted into a clean temporary directory
+**When** its local health command runs
+**Then** the backend starts with the packaged frontend and shared assets
+**And** the Rust FFI initialization succeeds for the target platform
+**And** the health endpoint returns success without Docker, Podman, Deno or Rust being installed on the test host
+
+**Given** a target build fails or produces an incomplete archive
+**When** the packaging gate evaluates the result
+**Then** it fails before any release asset is published
+**And** the output identifies the target, missing asset or failed health check
+
+### Story 6.4: Runtime 完整性与安全启动
+
+As a Lapdev user,
+I want downloaded runtime assets validated before execution,
+So that a partial, corrupted or unexpectedly replaced release cannot silently become the local server.
+
+**Requirements:** FR6, NFR6, NFR10, NFR13
+
+**Acceptance Criteria:**
+
+**Given** the CLI resolves a runtime manifest and asset
+**When** the asset is downloaded
+**Then** the CLI validates HTTPS response handling, declared size and SHA-256 before extraction or execution
+**And** it rejects redirects or URLs that do not match the release source policy
+
+**Given** checksum or archive validation fails
+**When** the CLI handles the failure
+**Then** it removes the temporary or invalid cache files
+**And** it returns a stable non-zero exit code with the expected and observed integrity information
+**And** it does not launch any runtime process
+
+**Given** a verified runtime is started
+**When** the backend process is launched
+**Then** its executable, dynamic library and packaged application paths resolve inside the verified runtime directory
+**And** the default listener is `127.0.0.1` rather than an externally reachable address
+**And** the workspace path is supplied separately and remains subject to the existing workspace boundary policy
+
+**Given** runtime startup fails after validation
+**When** the CLI reports the failure
+**Then** diagnostics include the version, platform, runtime path and process exit category
+**And** diagnostics do not include API keys, environment secrets, complete prompts or arbitrary workspace contents
+
+**Given** a runtime cache is replaced while a server is running
+**When** the user starts or upgrades another version
+**Then** the running process continues using its resolved versioned paths
+**And** cache cleanup does not delete files still owned by an active process
+
+### Story 6.5: GitHub Release 平台发布
+
+As a release maintainer,
+I want protected version tags to publish verified platform runtime assets,
+So that users and the npm CLI can retrieve one traceable runtime for each supported target.
+
+**Requirements:** FR6, NFR8, NFR10, NFR11, NFR12
+
+**Acceptance Criteria:**
+
+**Given** a pull request or a non-release branch push
+**When** the CI workflow runs
+**Then** it builds and tests the applicable runtime and health contract
+**And** it does not create a GitHub Release or upload runtime assets
+
+**Given** a protected `vX.Y.Z` tag points to a commit that passes the release gates
+**When** the release workflow runs
+**Then** it builds the configured platform target matrix
+**And** it creates or updates the matching GitHub Release with the runtime archives, manifest, checksum file and license metadata
+**And** every asset records the source commit and target identity
+
+**Given** one target build or health check fails
+**When** the release workflow evaluates the matrix
+**Then** the release is not marked complete for that target
+**And** failed targets cannot be represented as downloadable supported runtimes
+**And** the workflow reports the target and failed gate clearly
+
+**Given** a release asset already exists for the same tag and target
+**When** the workflow is re-run
+**Then** it either verifies the existing immutable content or fails without silently replacing it
+**And** the manifest continues to resolve exactly one checksum-identified asset per target
+
+**Given** a completed release
+**When** the release verification job runs
+**Then** it downloads each declared asset, recomputes its size and SHA-256 and checks the manifest
+**And** the verification result is visible in the workflow summary
+
+### Story 6.6: npm Trusted Publishing 与端到端安装验证
+
+As a Lapdev maintainer,
+I want to publish the CLI through trusted CI and verify the complete install path,
+So that a user can install one pinned npm version and receive the matching verified runtime.
+
+**Requirements:** FR6, NFR8, NFR10, NFR12, NFR13
+
+**Acceptance Criteria:**
+
+**Given** a pull request or non-tag push
+**When** the npm/release workflow evaluates the event
+**Then** it runs package, unit and install-path checks without publishing to npm
+**And** it does not require a long-lived npm publish token
+
+**Given** a protected `vX.Y.Z` tag has produced a verified GitHub Release
+**When** the npm publish job runs
+**Then** it publishes the matching `@lapdev/cli` version through GitHub Actions OIDC Trusted Publishing
+**And** the CLI package version, Git tag and runtime manifest version are identical
+**And** the job exposes no npm secret token in repository configuration or logs
+
+**Given** a clean temporary user environment
+**When** the pinned package is installed and `npx @lapdev/cli@X.Y.Z web --no-open` is executed
+**Then** the CLI obtains the matching platform runtime, verifies it, starts Lapdev and passes the health check
+**And** the test confirms the server binds to localhost and does not require Docker, Deno or Rust
+
+**Given** an unsupported platform, missing Release asset, corrupted download or offline cache miss
+**When** the end-to-end install test runs
+**Then** it fails with a stable exit category and actionable remediation
+**And** it does not execute an unverified runtime or publish a misleading success result
+
+**Given** the published npm package is inspected
+**When** the package contents and provenance are checked
+**Then** only the CLI launcher, required metadata and documentation are included
+**And** the package contains no runtime secrets, workspace data or unrelated build output

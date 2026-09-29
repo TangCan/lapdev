@@ -7,8 +7,8 @@ paradigm: 'modular monolith with capability boundaries and ports-and-adapters'
 scope: 'Lapdev workspace, agent, skill, LSP, terminal, file, Git, AI, API and WebSocket platform boundaries'
 status: final
 created: '2026-09-28'
-updated: '2026-09-28'
-binds: [workspace, session, file, terminal, git, lsp, ai, agent, skill, api, websocket]
+updated: '2026-09-29'
+binds: [workspace, session, file, terminal, git, lsp, ai, agent, skill, api, websocket, cli, runtime, release]
 sources:
   - 'AGENTS.md'
   - '_agile-output/planning-artifacts/research/technical-lapdev-project-implementation-and-docume-2026-09-28/research.md'
@@ -16,6 +16,7 @@ sources:
   - 'backend/src/services/skillService.ts'
   - 'frontend/src/services/aiService.ts'
   - 'scripts/entrypoint.sh'
+  - '_agile-output/planning-artifacts/research/technical-npm-cli-github-release-acr-2026-09-29/research.md'
 companions: []
 ---
 
@@ -83,6 +84,42 @@ flowchart LR
 - **Prevents:** duplicated workspace/session entities and divergent mutation paths
 - **Rule:** shared workspace/session state is owned by application services; adapters report observations and execute bounded commands through ports, while state transitions and emitted revisions are decided centrally.
 
+### AD-8 — The npm CLI is the local release boundary
+
+- **Binds:** end-user installation, version selection, runtime acquisition, local startup and source-install compatibility
+- **Prevents:** coupling the primary delivery path to Docker/ACR or making the npm package carry every native artifact directly
+- **Rule:** `@lapdev/cli` owns `web`, `doctor` and `version` commands, platform selection, runtime cache, integrity checks and backend startup; the source checkout remains a supported contributor path.
+
+### AD-9 — CLI and runtime bind through a versioned manifest
+
+- **Binds:** CLI version, GitHub Release tag, platform/architecture, asset URL, size, checksum and build commit
+- **Prevents:** CLI/runtime version drift, partial downloads and opaque startup failures
+- **Rule:** the CLI accepts only a matching manifest and checksum-verified runtime; downloads use temporary files and install atomically into a versioned user cache.
+
+### AD-10 — Rust FFI artifacts are explicit runtime files
+
+- **Binds:** Deno FFI, operating-system dynamic loaders and the runtime archive layout
+- **Prevents:** current-working-directory dependence, assuming native libraries are automatically embedded, and cross-platform ABI mixing
+- **Rule:** each runtime archive has a stable `bin/`, `lib/` and `app/` layout; the backend resolves the platform library relative to its module/runtime location and never from an arbitrary workspace path.
+
+### AD-11 — Git tags are the release authority
+
+- **Binds:** GitHub Release assets, npm CLI publication, CI permissions, provenance and rollback
+- **Prevents:** long-lived npm credentials, ACR manifest publication as a release gate, and independent CLI/runtime versions
+- **Rule:** protected `v*` tags create the runtime Release and publish the CLI through npm Trusted Publishing; pull requests build and test but never publish release assets.
+
+### AD-12 — Platform builds use one explicit target matrix
+
+- **Binds:** Rust Cargo targets, Deno targets, CLI platform/architecture selection and smoke tests
+- **Prevents:** success on the GitHub runner host masking failure on the user's platform
+- **Rule:** the first supported targets are `linux-x64` and `darwin-arm64`; later targets (`linux-arm64`, `darwin-x64`, `win32-x64`) extend the same manifest and health contract rather than inventing separate packaging rules.
+
+### AD-13 — Runtime acquisition is local-first and least-exposure
+
+- **Binds:** CLI download/cache behavior, workspace boundaries and local-trusted/remote-shared deployment profiles
+- **Prevents:** installation widening network exposure, runtime assets entering the workspace, and secrets being shipped in release archives
+- **Rule:** bind to `127.0.0.1` by default, cache under the user's application data directory, keep runtime archives free of secrets/workspace data, and require an explicit `--host` to change binding.
+
 ## Consistency Conventions
 
 | Concern | Convention |
@@ -105,10 +142,15 @@ flowchart LR
 | Playwright | 1.60.0 |
 | Rust edition | 2021 |
 
+| CLI | Node.js launcher published as `@lapdev/cli`; versioned `web`/`doctor`/`version` contract |
+| Runtime release | GitHub Release assets keyed by Git tag + platform/architecture manifest |
+| Package publication | npm Trusted Publishing via GitHub Actions OIDC; no long-lived publish token |
+
 ## Structural Seed
 
 ```text
 lapdev/
+  cli/ or packages/cli/     # npm CLI: platform selection, cache, integrity and startup
   frontend/                 # React/Vite view and capability client
   backend/src/
     main.ts                 # transport entrypoint and route/WS boundary
@@ -120,6 +162,7 @@ lapdev/
   .lapdev/skills/            # legacy skill source, compatibility only
   _agile-output/             # current BMAD planning, implementation and test artifacts
   docs/                      # project knowledge and human-facing documentation
+  .github/workflows/         # CI quality gates and tag-driven runtime/npm release workflows
 ```
 
 ```mermaid
@@ -140,6 +183,22 @@ sequenceDiagram
   E-->>C: event(envelope, revision)
 ```
 
+```mermaid
+flowchart LR
+  Tag[Protected vX.Y.Z tag] --> Build[Target matrix build]
+  Build --> Rust[Rust dynamic library]
+  Build --> Deno[Deno/backend runtime]
+  Build --> Web[React/Vite dist]
+  Rust --> Archive[Platform runtime archive]
+  Deno --> Archive
+  Web --> Archive
+  Archive --> Manifest[manifest + checksum]
+  Manifest --> Release[GitHub Release assets]
+  Release --> CLI[npm @lapdev/cli]
+  CLI --> Cache[Versioned user cache]
+  Cache --> Local[127.0.0.1 Lapdev]
+```
+
 ## Deferred
 
 - Select the concrete authentication provider and token/session mechanism for remote-shared mode; the current repository does not establish one.
@@ -148,6 +207,8 @@ sequenceDiagram
 - Define persistence technology for registry/session/event history only when the current in-memory or file-backed behavior is insufficient; the spine fixes ownership and contracts, not storage implementation.
 - Define the full public API schema and generated client strategy after the event envelope is implemented and real consumers are inventoried.
 - Decide whether Rust core functionality should remain a local adapter or become a separately deployed service; current code does not require service extraction.
+- Confirm GitHub Release reachability and offline-install requirements for target users; the architecture fixes the contract but not a mirror provider.
+- Confirm whether Windows is a first-wave target and select signing/attestation verification beyond SHA-256 before broad release.
 
 ## Capability → Architecture Map
 
@@ -161,3 +222,6 @@ sequenceDiagram
 | Skills | SkillRegistry + source adapters | AD-1, AD-4 |
 | HTTP/WebSocket | transport adapters and event stream | AD-2, AD-3, AD-6 |
 | BMAD artifacts | `_agile-output/` workflow boundary | AD-2, consistency conventions |
+| npm CLI | `cli/` or `packages/cli/` launcher and runtime client | AD-8, AD-9, AD-13 |
+| Runtime packaging | release builder, target matrix and archive layout | AD-10, AD-11, AD-12 |
+| Release delivery | protected tag workflow, GitHub Release and npm publication | AD-9, AD-11, AD-12 |
