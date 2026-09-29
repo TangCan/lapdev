@@ -1,5 +1,5 @@
 ---
-status: in-review
+status: done
 story_id: '4.2'
 story_key: 4-2-replace-full-permission-startup-with-tested-minimum-permissi
 epic: epic-4
