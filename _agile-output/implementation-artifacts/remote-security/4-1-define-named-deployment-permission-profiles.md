@@ -1,5 +1,5 @@
 ---
-status: in-review
+status: done
 story_id: '4.1'
 story_key: 4-1-define-named-deployment-permission-profiles
 epic: epic-4

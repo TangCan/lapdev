@@ -491,3 +491,4 @@ None。未生成 Pact 工件。
 - Added startup validation with safe failure for unknown or malformed profiles; no server is started after profile validation failure.
 - Added boundary tests for remote write scope, interactive subprocess denial, and unknown profile diagnostics.
 - `npm run test:backend`: 43 passed / 39 steps; Rust tests and `git diff --check` passed.
+- Full regression: frontend 46 files / 684 tests passed; backend 43 passed / 39 steps; unit 148 passed / 166 steps; API 4 groups passed / 12 steps; E2E 174 passed / 40 skipped with one existing format-concurrency flaky retry; Rust tests passed.
