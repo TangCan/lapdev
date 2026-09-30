@@ -84,11 +84,11 @@ flowchart LR
 - **Prevents:** duplicated workspace/session entities and divergent mutation paths
 - **Rule:** shared workspace/session state is owned by application services; adapters report observations and execute bounded commands through ports, while state transitions and emitted revisions are decided centrally.
 
-### AD-8 — The npm CLI is the local release boundary
+### AD-8 — The Release-hosted CLI is the local release boundary
 
 - **Binds:** end-user installation, version selection, runtime acquisition, local startup and source-install compatibility
 - **Prevents:** coupling the primary delivery path to Docker/ACR or making the npm package carry every native artifact directly
-- **Rule:** `@lapdev/cli` owns `web`, `doctor` and `version` commands, platform selection, runtime cache, integrity checks and backend startup; the source checkout remains a supported contributor path.
+- **Rule:** `@lapdev/cli` owns `web`, `doctor` and `version` commands, platform selection, runtime cache, integrity checks and backend startup. Its `.tgz` is distributed with the matching GitHub Release and installs through npm's URL/file support without an npm account; npm registry publication is optional. The source checkout remains a supported contributor path.
 
 ### AD-9 — CLI and runtime bind through a versioned manifest
 
@@ -106,7 +106,7 @@ flowchart LR
 
 - **Binds:** GitHub Release assets, npm CLI publication, CI permissions, provenance and rollback
 - **Prevents:** long-lived npm credentials, ACR manifest publication as a release gate, and independent CLI/runtime versions
-- **Rule:** protected `v*` tags create the runtime Release and publish the CLI through npm Trusted Publishing; pull requests build and test but never publish release assets.
+- **Rule:** protected `v*` tags assemble a draft Release containing both platform runtimes, the CLI tarball, versioned manifest and checksums, then publish it after local integrity verification. Published assets are not replaced. Public URL installation and runtime startup are verified on both target platforms. npm Trusted Publishing runs only when `NPM_PUBLISH_ENABLED=true`; pull requests build and test but never publish release assets.
 
 ### AD-12 — Platform builds use one explicit target matrix
 
@@ -144,7 +144,7 @@ flowchart LR
 
 | CLI | Node.js launcher published as `@lapdev/cli`; versioned `web`/`doctor`/`version` contract |
 | Runtime release | GitHub Release assets keyed by Git tag + platform/architecture manifest |
-| Package publication | npm Trusted Publishing via GitHub Actions OIDC; no long-lived publish token |
+| Package publication | GitHub Release-hosted CLI tarball by default; optional npm Trusted Publishing via GitHub Actions OIDC; no long-lived publish token |
 
 ## Structural Seed
 

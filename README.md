@@ -54,6 +54,20 @@ Lapdev 是一款现代化的开源 Web IDE，集成了 AI 智能辅助功能，�
 
 ## 📦 快速开始
 
+### 从 GitHub Release 安装（无需 npm 账号）
+
+预构建运行时支持 Linux x64、macOS arm64；用户仅需 Node.js 18+、npm 和系统 tar，
+无需安装 Docker、Deno 或 Rust。固定版本正式发布后：
+
+```bash
+npm install --global --prefix "$HOME/.local" \
+  https://github.com/TangCan/lapdev/releases/download/v1.0.0/lapdev-cli-1.0.0.tgz
+export PATH="$HOME/.local/bin:$PATH"
+lapdev web --no-open
+```
+
+详见[Release 安装、校验和升级说明](docs/release-installation.md)。以下为源码开发环境。
+
 ### 环境要求
 
 - Node.js >= 20.x
