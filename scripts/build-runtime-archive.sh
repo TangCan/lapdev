@@ -18,7 +18,7 @@ esac
 
 mkdir -p "${STAGE}/bin" "${STAGE}/lib" "${STAGE}/app/backend" "${STAGE}/app/frontend" "${STAGE}/app/shared" "${STAGE}/LICENSES"
 
-(cd "${PROJECT_ROOT}/frontend" && npm run build)
+(cd "${PROJECT_ROOT}/frontend" && NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--max-old-space-size=4096" npm run build)
 cargo build --manifest-path "${PROJECT_ROOT}/core/Cargo.toml" --release --target "$RUST_TARGET"
 
 deno compile --no-check \
