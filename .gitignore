@@ -11,6 +11,7 @@ node_modules/
 # Node.js
 node_modules/
 package-lock.json
+!frontend/package-lock.json
 yarn.lock
 
 # Build artifacts
