@@ -1,6 +1,14 @@
 # 发布运行时核心验收：阶段结果
 
-## 最新结果：递归文件树边界最终验收（2026-09-30）
+## 最新交接：macOS 参数修复，本地验证通过、真实 macOS 待验证（2026-09-30）
+
+`spec-macos-terminal-launch.md` 保持 in-progress。Darwin 使用 `/usr/bin/script -q /dev/null /bin/bash -i`，Linux 保留原参数；策略与 spawn 共用配置。未增加权限、修改会话生命周期或降低验收。此前 macOS CI 失败证据保留；平台替身测试不证明真实 macOS 成功，需明确推送授权后运行现有矩阵，再完成验收与评审。
+
+主会话独立复验：后端 61 passed（87 steps）、Node 发布四文件 33 passed、权限门禁 5 passed、git diff --check 通过。Linux 归档校验及 CLI 安装/启动/健康/首页、核心与安全原 22/22 通过，真实终端输入、输出及关闭通过；包内 terminalHandler.ts 与工作区 cmp 一致。实现代理定向终端测试 5 passed。LSP 仅状态契约验证，不宣称语言功能可用。
+
+资产保留在已忽略目录 `_agile-output/runtime-archives/macos-terminal-launch-20260930/`，不提交二进制。运行时 SHA-256 `f8c336373afd9333e08ca641a19b73c77380ea88d299519409432860ce75ed05`；CLI `a573144b85ec4d34dc44b1fbb171fa3819a5da60b1e132061935f16484045567`；terminalHandler.ts `95988034839290f2160615c56729c75e81b8e1c13db1a9b7e82efd5b1dd19116`。manifest 基线 `0adf2948155761faec59da6a5e5c2dc131fc64ac`，构建包含本轮未提交生产修改；相对此基线的该文件 binary/no-ext-diff/no-textconv diff SHA-256 `f32dd54e1f1170ab79197411f21f0e75722353bfe5ec510c1d42a755896bcc00`。可在独立检出基线后从哈希核对的归档恢复唯一生产修改文件；不保证工具链或二进制逐位复现。尚未提交、推送、打标签或发布。
+
+## 前次结果：递归文件树边界最终验收（2026-09-30）
 
 第二轮三路评审及测试补丁完成。主会话最终独立复跑：后端 59 项（87 子步骤）、Node 发布四文件 33 项（0 failed/0 skipped）、权限门禁 4 项、git diff --check 全通过。新 Linux 包归档校验、CLI 安装/启动/健康/首页及核心 22/22 全通过，两个生产文件包内与工作区 cmp 一致。内部精确路径校验避免把 POSIX 字面反斜杠名称误读为分隔路径；不安全子项跳过、内部链接保留、祖先循环截断、外部规则不读、root 复验失效明确拒绝。子树/相对/文件路径、嵌套外部规则与嵌套 I/O 失败均已补充并实际运行。
 

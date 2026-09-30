@@ -26,16 +26,26 @@ export function isHighRiskCommand(command: string): boolean {
   return HIGH_RISK_COMMANDS.some((pattern) => pattern.test(command));
 }
 
+export function terminalLaunchConfig(platform: string) {
+  return {
+    executable: '/usr/bin/script',
+    args: platform === 'darwin'
+      ? ['-q', '/dev/null', '/bin/bash', '-i']
+      : ['-qc', '/bin/bash -i', '/dev/null'],
+  };
+}
+
 export async function handleCreateTerminal(_req: Request): Promise<Response> {
   console.log('[handleCreateTerminal] Received request');
+  const launch = terminalLaunchConfig(Deno.build.os);
+  const cwd = Deno.env.get('WORKSPACE_PATH') || Deno.cwd();
   const policy = new CommandPolicy({
     profile: Deno.env.get('CAPABILITY_POLICY_PROFILE') === 'remote-shared' ? 'remote-shared' : 'local-trusted',
-    workspaceRoot: Deno.env.get('WORKSPACE_PATH') || Deno.cwd(),
+    workspaceRoot: cwd,
   });
   const decision = policy.evaluate({
-    executable: '/usr/bin/script',
-    args: ['-qc', '/bin/bash -i', '/dev/null'],
-    cwd: Deno.env.get('WORKSPACE_PATH') || Deno.cwd(),
+    ...launch,
+    cwd,
     env: {},
     interactive: true,
   });
@@ -47,12 +57,12 @@ export async function handleCreateTerminal(_req: Request): Promise<Response> {
   }
   const sessionId = crypto.randomUUID();
 
-  const command = new Deno.Command('/usr/bin/script', {
-    args: ['-qc', '/bin/bash -i', '/dev/null'],
+  const command = new Deno.Command(launch.executable, {
+    args: launch.args,
     stdin: 'piped',
     stdout: 'piped',
     stderr: 'piped',
-    cwd: Deno.env.get('WORKSPACE_PATH') || Deno.cwd(),
+    cwd,
     env: {
       ...Deno.env.toObject(),
       TERM: 'xterm-256color',

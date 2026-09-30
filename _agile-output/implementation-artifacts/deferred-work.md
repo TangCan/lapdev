@@ -1,5 +1,15 @@
 # 后续工作记录
 
+## macOS 终端参数修复交接（2026-09-30）
+
+- source_spec: `spec-macos-terminal-launch.md`
+  summary: 参数修复已实现，真实 macOS Release 验收仍待明确推送授权。
+  status: in-progress
+  evidence: 平台参数、策略/spawn 一致性及远程零启动由替身覆盖；主会话后端 61 项（87 steps）、Node 33、门禁 5、Linux 实包原 22/22 全通过，源码与归档一致。macOS CI 原失败不标已解决，AC4 尚未完成；资产和哈希见 release-runtime-core-acceptance.md。
+- source_spec: `spec-macos-terminal-launch.md`
+  summary: 保留终端验收首个错误，避免 finally close 失败覆盖 command/output 异常。
+  evidence: 当前清理异常可能掩盖首个失败阶段；本次仅修固定平台参数，不改错误聚合或退出会话保留机制。后续独立验证应保留真实输出和关闭断言，不延长会话寿命掩盖启动错误。
+
 - source_spec: `spec-server-request-correlation.md`
   summary: 为运行时归档记录完整构建输入、依赖和工具链快照，验证可重复构建。
   evidence: B6，medium；基线构建脚本仅记录 HEAD，执行现有 frontend/node_modules、Cargo 与 Deno 编译，没有完整工具链/依赖证明。本轮源码差异 hash 与包内源码核对只证明生产源码快照，不证明二进制 bit-for-bit 可重建；需独立发布供应链改进与验证。
