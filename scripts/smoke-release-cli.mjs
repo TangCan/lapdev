@@ -25,7 +25,9 @@ try {
   delete env.LAPDEV_RUNTIME_MANIFEST_URL;
   delete env.NODE_AUTH_TOKEN;
   delete env.NPM_TOKEN;
-  execFileSync('npm', ['install', '--global', '--prefix', prefix, '--ignore-scripts', '--no-audit', '--no-fund', source], { env, stdio: 'inherit', timeout: 120000 });
+  const npmMajor = Number(execFileSync('npm', ['--version'], { env, encoding: 'utf8' }).trim().split('.')[0]);
+  const remoteFlags = source.startsWith('https://') && npmMajor >= 12 ? ['--allow-remote=all'] : [];
+  execFileSync('npm', ['install', ...remoteFlags, '--global', '--prefix', prefix, '--ignore-scripts', '--no-audit', '--no-fund', source], { env, stdio: 'inherit', timeout: 120000 });
   const cli = join(prefix, 'bin', 'lapdev');
   const expectedVersion = JSON.parse(readFileSync(new URL('../cli/package.json', import.meta.url))).version;
   if (execFileSync(cli, ['version'], { env, encoding: 'utf8' }).trim() !== expectedVersion) throw new Error('installed CLI version mismatch');

@@ -19,6 +19,17 @@ SHA-256，随后缓存到 `~/.cache/lapdev/<version>/<platform>-<arch>/`。
 `lapdev doctor` 检查已安装的运行时；首次下载前出现 runtime WARN 是正常的。
 Git、LSP 等功能仍需对应工具。不需要用 sudo 安装。
 
+npm 12 默认禁止从 URL 安装；若出现 `EALLOWREMOTE`，仅在本次安装命令加入
+`--allow-remote=all`，不需要修改全局配置：
+
+```sh
+npm install --allow-remote=all --global --prefix "$HOME/.local" \
+  https://github.com/TangCan/lapdev/releases/download/v1.0.2/lapdev-cli-1.0.2.tgz
+```
+
+也可使用下述先下载、校验、再安装本地文件的方式。
+参见 [npm 官方 allow-remote 说明](https://docs.npmjs.com/cli/install/)。
+
 ## 先校验 CLI 再安装
 
 从同一个固定版本 Release 下载 `lapdev-cli-1.0.2.tgz`、`SHA256SUMS`，放入同一目录。

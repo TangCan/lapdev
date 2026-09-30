@@ -67,6 +67,7 @@ lapdev web --no-open
 ```
 
 详见[Release 安装、校验和升级说明](docs/release-installation.md)。以下为源码开发环境。
+使用 npm 12 从 URL 安装时，需要在安装命令加入 `--allow-remote=all`；也可下载校验后安装本地 `.tgz`。
 
 ### 环境要求
 
