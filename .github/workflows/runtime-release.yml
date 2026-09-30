@@ -157,4 +157,4 @@ jobs:
       - name: Verify package, tag and runtime versions
         run: node scripts/verify-npm-release.mjs "$(find _npm -name '*.tgz' -print -quit)" _release/runtime-manifest.json
       - name: Publish through npm Trusted Publishing
-        run: npm publish "$(find _npm -name '*.tgz' -print -quit)" --access public
+        run: node scripts/publish-npm-release.mjs "$(find _npm -name '*.tgz' -print -quit)"

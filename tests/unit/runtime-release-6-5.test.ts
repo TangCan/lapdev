@@ -25,7 +25,7 @@ Deno.test('[P0] 6.6: npm publisher metadata and toolchain meet Trusted Publishin
   if (!workflow.includes('node-version: 24') || !workflow.includes('npm@11.5.1')) {
     throw new Error('npm publishing toolchain does not meet Trusted Publishing minimum versions');
   }
-  if (!workflow.includes('id-token: write') || !workflow.includes('npm publish')) {
+  if (!workflow.includes('id-token: write') || !workflow.includes('node scripts/publish-npm-release.mjs')) {
     throw new Error('npm publishing must use GitHub OIDC');
   }
 });

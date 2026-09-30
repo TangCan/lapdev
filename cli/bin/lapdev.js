@@ -165,7 +165,8 @@ function hasExplicitRuntimeDir(options) {
 }
 
 function manifestUrlFrom(options) {
-  return options.manifestUrl || process.env.LAPDEV_RUNTIME_MANIFEST_URL;
+  return options.manifestUrl || process.env.LAPDEV_RUNTIME_MANIFEST_URL
+    || `https://github.com/TangCan/lapdev/releases/download/v${PACKAGE.version}/runtime-manifest.json`;
 }
 
 function allowedReleaseUrl(rawUrl) {
@@ -175,15 +176,33 @@ function allowedReleaseUrl(rawUrl) {
   } catch {
     return null;
   }
-  const hosts = new Set(['github.com', 'api.github.com', 'objects.githubusercontent.com', 'raw.githubusercontent.com']);
-  if (url.protocol !== 'https:' || !hosts.has(url.hostname)) return null;
+  const hosts = new Set(['github.com', 'api.github.com', 'objects.githubusercontent.com', 'raw.githubusercontent.com', 'release-assets.githubusercontent.com']);
+  if (url.protocol !== 'https:' || !hosts.has(url.hostname) || url.username || url.password || (url.port && url.port !== '443')) return null;
   return url;
+}
+
+async function fetchRelease(rawUrl) {
+  let url = allowedReleaseUrl(rawUrl);
+  for (let hop = 0; hop <= 5; hop += 1) {
+    if (!url) throw new Error('runtime download URL must use an allowed GitHub HTTPS source');
+    const response = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(120000) });
+    if (![301, 302, 303, 307, 308].includes(response.status)) return response;
+    const location = response.headers.get('location');
+    await response.body?.cancel();
+    if (!location) throw new Error('runtime download redirect is missing its destination');
+    url = allowedReleaseUrl(new URL(location, url).href);
+  }
+  throw new Error('runtime download exceeded the redirect limit');
 }
 
 function assertArchiveEntries(archivePath) {
   let listing;
   try {
     listing = execFileSync('tar', ['-tzf', archivePath], { encoding: 'utf8' });
+    const details = execFileSync('tar', ['-tvzf', archivePath], { encoding: 'utf8' });
+    if (details.split('\n').filter(Boolean).some((entry) => !['-', 'd'].includes(entry[0]))) {
+      throw new Error('runtime archive contains links or special files');
+    }
   } catch {
     throw new Error('runtime archive cannot be inspected');
   }
@@ -203,8 +222,7 @@ function assertArchiveEntries(archivePath) {
 async function downloadAndInstall(manifestUrl, cacheDir) {
   const manifestEndpoint = allowedReleaseUrl(manifestUrl);
   if (!manifestEndpoint) throw new Error('runtime manifest URL must use an allowed GitHub HTTPS source');
-  const manifestResponse = await fetch(manifestEndpoint, { redirect: 'manual' });
-  if (manifestResponse.status >= 300 && manifestResponse.status < 400) throw new Error('runtime manifest redirects are not allowed');
+  const manifestResponse = await fetchRelease(manifestEndpoint);
   if (!manifestResponse.ok) throw new Error(`runtime manifest request failed: HTTP ${manifestResponse.status}`);
   const manifest = await manifestResponse.json();
   const manifestError = validateManifest(manifest);
@@ -214,8 +232,7 @@ async function downloadAndInstall(manifestUrl, cacheDir) {
     : manifest;
   const assetUrl = allowedReleaseUrl(selected.asset);
   if (!assetUrl) throw new Error('runtime asset URL must use an allowed GitHub HTTPS source');
-  const assetResponse = await fetch(assetUrl, { redirect: 'manual' });
-  if (assetResponse.status >= 300 && assetResponse.status < 400) throw new Error('runtime asset redirects are not allowed');
+  const assetResponse = await fetchRelease(assetUrl);
   if (!assetResponse.ok) throw new Error(`runtime asset request failed: HTTP ${assetResponse.status}`);
   const data = Buffer.from(await assetResponse.arrayBuffer());
   const observedHash = createHash('sha256').update(data).digest('hex');
