@@ -1,6 +1,10 @@
 # 发布运行时核心验收：阶段结果
 
-## 最新交接：macOS 参数修复，本地验证通过、真实 macOS 待验证（2026-09-30）
+## 最新结果：macOS/Linux 真实 CI 验收均通过（2026-09-30）
+
+修复提交 `ed948e71ef525b045d4a1abffff886a9873259dc` 已推送 origin/main；[Runtime Release 36697156609](https://github.com/TangCan/lapdev/actions/runs/36697156609) completed/success。CLI 包验证成功；macos-14/darwin-arm64 与 linux-x64 均构建并校验归档、完成 CLI 安装/启动/健康/首页及原核心与安全 22/22。日志两个平台 terminal 均 pass，验收脚本保留 shell 合成输出标记、读取、关闭及关闭后拒绝断言。三路评审没有阻断项，规格 done。此次非标签推送，GitHub Release/npm/公开发布后验证任务按条件 skipped；旧 Docker 未自动触发。未打标签或发布，LSP 仍仅验证状态契约。
+
+## 历史交接：macOS 参数修复，本地验证通过、真实 macOS 待验证（2026-09-30）
 
 `spec-macos-terminal-launch.md` 保持 in-progress。Darwin 使用 `/usr/bin/script -q /dev/null /bin/bash -i`，Linux 保留原参数；策略与 spawn 共用配置。未增加权限、修改会话生命周期或降低验收。此前 macOS CI 失败证据保留；平台替身测试不证明真实 macOS 成功，需明确推送授权后运行现有矩阵，再完成验收与评审。
 

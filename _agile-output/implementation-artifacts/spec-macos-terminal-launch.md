@@ -2,7 +2,7 @@
 title: 'macOS 终端启动参数兼容'
 type: 'bugfix'
 created: '2026-09-30'
-status: 'in-progress'
+status: 'done'
 baseline_commit: '0adf2948155761faec59da6a5e5c2dc131fc64ac'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -61,7 +61,9 @@ context: []
 
 ## Implementation Notes
 
-平台配置统一供策略与进程构造使用；未修改权限或会话生命周期。主会话复验：后端 61 passed（87 steps）、Node 33 passed、权限门禁 5 passed、Linux 实包原 22/22 通过。Linux 实包覆盖真实输入/输出/关闭；Darwin 参数、策略与 spawn 一致性及远程零启动由替身测试覆盖，不能代替真实 macOS 终端验收。AC4 尚未完成，保持 in-progress，待明确推送授权后运行 macOS CI，再进入完成评审。
+2026-09-30 远端复验：提交 `ed948e71ef525b045d4a1abffff886a9873259dc` 对应 GitHub Actions 运行 `36697156609` 成功；CLI 包验证、linux-x64 和 macos-14/darwin-arm64 构建、归档校验、CLI 安装/启动/健康/首页及原 22/22 核心与安全验收均通过。两个平台 terminal 均 pass，实际覆盖合成标记输出、关闭及关闭后拒绝。AC4 与五行矩阵均已取得执行证据；以下本地交接待验证说明保留为历史。非标签发布任务正常 skipped，未发布。
+
+历史本地交接：平台配置统一供策略与进程构造使用；未修改权限或会话生命周期。主会话复验：后端 61 passed（87 steps）、Node 33 passed、权限门禁 5 passed、Linux 实包原 22/22 通过。当时尚无真实 macOS 证据，保持 in-progress；此待验状态已被上述远端复验取代。
 
 ## Spec Change Log
 
@@ -69,9 +71,19 @@ context: []
 
 ## Review Triage Log
 
+三路评审全部返回后逐项核验：Edge Case Hunter 无发现，Verification Gap Reviewer 无验证缺口。Blind Hunter 五项如下。
+
+| 编号 | 判定 | 证据与处理 |
+|---|---|---|
+| B1 交接文档过期 | low | CI 成功后报告仍写待授权，确为状态文字过期；直接补充当前结果并标记历史，无生产补丁。 |
+| B2 规格待验文字 | low | 新证据与历史段并列易误读；涉及规格编辑的评审建议不作为代码修复，正常收尾明确历史与当前状态。 |
+| B3 cleanup 抛错跳过恢复 | false | handleCloseTerminal 外层捕获并返回 500，内部释放锁异常也被捕获；当前合成 request/kill 不会使该 await 抛错，所述清理失败路径未成立。 |
+| B4 缺少输出验证 | false | 新替身测试不验证输出，但原 release-runtime-acceptance 在两个真实平台执行 shell 构造标记并读取输出；CI terminal pass，整体输出回归覆盖并未缺失。 |
+| B5 意外退出覆盖 | low | 替身只解析正常 close 的 status 属实；进程意外退出清理是未改的既有行为，不是平台参数补丁引入缺陷。独立记录该生命周期验证改进，不修改本次生产实现。 |
+
 ## Verification
 
 - `npm run test:backend -- src/handlers/terminalLaunch.test.ts src/handlers/terminalPolicy.test.ts`，随后 `npm run test:backend`：通过。
 - Node 发布四文件、`./scripts/release-permission-gate.sh`、`git diff --check`：通过，不降低断言。
 - 新独立 Linux 归档构建/校验、npm pack、smoke-release-cli：原 22/22，包内源码一致及哈希记录；忽略目录下保留资产。
-- 获得明确推送授权后，通过当前 Runtime Release 的真实 linux/macOS 构建与 CLI smoke 验证 macOS AC；无远端运行时记录验证待完成，不标规格 done。既有全单元技能发现 170/1 失败另案，不混入本次修复。
+- 已取得明确推送授权；Runtime Release `36697156609` 对 `ed948e71ef525b045d4a1abffff886a9873259dc` 的真实 Linux/macOS 构建与 CLI smoke 均通过，各 22/22，AC4 完成。既有全单元技能发现 170/1 失败另案，不混入本次修复。

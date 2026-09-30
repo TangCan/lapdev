@@ -1,6 +1,14 @@
 # 后续工作记录
 
-## macOS 终端参数修复交接（2026-09-30）
+## macOS 终端参数修复收尾（2026-09-30）
+
+`spec-macos-terminal-launch.md` 已完成：提交 `ed948e71ef525b045d4a1abffff886a9873259dc` 已推送，Runtime Release `36697156609` 成功；Linux/macOS 各 22/22，包括真实终端输出与关闭。AC4 不再待验。以下原 pending 交接记录仅为历史，清理错误掩盖首个失败阶段的独立改进仍开放。
+
+- source_spec: `spec-macos-terminal-launch.md`
+  summary: 为未改动的终端意外退出清理补充独立生命周期测试。
+  evidence: 最终评审 B5 low；本次替身覆盖正常 close，真实两平台覆盖修复后的输入/输出/关闭，未新增 status 自发解析的测试。既有 status.then 删除 sessions 行为未改；后续测试应检查退出后拒绝及 writer 清理，不以保留死亡会话掩盖错误。
+
+## 历史：macOS 终端参数修复交接（2026-09-30）
 
 - source_spec: `spec-macos-terminal-launch.md`
   summary: 参数修复已实现，真实 macOS Release 验收仍待明确推送授权。
