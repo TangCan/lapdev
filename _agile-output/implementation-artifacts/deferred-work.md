@@ -1,5 +1,16 @@
 # 后续工作记录
 
+- source_spec: `spec-server-request-correlation.md`
+  summary: 为运行时归档记录完整构建输入、依赖和工具链快照，验证可重复构建。
+  evidence: B6，medium；基线构建脚本仅记录 HEAD，执行现有 frontend/node_modules、Cargo 与 Deno 编译，没有完整工具链/依赖证明。本轮源码差异 hash 与包内源码核对只证明生产源码快照，不证明二进制 bit-for-bit 可重建；需独立发布供应链改进与验证。
+
+## 请求标签风险解决记录（2026-09-30）
+
+- source_spec: `spec-server-request-correlation.md`
+  resolves: “为客户端请求关联标签制定安全输入策略，防止任意敏感值经 X-Request-Id 进入日志”。
+  status: done
+  evidence: 忽略入站标签，每次请求解析生成随机 UUID；上下文和连接后续事件复用该 requestId，现有拒绝响应与审计一致，不新增成功响应出口。生产 emitter、真实 HTTP 200/401/403 和 WS 101/401 捕获验证合成 bootstrap/Cookie/Bearer/UUID 标签无日志或响应回显；匿名、撤销、过期、终端 supplied/fallback 和连接生命周期回归通过。后端 55 项（69 子步骤）、Node 32 项、权限门禁 4 项、独立 Linux 实包 22/22 通过，资产见 release-runtime-core-acceptance.md。以下原发现和历史解决记录保留；终端归属、异步窗口、递归树边界、路径竞态、macOS 等其他风险仍未关闭，也不宣称任意客户端字段或全应用日志已脱敏。
+
 - source_spec: `spec-release-runtime-core-acceptance.md`
   summary: 明确远程认证会话与终端进程的归属模型，并补齐真实远程终端正向验收。
   evidence: RB1/RB5，medium；现有终端创建生成独立 UUID，而注册绑定认证 session，远程策略禁止 interactive；本次替身分发测试与本地实包终端不能证明远程终端全过程。
@@ -68,3 +79,7 @@
 ## HTTP 审计目标解决记录（2026-09-30）
 
 先前“将 WebSocket 之外的认证凭据与审计关联标识分离”目标已由 `spec-http-audit-credential-isolation.md` 完成：独立服务端关联 ID、真实 HTTP/WS 握手及高风险终端拒绝回归通过。主会话复验后端 55 项（69 子步骤）、Node 32 项、权限门禁 4 项和 Linux 实包 22/22。原发现保留为历史；此记录不关闭上述 X-Request-Id 标签风险或其他独立延期项。
+
+## 请求标签目标最终收尾（2026-09-30）
+
+`spec-server-request-correlation.md` 已完成评审补丁、获批监听测试缓存加固及主会话独立复验：后端 55 项（69 子步骤）、Node 33 项、权限门禁 4 项、Linux 实包 22/22 全部通过。此前冷下载导致的 Node 31/32 失败保留为历史，当前阻碍已解决。X-Request-Id 标签风险关闭；完整构建输入/工具链复现及其他独立风险不关闭。

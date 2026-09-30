@@ -64,7 +64,7 @@ Deno.test('remote terminal denial audits supplied context and omitted-context fa
     for (const supplied of [true, false]) {
       const activeSession = supplied ? session : fallbackSession;
       const req = new Request('http://localhost/api/v1/terminal/command', { method: 'POST',
-        headers: { Authorization: `Bearer ${activeSession.sessionId}` },
+        headers: { Authorization: `Bearer ${activeSession.sessionId}`, 'X-Request-Id': activeSession.sessionId },
         body: JSON.stringify({ sessionId: activeSession.sessionId, command: 'sudo synthetic-private-command' }) });
       const context = resolveCapabilityContext(req, [], supplied ? store : getRemoteAuthSessionStore());
       assertEquals(context.authenticated, true);

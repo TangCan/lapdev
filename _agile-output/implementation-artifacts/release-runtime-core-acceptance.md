@@ -1,6 +1,39 @@
 # 发布运行时核心验收：阶段结果
 
-## 最新结果：HTTP 审计凭据隔离（2026-09-30）
+## 最新结果：服务端请求关联（2026-09-30）
+
+**最终收尾：评审与独立复验通过。** 用户批准监听测试缓存加固后，在临时隔离 DENO_DIR 中异步预热一次依赖（180 秒独立期限），六种模式共享该缓存并用 cached-only 启动，原 20 秒服务启动限制及所有监听/健康/TLS 回退断言不变。缓存准备输出有界，失败/超时/启动失败直接报错并清理；独立补充检查无发现。
+
+主会话完整复跑：后端 **55 项（69 子步骤）**、Node 四文件 **33 项**（0 failed/0 skipped，新增缓存失败隔离测试）、权限门禁 **4 项**及 git diff --check 全部通过。Linux 归档再次校验、安装/启动/健康/首页及原核心 **22/22** 通过，包内 capability.ts 与当前源码一致。仅测试缓存补丁，不重建或覆盖资产。完整供应链/工具链复现仍独立延期；macOS、公开安装及真实 LSP 功能仍未验证。没有推送或发布，测试归档不纳入源码提交。以下 31/32 失败及修订前 32/32 均为历史执行记录。
+
+**历史复验阻碍（缓存加固前）：尚未最终收尾。** 评审补丁后主会话后端 55 项（69 子步骤）、权限门禁 4 项、差异检查与 Linux 实包 22/22 均通过，生产源码与包内一致。Node 四文件最终复跑为 31/32，失败是既有真实监听测试在隔离空 Deno 缓存下载依赖时超过启动等待；原环境两次及去代理一次未解决，去代理运行已通过 HTTP 模式但 HTTPS 冷下载超时。下面 32/32 为评审前历史，不是最终全绿。当时规格保持 in-review，未提交、推送或发布；需确认监听测试缓存加固后继续最终收尾。各评审测试补丁已核验，完整构建供应链快照风险单独延期。
+
+`spec-server-request-correlation.md` 已实施：忽略所有入站 X-Request-Id，每次解析生成随机 UUID；入口、终端拒绝及 WebSocket 后续事件复用原 requestId。现有拒绝响应 header/body 与审计一致，成功 HTTP 和 WS 101 未新增 ID 出口。授权、version 1 信封、安全 session 关联及身份/revision 不变。客户端不能预设日志 ID，须通过现有错误响应定位；不保存原标签或持久映射。
+
+后端 55 项（69 子步骤）、Node 四文件 32 项（0 skipped）、权限门禁 4 项及 git diff --check 通过。新独立 Linux 包安装、启动、健康、首页及原核心 22/22 通过；构建/归档校验/npm pack 成功。以下 HTTP 隔离结果是历史记录，其中 X-Request-Id 延期问题已由本轮解决。
+
+资产目录：`_agile-output/runtime-archives/server-request-correlation-20260930/`。运行时 SHA-256：`5c188f965a441962126bf49df95f8d1ccaf4fa618fcc38b834520bb9abacd967`；CLI SHA-256：`a573144b85ec4d34dc44b1fbb171fa3819a5da60b1e132061935f16484045567`。版本仍为 1.0.3，manifest commit 为 `ceb0e434a8bd3a4527b5dbbc77bda2a8185adb10`，资产包含未提交修改；历史包未覆盖，未推送或发布。包内 `./app/backend/src/security/capability.ts` 提取后与当前源码 cmp 一致；唯一生产修改是该文件，其余生产源码来自基线。
+
+源码快照：从仓库根执行 `git diff --binary --no-ext-diff --no-textconv ceb0e434a8bd3a4527b5dbbc77bda2a8185adb10 -- backend/src ':!backend/src/**/*.test.ts' | sha256sum`，结果 `be31e946d2ba6502020827753bbf29642761e479c6ce635d9d299a8da85911ba`。该差异不含测试和文档，避免文档哈希循环。
+
+重建此生产源码快照：在独立目录检出基线 `ceb0e434a8bd3a4527b5dbbc77bda2a8185adb10`，从现有 `server-request-correlation-20260930/lapdev-runtime-1.0.3-linux-x64.tar.gz` 提取唯一修改的 `./app/backend/src/security/capability.ts`，覆盖该检出的同路径文件；不要覆盖现有归档。然后在该检出根执行上面的 code-only diff/hash 命令，应得到 `be31e946d2ba6502020827753bbf29642761e479c6ce635d9d299a8da85911ba`。先按本节 SHA-256 核对所用归档身份。其余 backend 生产源码，以及未修改的 frontend、Rust core、scripts 使用该基线。此方法是源码快照证据，不包含依赖锁定、安装产物、工具链和构建环境的完整恢复承诺，也不证明包可逐位复现。
+
+评审修订交接：重复标签矩阵改在有效 remote-shared 会话下执行，并独立保留本地/无标签覆盖；每个合成标签分别通过 Cookie/Bearer 验证 HTTP 200、403 和 WS 101；401 明确验证完整 Content-Length JSON、UNAUTHENTICATED、响应/审计 ID 及 headers/body 不回显；连接测试产生两次真实握手后拒绝并验证稳定安全关联。本轮仅运行三个修改测试文件的针对性回归，完整验证和最终评审由主会话执行；规格保持 in-review，不重建或覆盖归档。
+
+本轮定向结果：`npm run test:backend -- src/security/capability.test.ts src/security/httpAudit.test.ts src/websocket/fileWatcher.test.ts`，10 passed（30 steps）、0 failed；`git diff --check` 通过。首轮把全部后续允许事件也计入“两次拒绝”计数，修正为明确筛选两次 SESSION_MISMATCH 后同命令复跑通过；全部后续事件的安全 session 稳定性断言保留。未执行全量后端、Node 发布回归、权限门禁或实包验收；本节此前全量结果属于修订前运行记录。
+
+```sh
+RUNTIME_OUTPUT_DIR=_agile-output/runtime-archives/server-request-correlation-20260930 ./scripts/build-runtime-archive.sh linux-x64
+./scripts/verify-runtime-archive.sh _agile-output/runtime-archives/server-request-correlation-20260930/lapdev-runtime-1.0.3-linux-x64.tar.gz linux-x64
+npm pack ./cli --pack-destination _agile-output/runtime-archives/server-request-correlation-20260930
+node scripts/smoke-release-cli.mjs _agile-output/runtime-archives/server-request-correlation-20260930/lapdev-cli-1.0.3.tgz _agile-output/runtime-archives/server-request-correlation-20260930/lapdev-runtime-1.0.3-linux-x64.tar.gz
+```
+
+覆盖：生产 emitter 测试保留匿名、撤销、过期、本地、安全 session/身份/revision、能力拒绝及跨请求唯一性断言；真实 main.ts HTTP 200/401/403、WS 101/401 使用合成 bootstrap、Cookie/Bearer 凭据和普通 UUID 标签，隔离请求边界定位成功事件，拒绝使用服务端响应 ID，所有捕获输出无原标签。终端 supplied/fallback 及连接握手/后续生命周期关联亦回归通过。实包原 22 项为核心回归，不冒充新增标签矩阵覆盖。
+
+本规格实现及评审修订已交接，完整验证与最终评审仍待主会话执行；macOS、公开安装、真实 LSP 功能未验证，前端既有大 chunk 警告保留。终端归属、入站异步窗口、递归树及路径竞态等其他风险未关闭。不宣称任意客户端字段或全应用日志已脱敏。未读取真实凭据或历史日志，未提交、推送或发布。
+
+## 历史：HTTP 审计凭据隔离（2026-09-30）
 
 三路评审及最小补丁完成，主会话独立执行后端 **55 项（69 子步骤）**、Node **32 项**（0 skipped）、权限门禁 **4 项**及 git diff --check，全部通过。真实 HTTP/WS 握手验证与远程终端处理器 supplied/fallback 回归已纳入全量测试。
 

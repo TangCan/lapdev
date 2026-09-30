@@ -82,7 +82,27 @@ Deno.test('real HTTP routes and WebSocket upgrades share safe server audit corre
         result += new TextDecoder().decode(buffer.subarray(0, count));
         assert(result.length < 16384, 'bounded upgrade headers');
       }
-      return Number(/^HTTP\/1.1 (\d+)/.exec(result)?.[1]);
+      const bodyStart = result.indexOf('\r\n\r\n') + 4;
+      const status = Number(/^HTTP\/1.1 (\d+)/.exec(result)?.[1]);
+      const framing = /\r\ncontent-length: (\d+)\r\n/i.exec(result.slice(0, bodyStart));
+      if (status !== 101) {
+        assert(framing, 'denial requires Content-Length');
+        assert(!/\r\ntransfer-encoding:/i.test(result.slice(0, bodyStart)), 'unambiguous denial framing');
+      }
+      const contentLength = Number(framing?.[1] || 0);
+      assert(contentLength < 16384, 'bounded denial body');
+      while (new TextEncoder().encode(result.slice(bodyStart)).length < contentLength) {
+        const count = await conn.read(buffer);
+        assert(count !== null, 'upgrade denial body ended early');
+        result += new TextDecoder().decode(buffer.subarray(0, count));
+        assert(result.length < 16384, 'bounded upgrade response');
+      }
+      if (status !== 101) {
+        assert(contentLength > 0, 'nonempty denial body');
+        assertEquals(new TextEncoder().encode(result.slice(bodyStart)).length, contentLength);
+      }
+      return { status, raw: result,
+        requestId: /\r\nx-request-id: ([^\r]+)/i.exec(result)?.[1] };
     } finally { clearTimeout(timer); try { conn.close(); } catch { /* timeout closed it */ } }
   }
   try {
@@ -91,7 +111,7 @@ Deno.test('real HTTP routes and WebSocket upgrades share safe server audit corre
     assertEquals(exchange.response.status, 200);
     const cookie = exchange.response.headers.get('Set-Cookie')!.split(';')[0];
     const credential = cookie.slice(cookie.indexOf('=') + 1);
-    const terminal = await request('/api/v1/terminal/command', { method: 'POST', headers: { Cookie: cookie },
+    const terminal = await request('/api/v1/terminal/command', { method: 'POST', headers: { Cookie: cookie, 'X-Request-Id': credential },
       body: JSON.stringify({ sessionId: bodyCredential, command }) });
     assertEquals(terminal.response.status, 403);
     assertEquals(terminal.body.error.code, 'HIGH_RISK_COMMAND');
@@ -107,34 +127,84 @@ Deno.test('real HTTP routes and WebSocket upgrades share safe server audit corre
     assertEquals(denial.correlation.principalId, 'remote-operator');
     assertEquals(denial.correlation.workspaceId, 'http-audit-workspace');
     assert(denial.correlation.revision > entry.correlation.revision);
-    for (const headers of [{ Cookie: cookie }, { Authorization: `Bearer ${credential}` }] as Record<string, string>[]) {
-      const allowedId = crypto.randomUUID();
-      const allowed = await request('/api/v1/files/tree?path=/workspace', { headers: { ...headers, 'X-Request-Id': allowedId } });
+    const labels = [bootstrap, cookie, `Bearer ${credential}`, credential, crypto.randomUUID()];
+    const requestIds = new Set<string>([id]);
+    async function isolatedAudit(run: () => Promise<void>) {
+      const before = audits().length;
+      await run();
+      await waitFor(() => audits().length > before, 'isolated request audit');
+      const events = audits().slice(before);
+      assertEquals(events.length, 1);
+      const event = events[0];
+      assert(event.correlation.requestId && !requestIds.has(event.correlation.requestId));
+      requestIds.add(event.correlation.requestId);
+      return event;
+    }
+    for (const label of labels) {
+      for (const transport of [{ Cookie: cookie }, { Authorization: `Bearer ${credential}` }] as Record<string, string>[]) {
+      const headers = { ...transport, 'X-Request-Id': label };
+      const allowedEvent = await isolatedAudit(async () => {
+      const allowed = await request('/api/v1/files/tree?path=/workspace', { headers });
       assertEquals(allowed.response.status, 200);
-      const deniedId = crypto.randomUUID();
-      const denied = await request('/api/v1/git/status', { headers: { ...headers, 'X-Request-Id': deniedId } });
+      assertEquals(allowed.response.headers.get('X-Request-Id'), null);
+      assert(!JSON.stringify(allowed.body).includes(label));
+      assert(!JSON.stringify([...allowed.response.headers]).includes(label));
+      });
+      let deniedId = '';
+      const deniedEvent = await isolatedAudit(async () => {
+      const denied = await request('/api/v1/git/status', { headers });
       assertEquals(denied.response.status, 403); assertEquals(denied.body.error.code, 'CAPABILITY_DENIED');
-      const wsId = crypto.randomUUID();
-      assertEquals(await upgrade({ ...headers, 'X-Request-Id': wsId }), 101);
-      await waitFor(() => [allowedId, deniedId, wsId].every((requestId) => audits().some((event) => event.correlation.requestId === requestId)), 'HTTP and actual upgrade audit');
-      for (const [requestId, reason] of [[allowedId, 'ALLOWED'], [deniedId, 'CAPABILITY_DENIED'], [wsId, 'ALLOWED']]) {
-        const event = audits().find((event) => event.correlation.requestId === requestId)!;
+      deniedId = denied.body.error.requestId;
+      assertEquals(denied.response.headers.get('X-Request-Id'), deniedId);
+      assert(!JSON.stringify(denied.body).includes(label));
+      assert(!JSON.stringify([...denied.response.headers]).includes(label));
+      });
+      assertEquals(deniedEvent.correlation.requestId, deniedId);
+      const wsEvent = await isolatedAudit(async () => {
+        const upgraded = await upgrade(headers);
+        assertEquals(upgraded.status, 101);
+        assertEquals(upgraded.requestId, undefined);
+        assert(!upgraded.raw.includes(label));
+      });
+      for (const [event, reason] of [[allowedEvent, 'ALLOWED'], [deniedEvent, 'CAPABILITY_DENIED'], [wsEvent, 'ALLOWED']] as const) {
         assertEquals(event.reason, reason); assertEquals(event.correlation.sessionId, safeId);
         assertEquals(event.correlation.principalId, 'remote-operator'); assertEquals(event.correlation.workspaceId, 'http-audit-workspace');
       }
+      }
     }
     for (const headers of [{ Cookie: `__Host-lapdev_session=${safeId}` }, { Authorization: `Bearer ${safeId}` }] as Record<string, string>[]) {
-      const requestId = crypto.randomUUID();
-      assertEquals((await request('/api/v1/files/tree', { headers })).response.status, 401);
-      assertEquals(await upgrade({ ...headers, 'X-Request-Id': requestId }), 401);
-      await waitFor(() => audits().some((event) => event.correlation.requestId === requestId), 'denied actual upgrade audit');
-      assertEquals(audits().find((event) => event.correlation.requestId === requestId)!.reason, 'UNAUTHENTICATED');
+      const denied = await request('/api/v1/files/tree', { headers: { ...headers, 'X-Request-Id': credential } });
+      assertEquals(denied.response.status, 401);
+      assertEquals(denied.body.error.code, 'UNAUTHENTICATED');
+      assert(denied.body.error.requestId);
+      assertEquals(denied.response.headers.get('X-Request-Id'), denied.body.error.requestId);
+      assert(!JSON.stringify([...denied.response.headers]).includes(credential));
+      assert(!JSON.stringify(denied.body).includes(credential));
+      await waitFor(() => audits().some((event) => event.correlation.requestId === denied.body.error.requestId), 'anonymous HTTP audit');
+      const httpEvent = audits().find((event) => event.correlation.requestId === denied.body.error.requestId)!;
+      assertEquals(httpEvent.reason, 'UNAUTHENTICATED');
+      assertEquals(httpEvent.outcome, 'denied');
+      let upgradeId = '';
+      const event = await isolatedAudit(async () => {
+        const upgraded = await upgrade({ ...headers, 'X-Request-Id': credential });
+        assertEquals(upgraded.status, 401);
+        assert(upgraded.requestId);
+        upgradeId = upgraded.requestId;
+        const body = upgraded.raw.split('\r\n\r\n')[1];
+        assert(body.trim(), 'nonempty JSON denial');
+        const parsed = JSON.parse(body);
+        assertEquals(parsed.error.code, 'UNAUTHENTICATED');
+        assertEquals(parsed.error.requestId, upgradeId);
+        assert(!upgraded.raw.includes(credential));
+      });
+      assertEquals(event.reason, 'UNAUTHENTICATED');
+      assertEquals(event.correlation.requestId, upgradeId);
     }
     // Drain logs after shutdown before checking every captured console channel.
     child.kill('SIGTERM');
     const shutdownTimer = setTimeout(() => { if (!exited) { try { child.kill('SIGKILL'); } catch { /* exited */ } } }, 3000);
     try { await status; await readers; } finally { clearTimeout(shutdownTimer); }
-    for (const secret of [bootstrap, credential, cookie, bodyCredential, command]) assert(!output.includes(secret), 'credential or command leaked');
+    for (const secret of [...labels, bootstrap, credential, cookie, bodyCredential, command]) assert(!output.includes(secret), 'credential or command leaked');
   } finally {
     if (!exited) child.kill('SIGKILL');
     const timer = setTimeout(() => { if (!exited) { try { child.kill('SIGKILL'); } catch { /* exited */ } } }, 3000);

@@ -84,7 +84,8 @@ export function resolveCapabilityContext(
   requestedCapability?: Capability,
 ): CapabilityContext {
   const profile = currentPolicyProfile();
-  const requestId = header(req, 'X-Request-Id', crypto.randomUUID());
+  // Client labels may contain credentials. Only server-generated IDs enter audits.
+  const requestId = crypto.randomUUID();
   const configured = (Deno.env.get('CAPABILITY_ALLOWLIST') || '').split(',').map((value) => value.trim()).filter(Boolean) as Capability[];
   if (profile === 'remote-shared') {
     const session = sessionStore.resolveRequest(req);

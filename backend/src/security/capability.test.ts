@@ -14,7 +14,8 @@ Deno.test('production HTTP and handshake audits isolate credentials across the s
   const a = store.exchangeBootstrapToken(bootstrap)!;
   const b = store.exchangeBootstrapToken(bootstrap)!;
   function run(headers: HeadersInit, path = '/api/v1/files') {
-    const context = resolveCapabilityContext(new Request(`http://localhost${path}`, { headers }), [], store);
+    const tagged = new Headers(headers);
+    const context = resolveCapabilityContext(new Request(`http://localhost${path}`, { headers: tagged }), [], store);
     for (const capability of ['files', 'terminal'] as const) {
       auditCapabilityDecision(context, capability, authorizeCapability(context, capability));
     }
@@ -36,12 +37,30 @@ Deno.test('production HTTP and handshake audits isolate credentials across the s
       const context = run(headers);
       assertEquals(capabilityError(context, authorizeCapability(context, 'files')).status, 401);
     }
+    const noHeader = run({ Cookie: b.cookieHeader });
+    assertEquals(noHeader.authenticated, true);
+    assert(noHeader.requestId);
+    for (const label of [bootstrap, a.cookieHeader, `Bearer ${a.session.sessionId}`, a.session.sessionId, crypto.randomUUID()]) {
+      const first = run({ Cookie: b.cookieHeader, 'X-Request-Id': label });
+      const second = run({ Cookie: b.cookieHeader, 'X-Request-Id': label });
+      assertEquals(first.profile, 'remote-shared');
+      assertEquals(second.profile, 'remote-shared');
+      assertEquals(first.authenticated, true);
+      assertEquals(second.authenticated, true);
+      assert(first.requestId !== label && first.requestId !== second.requestId);
+      assert(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(first.requestId));
+      assert(!logs.join('\n').includes(label));
+    }
     store.revoke(a.session.sessionId);
     assertEquals(run({ Cookie: a.cookieHeader }).authenticated, false);
     now = 1001;
     assertEquals(run({ Authorization: `Bearer ${b.session.sessionId}` }).authenticated, false);
     Deno.env.set(keys[0], 'local-trusted');
-    const local = run({ 'X-Session-Id': a.session.sessionId });
+    const local = run({ 'X-Session-Id': a.session.sessionId, 'X-Request-Id': bootstrap });
+    assertEquals(local.profile, 'local-trusted');
+    assert(local.requestId !== bootstrap);
+    const localNoHeader = run({});
+    assert(localNoHeader.requestId && localNoHeader.requestId !== local.requestId);
     delete local.auditSessionId;
     auditCapabilityDecision(local, 'files', authorizeCapability(local, 'files'));
     auditCapabilityDecision(local, 'files', authorizeCapability(local, 'files'));
@@ -54,10 +73,12 @@ Deno.test('production HTTP and handshake audits isolate credentials across the s
       assertEquals(event.correlation.workspaceId, 'audit-matrix');
       assert(event.correlation.revision > 0);
     }
-    assertEquals(events[0].correlation.requestId, 'request-cookie');
-    assertEquals(events[2].correlation.requestId, 'request-bearer');
+    assertEquals(events[0].correlation.requestId, cookie.requestId);
+    assertEquals(events[1].correlation.requestId, cookie.requestId);
+    assertEquals(events[2].correlation.requestId, bearer.requestId);
+    assert(cookie.requestId !== bearer.requestId);
     assertEquals(events[0].outcome, 'allowed'); assertEquals(events[1].outcome, 'denied');
-    for (const secret of [bootstrap, a.cookieHeader, a.session.sessionId, b.session.sessionId, 'untrusted-audit-id']) assert(!logs.join('\n').includes(secret));
+    for (const secret of [bootstrap, a.cookieHeader, a.session.sessionId, b.session.sessionId, 'untrusted-audit-id', 'request-cookie', 'request-bearer']) assert(!logs.join('\n').includes(secret));
   } finally {
     console.info = original;
     keys.forEach((key, index) => { if (previous[index] === undefined) Deno.env.delete(key); else Deno.env.set(key, previous[index]!); });

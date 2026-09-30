@@ -1,6 +1,6 @@
 import { assertEquals, assert } from 'jsr:@std/assert@1';
 import { AuthSessionStore } from '../security/authSession.ts';
-import { resolveCapabilityContext } from '../security/capability.ts';
+import { auditCapabilityDecision, authorizeCapability, resolveCapabilityContext } from '../security/capability.ts';
 import { broadcastFileChange, broadcastGitStatus, getTerminalClient, handleWebSocket, registerTerminalClient, sendTerminalOutput, unregisterTerminalClient } from './fileWatcher.ts';
 
 Deno.test('WebSocket 消息分发执行当前能力策略、会话有效性和终端绑定', async () => {
@@ -171,7 +171,8 @@ Deno.test('业务出站：订阅、静默失效、动态能力、模式切换及
   function connect(flush: (id: string) => Promise<void> = async () => {}) {
     const session = store.exchangeBootstrapToken('fixture')!.session;
     credentials.push(session.sessionId);
-    const context = resolveCapabilityContext(new Request('http://localhost/ws', { headers: { Authorization: `Bearer ${session.sessionId}` } }), [], store);
+    const context = resolveCapabilityContext(new Request('http://localhost/ws', { headers: { Authorization: `Bearer ${session.sessionId}`, 'X-Request-Id': session.sessionId } }), [], store);
+    auditCapabilityDecision(context, 'files', authorizeCapability(context, 'files'));
     const ws = socket(); sockets.push(ws);
     handleWebSocket(ws, context, store, async () => ({ flushPendingOutput: flush, forwardTerminalInput: async () => {} }));
     return { ws, context };
@@ -222,11 +223,30 @@ Deno.test('业务出站：订阅、静默失效、动态能力、模式切换及
       assertEquals(getTerminalClient('wrong-binding'), undefined); assertEquals(a.ws.messages, []);
       const bindingDenial = audits.map((line) => JSON.parse(line)).find((event) => event.reason === 'SESSION_MISMATCH');
       assert(bindingDenial); assertEquals(bindingDenial.outcome, 'denied');
+      registerTerminalClient('second-wrong-binding', a.ws);
+      await sendTerminalOutput('second-wrong-binding', 'private-payload');
+      assertEquals(getTerminalClient('second-wrong-binding'), undefined);
+      assertEquals(a.ws.messages, []);
       assertEquals(bindingDenial.details.capability, 'terminal');
       assertEquals(bindingDenial.correlation.requestId, a.context.requestId);
       assertEquals(bindingDenial.correlation.principalId, a.context.principalId);
       const correlated = audits.map((line) => JSON.parse(line)).filter((event) => event.correlation?.requestId === a.context.requestId);
-      assertEquals(new Set(correlated.map((event) => event.correlation.sessionId)).size, 1);
+      assertEquals(correlated[0].correlation.sessionId, a.context.auditSessionId);
+      assertEquals(correlated[0].reason, 'ALLOWED');
+      const subsequent = correlated.slice(1).filter((event) => event.reason === 'SESSION_MISMATCH');
+      assertEquals(subsequent.length, 2);
+      for (const event of subsequent) {
+        assertEquals(event.outcome, 'denied');
+        assertEquals(event.reason, 'SESSION_MISMATCH');
+        assertEquals(event.correlation.requestId, a.context.requestId);
+        assertEquals(event.correlation.sessionId, bindingDenial.correlation.sessionId);
+        assert(event.correlation.sessionId);
+        assert(event.correlation.requestId);
+        assert(event.correlation.sessionId !== a.context.sessionId);
+        assert(event.correlation.sessionId !== a.context.auditSessionId);
+        assert(event.correlation.requestId !== a.context.sessionId);
+      }
+      assertEquals(new Set(correlated.slice(1).map((event) => event.correlation.sessionId)).size, 1);
       assert(bindingDenial.correlation.sessionId !== a.context.sessionId);
       assert(bindingDenial.correlation.sessionId !== a.context.auditSessionId);
       const untracked = socket(); registerTerminalClient('untracked', untracked);
