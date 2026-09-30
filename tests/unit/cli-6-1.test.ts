@@ -18,7 +18,7 @@ Deno.test('[P0] AC-1: versioned CLI exposes web, doctor and version', async () =
   const version = await runCli(['version']);
   const doctor = await runCli(['doctor', '--runtime-dir', runtime]);
   // Then the command contract is stable and the expected checks are visible.
-  if (text(version.stdout).trim() !== '1.0.2') throw new Error(text(version.stderr));
+  if (text(version.stdout).trim() !== '1.0.3') throw new Error(text(version.stderr));
   if (!text(doctor.stdout).includes('PASS runtime')) throw new Error(text(doctor.stdout));
 });
 

@@ -61,7 +61,7 @@ Lapdev 是一款现代化的开源 Web IDE，集成了 AI 智能辅助功能，�
 
 ```bash
 npm install --global --prefix "$HOME/.local" \
-  https://github.com/TangCan/lapdev/releases/download/v1.0.2/lapdev-cli-1.0.2.tgz
+  https://github.com/TangCan/lapdev/releases/download/v1.0.3/lapdev-cli-1.0.3.tgz
 export PATH="$HOME/.local/bin:$PATH"
 lapdev web --no-open
 ```

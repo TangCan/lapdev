@@ -23,7 +23,7 @@ Deno.test('[P0] 6.6: packed CLI runs through the npx installation path', async (
       stdout: 'piped',
       stderr: 'piped',
     }).output();
-    if (version.code !== 0 || outputText(version.stdout).trim() !== '1.0.2') {
+    if (version.code !== 0 || outputText(version.stdout).trim() !== '1.0.3') {
       throw new Error(outputText(version.stderr) || outputText(version.stdout));
     }
   } finally {

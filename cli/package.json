@@ -1,6 +1,6 @@
 {
   "name": "@lapdev/cli",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Install and run Lapdev from a verified platform runtime",
   "type": "module",
   "repository": {

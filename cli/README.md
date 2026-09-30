@@ -6,7 +6,7 @@ the matching Release is published:
 
 ```sh
 npm install --global --prefix "$HOME/.local" \
-  https://github.com/TangCan/lapdev/releases/download/v1.0.2/lapdev-cli-1.0.2.tgz
+  https://github.com/TangCan/lapdev/releases/download/v1.0.3/lapdev-cli-1.0.3.tgz
 export PATH="$HOME/.local/bin:$PATH"
 lapdev version
 lapdev web --no-open
@@ -22,6 +22,14 @@ an existing cache, or `--runtime-dir /path/to/runtime` for an explicit local run
 `lapdev doctor` checks the local runtime; run it after the first successful launch.
 Supported prebuilt runtimes: Linux x64 and macOS arm64. Git and language servers
 remain optional tools required by their respective IDE features.
+
+Downloads display progress and retry transient failures up to twice. Integrity
+failures and untrusted redirects stop immediately. A runtime transfer has a
+five-minute limit per attempt; manifests have a 30-second limit.
+
+For proxy downloads, Node.js 24.14+ automatically uses `https_proxy`/`HTTPS_PROXY`,
+`http_proxy`/`HTTP_PROXY` and the native `NO_PROXY` rules. Proxy credentials are
+never printed. Older Node versions can still use a local `--runtime-dir`.
 
 Release assets include `runtime-manifest.json` and `SHA256SUMS` covering the CLI,
 runtime archives and manifest. See the repository's `docs/release-installation.md`

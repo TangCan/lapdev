@@ -2,13 +2,13 @@
 
 主发布渠道是 [GitHub Releases](https://github.com/TangCan/lapdev/releases)，无需
 npm 账号或 Docker。用户需要 Node.js 18+、npm 和系统 tar；当前预构建运行时支持
-Linux x64、macOS arm64。以下以 1.0.2 为例，需在该版本正式发布后执行。
+Linux x64、macOS arm64。以下以 1.0.3 为例，需在该版本正式发布后执行。
 
 ## 安装与启动
 
 ```sh
 npm install --global --prefix "$HOME/.local" \
-  https://github.com/TangCan/lapdev/releases/download/v1.0.2/lapdev-cli-1.0.2.tgz
+  https://github.com/TangCan/lapdev/releases/download/v1.0.3/lapdev-cli-1.0.3.tgz
 export PATH="$HOME/.local/bin:$PATH"
 lapdev version
 lapdev web --no-open --workspace /absolute/path/to/project
@@ -19,12 +19,22 @@ SHA-256，随后缓存到 `~/.cache/lapdev/<version>/<platform>-<arch>/`。
 `lapdev doctor` 检查已安装的运行时；首次下载前出现 runtime WARN 是正常的。
 Git、LSP 等功能仍需对应工具。不需要用 sudo 安装。
 
+CLI 会显示获取 manifest、下载进度与速度、完整性校验、解包和缓存安装阶段。
+manifest 每次请求限时 30 秒，运行时每次传输限时 5 分钟；暂时性网络错误或
+HTTP 408/429/5xx 最多重试两次。哈希不符、非法来源和越界跳转立即失败，
+不会跳过校验或启动未验证的运行时。
+
+使用代理时，建议 Node.js 24.14+。CLI 自动读取大小写 HTTP_PROXY/HTTPS_PROXY
+及 Node 原生 NO_PROXY 规则，代理地址和凭据不写入日志。较旧 Node 的直连及
+本地 runtime-dir 安装仍受支持；配置代理但缺少原生 API 时会提示升级，
+不会悄悄绕开代理直连。
+
 npm 12 默认禁止从 URL 安装；若出现 `EALLOWREMOTE`，仅在本次安装命令加入
 `--allow-remote=all`，不需要修改全局配置：
 
 ```sh
 npm install --allow-remote=all --global --prefix "$HOME/.local" \
-  https://github.com/TangCan/lapdev/releases/download/v1.0.2/lapdev-cli-1.0.2.tgz
+  https://github.com/TangCan/lapdev/releases/download/v1.0.3/lapdev-cli-1.0.3.tgz
 ```
 
 也可使用下述先下载、校验、再安装本地文件的方式。
@@ -32,17 +42,17 @@ npm install --allow-remote=all --global --prefix "$HOME/.local" \
 
 ## 先校验 CLI 再安装
 
-从同一个固定版本 Release 下载 `lapdev-cli-1.0.2.tgz`、`SHA256SUMS`，放入同一目录。
+从同一个固定版本 Release 下载 `lapdev-cli-1.0.3.tgz`、`SHA256SUMS`，放入同一目录。
 Linux 使用 `sha256sum`，macOS 使用 `shasum -a 256`：
 
 ```sh
 # Linux
-awk '$2 == "lapdev-cli-1.0.2.tgz"' SHA256SUMS | sha256sum --check
+awk '$2 == "lapdev-cli-1.0.3.tgz"' SHA256SUMS | sha256sum --check
 # macOS
-awk '$2 == "lapdev-cli-1.0.2.tgz"' SHA256SUMS | shasum -a 256 --check
+awk '$2 == "lapdev-cli-1.0.3.tgz"' SHA256SUMS | shasum -a 256 --check
 
 # 校验成功后安装本地文件
-npm install --global --prefix "$HOME/.local" ./lapdev-cli-1.0.2.tgz
+npm install --global --prefix "$HOME/.local" ./lapdev-cli-1.0.3.tgz
 ```
 
 校验文件同时覆盖两个平台的运行时和 `runtime-manifest.json`。哈希用于检测损坏，

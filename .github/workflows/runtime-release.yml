@@ -30,7 +30,7 @@ jobs:
       - name: Run packed npx install and smoke test
         run: deno test --allow-all tests/unit/cli-6-6.test.ts
       - name: Test Release packaging and integrity failures
-        run: node --test tests/release-packaging.test.mjs
+        run: node --test tests/release-packaging.test.mjs tests/cli-download.test.mjs
       - name: Prepare npm package artifact directory
         run: mkdir -p _npm
       - name: Pack CLI
@@ -144,7 +144,7 @@ jobs:
           - target: darwin-arm64
             runner: macos-14
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 10
+    timeout-minutes: 25
     permissions:
       contents: read
     steps:

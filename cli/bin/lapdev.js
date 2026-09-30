@@ -10,12 +10,12 @@ import {
   renameSync,
   rmSync,
   statSync,
-  writeFileSync,
 } from 'node:fs';
 import { homedir, platform, arch } from 'node:os';
 import { dirname, join, normalize, relative, resolve } from 'node:path';
 import { execFileSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { configureProxy, fetchManifest, downloadAsset } from './download.js';
 
 const CLI_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
 const PACKAGE_FILE = join(CLI_DIR, 'package.json');
@@ -169,32 +169,6 @@ function manifestUrlFrom(options) {
     || `https://github.com/TangCan/lapdev/releases/download/v${PACKAGE.version}/runtime-manifest.json`;
 }
 
-function allowedReleaseUrl(rawUrl) {
-  let url;
-  try {
-    url = new URL(rawUrl);
-  } catch {
-    return null;
-  }
-  const hosts = new Set(['github.com', 'api.github.com', 'objects.githubusercontent.com', 'raw.githubusercontent.com', 'release-assets.githubusercontent.com']);
-  if (url.protocol !== 'https:' || !hosts.has(url.hostname) || url.username || url.password || (url.port && url.port !== '443')) return null;
-  return url;
-}
-
-async function fetchRelease(rawUrl) {
-  let url = allowedReleaseUrl(rawUrl);
-  for (let hop = 0; hop <= 5; hop += 1) {
-    if (!url) throw new Error('runtime download URL must use an allowed GitHub HTTPS source');
-    const response = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(120000) });
-    if (![301, 302, 303, 307, 308].includes(response.status)) return response;
-    const location = response.headers.get('location');
-    await response.body?.cancel();
-    if (!location) throw new Error('runtime download redirect is missing its destination');
-    url = allowedReleaseUrl(new URL(location, url).href);
-  }
-  throw new Error('runtime download exceeded the redirect limit');
-}
-
 function assertArchiveEntries(archivePath) {
   let listing;
   try {
@@ -220,32 +194,32 @@ function assertArchiveEntries(archivePath) {
 }
 
 async function downloadAndInstall(manifestUrl, cacheDir) {
-  const manifestEndpoint = allowedReleaseUrl(manifestUrl);
-  if (!manifestEndpoint) throw new Error('runtime manifest URL must use an allowed GitHub HTTPS source');
-  const manifestResponse = await fetchRelease(manifestEndpoint);
-  if (!manifestResponse.ok) throw new Error(`runtime manifest request failed: HTTP ${manifestResponse.status}`);
-  const manifest = await manifestResponse.json();
+  console.error('lapdev: fetching runtime manifest');
+  const retry = ({ attempt, message }) => console.error(`lapdev: ${message}; retry ${attempt}/3`);
+  const manifest = await fetchManifest(manifestUrl, { onRetry: retry });
   const manifestError = validateManifest(manifest);
   if (manifestError) throw new Error(manifestError);
   const selected = Array.isArray(manifest.runtimes)
     ? manifest.runtimes.find((entry) => entry.version === PACKAGE.version && entry.platform === platform() && entry.arch === arch())
     : manifest;
-  const assetUrl = allowedReleaseUrl(selected.asset);
-  if (!assetUrl) throw new Error('runtime asset URL must use an allowed GitHub HTTPS source');
-  const assetResponse = await fetchRelease(assetUrl);
-  if (!assetResponse.ok) throw new Error(`runtime asset request failed: HTTP ${assetResponse.status}`);
-  const data = Buffer.from(await assetResponse.arrayBuffer());
-  const observedHash = createHash('sha256').update(data).digest('hex');
-  if (String(data.length) !== selected.size || observedHash !== selected.sha256.toLowerCase()) {
-    throw new Error(`runtime asset integrity mismatch (expected ${selected.sha256}/${selected.size}, observed ${observedHash}/${data.length})`);
-  }
   const parent = dirname(cacheDir);
   mkdirSync(parent, { recursive: true });
   const tempRoot = mkdtempSync(join(parent, '.lapdev-runtime-'));
   const archivePath = join(tempRoot, 'runtime.tar.gz');
   const extractionPath = join(tempRoot, 'runtime');
   try {
-    writeFileSync(archivePath, data, { flag: 'wx' });
+    console.error(`lapdev: downloading runtime (${(Number(selected.size) / 1048576).toFixed(1)} MiB)`);
+    let lastProgress = 0;
+    await downloadAsset(selected.asset, archivePath, selected, {
+      onRetry: retry,
+      onProgress: ({ bytes, total, attempt, elapsedMs }) => {
+        if (bytes !== 0 && bytes !== total && Date.now() - lastProgress < 1000) return;
+        lastProgress = Date.now();
+        const speed = elapsedMs > 0 ? `${(bytes / 1048576 / (elapsedMs / 1000)).toFixed(1)} MiB/s` : 'starting';
+        console.error(`lapdev: runtime download ${Math.floor(bytes / total * 100)}% (${(bytes / 1048576).toFixed(1)}/${(total / 1048576).toFixed(1)} MiB, ${speed}, attempt ${attempt}/3)`);
+      },
+    });
+    console.error('lapdev: runtime integrity verified; inspecting and extracting archive');
     assertArchiveEntries(archivePath);
     mkdirSync(extractionPath);
     execFileSync('tar', ['-xzf', archivePath, '-C', extractionPath]);
@@ -253,6 +227,7 @@ async function downloadAndInstall(manifestUrl, cacheDir) {
       renameSync(cacheDir, `${cacheDir}.invalid-${Date.now()}`);
     }
     renameSync(extractionPath, cacheDir);
+    console.error('lapdev: runtime installed in cache');
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }
@@ -276,7 +251,10 @@ async function web(options) {
   }
   if (!hasExplicitRuntimeDir(options) && !options.offline && !existsSync(runtimeDirFrom(options)) && manifestUrlFrom(options)) {
     try {
-      await downloadAndInstall(manifestUrlFrom(options), runtimeDirFrom(options));
+      const restoreProxy = configureProxy();
+      try {
+        await downloadAndInstall(manifestUrlFrom(options), runtimeDirFrom(options));
+      } finally { restoreProxy(); }
     } catch (error) {
       return fail(error instanceof Error ? error.message : 'runtime download failed');
     }

@@ -49,8 +49,14 @@ try {
   child.stdout.on('data', (data) => { output = (output + data).slice(-16000); });
   child.stderr.on('data', (data) => { output = (output + data).slice(-16000); });
   let healthy = false;
-  for (let attempt = 0; attempt < 120; attempt += 1) {
+  let deadline = Date.now() + (runtimeArchive ? 60000 : 1100000);
+  let startupObserved = false;
+  while (Date.now() < deadline) {
     if (child.exitCode !== null || child.signalCode !== null) break;
+    if (!startupObserved && output.includes('Lapdev runtime started')) {
+      startupObserved = true;
+      deadline = Math.min(deadline, Date.now() + 60000);
+    }
     try {
       const response = await fetch(`http://127.0.0.1:${port}/health`, { signal: AbortSignal.timeout(1000) });
       await response.arrayBuffer();
@@ -58,7 +64,7 @@ try {
     } catch { /* Wait for the runtime download and startup. */ }
     await new Promise((done) => setTimeout(done, 1000));
   }
-  if (!healthy) throw new Error(`installed Release CLI failed health check:\n${output}`);
+  if (!healthy) throw new Error(`installed Release CLI failed during ${startupObserved ? 'service startup' : runtimeArchive ? 'local runtime startup' : 'runtime download/install'}:\n${output}`);
   const ui = await fetch(`http://127.0.0.1:${port}/`, { signal: AbortSignal.timeout(5000) });
   if (!ui.ok || !(await ui.text()).includes('<html')) throw new Error('runtime did not serve the frontend');
   console.log('Release CLI installation, runtime startup, health and frontend passed');

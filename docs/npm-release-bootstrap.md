@@ -11,7 +11,7 @@ The first publication requires an npm account with permission to publish to
 1. Publish and verify the matching GitHub Release first.
 2. Download the CLI `.tgz` from that Release. Keep the original file; do not repack it.
 3. Authenticate with `npm login`, then publish that artifact with
-   `npm publish /path/to/lapdev-cli-1.0.2.tgz --access public`.
+   `npm publish /path/to/lapdev-cli-1.0.3.tgz --access public`.
 4. In the npm package settings, configure GitHub Trusted Publishing with owner
    `TangCan`, repository `lapdev`, workflow `runtime-release.yml`, and direct
    publishing enabled.
