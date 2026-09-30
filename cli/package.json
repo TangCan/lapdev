@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "Install and run Lapdev from a verified platform runtime",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TangCan/lapdev.git"
+  },
   "bin": {
     "lapdev": "bin/lapdev.js"
   },

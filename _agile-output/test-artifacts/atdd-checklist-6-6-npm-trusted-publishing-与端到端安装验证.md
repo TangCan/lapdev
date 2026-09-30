@@ -6,3 +6,4 @@
 - [x] npm publish is gated on `vX.Y.Z` tags and GitHub Release verification.
 - [x] npm publish uses OIDC provenance and contains no npm token secret.
 - [x] Published package version is checked against the tag and every runtime manifest entry.
+- [x] Package repository metadata matches `TangCan/lapdev`; publishing runner uses Node 24 and npm 11.5.1+.

@@ -15,3 +15,17 @@ Deno.test('[P0] 6.5: release manifest scripts recompute archive size and SHA-256
     if (!text.includes('createHash') || !text.includes('statSync')) throw new Error('release integrity contract is incomplete');
   }
 });
+
+Deno.test('[P0] 6.6: npm publisher metadata and toolchain meet Trusted Publishing requirements', async () => {
+  const workflow = await Deno.readTextFile(`${root}/.github/workflows/runtime-release.yml`);
+  const cliPackage = JSON.parse(await Deno.readTextFile(`${root}/cli/package.json`));
+  if (cliPackage.repository?.url !== 'https://github.com/TangCan/lapdev.git') {
+    throw new Error('npm package repository must match the publishing GitHub repository');
+  }
+  if (!workflow.includes('node-version: 24') || !workflow.includes('npm@11.5.1')) {
+    throw new Error('npm publishing toolchain does not meet Trusted Publishing minimum versions');
+  }
+  if (!workflow.includes('id-token: write') || !workflow.includes('npm publish')) {
+    throw new Error('npm publishing must use GitHub OIDC');
+  }
+});
