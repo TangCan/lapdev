@@ -1,0 +1,7 @@
+[
+  {"claim":"Release 分发与独立安装脚本已有官方能力及独立实践","class":"patterns","pub_date":"2026-09-30"},
+  {"claim":"npm 支持 tarball URL 安装","class":"compatibility","pub_date":"2026-09-30"},
+  {"claim":"Homebrew 支持自建 tap","class":"compatibility","pub_date":"2026-09-30"},
+  {"claim":"GitHub Packages npm 安装公开包要求 token","class":"authentication","pub_date":"2026-09-30"},
+  {"claim":"immutable releases 应先草稿附齐资产再公开","class":"compatibility","pub_date":"2026-09-30"}
+]

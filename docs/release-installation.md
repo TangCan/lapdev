@@ -2,13 +2,13 @@
 
 主发布渠道是 [GitHub Releases](https://github.com/TangCan/lapdev/releases)，无需
 npm 账号或 Docker。用户需要 Node.js 18+、npm 和系统 tar；当前预构建运行时支持
-Linux x64、macOS arm64。以下以 1.0.0 为例，需在该版本正式发布后执行。
+Linux x64、macOS arm64。以下以 1.0.2 为例，需在该版本正式发布后执行。
 
 ## 安装与启动
 
 ```sh
 npm install --global --prefix "$HOME/.local" \
-  https://github.com/TangCan/lapdev/releases/download/v1.0.0/lapdev-cli-1.0.0.tgz
+  https://github.com/TangCan/lapdev/releases/download/v1.0.2/lapdev-cli-1.0.2.tgz
 export PATH="$HOME/.local/bin:$PATH"
 lapdev version
 lapdev web --no-open --workspace /absolute/path/to/project
@@ -21,17 +21,17 @@ Git、LSP 等功能仍需对应工具。不需要用 sudo 安装。
 
 ## 先校验 CLI 再安装
 
-从同一个固定版本 Release 下载 `lapdev-cli-1.0.0.tgz`、`SHA256SUMS`，放入同一目录。
+从同一个固定版本 Release 下载 `lapdev-cli-1.0.2.tgz`、`SHA256SUMS`，放入同一目录。
 Linux 使用 `sha256sum`，macOS 使用 `shasum -a 256`：
 
 ```sh
 # Linux
-awk '$2 == "lapdev-cli-1.0.0.tgz"' SHA256SUMS | sha256sum --check
+awk '$2 == "lapdev-cli-1.0.2.tgz"' SHA256SUMS | sha256sum --check
 # macOS
-awk '$2 == "lapdev-cli-1.0.0.tgz"' SHA256SUMS | shasum -a 256 --check
+awk '$2 == "lapdev-cli-1.0.2.tgz"' SHA256SUMS | shasum -a 256 --check
 
 # 校验成功后安装本地文件
-npm install --global --prefix "$HOME/.local" ./lapdev-cli-1.0.0.tgz
+npm install --global --prefix "$HOME/.local" ./lapdev-cli-1.0.2.tgz
 ```
 
 校验文件同时覆盖两个平台的运行时和 `runtime-manifest.json`。哈希用于检测损坏，

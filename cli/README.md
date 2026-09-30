@@ -6,7 +6,7 @@ the matching Release is published:
 
 ```sh
 npm install --global --prefix "$HOME/.local" \
-  https://github.com/TangCan/lapdev/releases/download/v1.0.0/lapdev-cli-1.0.0.tgz
+  https://github.com/TangCan/lapdev/releases/download/v1.0.2/lapdev-cli-1.0.2.tgz
 export PATH="$HOME/.local/bin:$PATH"
 lapdev version
 lapdev web --no-open
