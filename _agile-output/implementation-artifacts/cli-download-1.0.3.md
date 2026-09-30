@@ -25,3 +25,17 @@ CLI 输出 manifest、下载进度/速度/重试次数、完整性检查、解�
 
 官方 API 依据：https://nodejs.org/api/http.html#httpsetglobalproxyfromenvproxyenv 。
 保留 v1.0.2 资产与 tag；新版本采用 v1.0.3，不启用 npm registry 发布。
+
+## 发布与最终验证
+
+代码提交 `4fd5e2e`；main run 36660800359 全绿。正式 tag v1.0.3 的发布 run
+36661051660 全绿，Linux x64、macOS arm64 均完成无凭据公开 URL 安装、自动
+运行时下载、健康接口及首页检查。npm registry 按预期跳过。
+
+本机 Node 24.16.0 / npm 12.0.2 从正式 Release URL，在隔离的全新 HOME 与 npm
+缓存中安装 CLI，再使用已有小写代理变量自动下载运行时，健康接口和首页均通过。
+之前本机只能安装 CLI、运行时下载超时的缺口已经闭环。验证脚本退出并清理测试
+工作区与进程，不在用户常用目录留下全局安装。
+
+Release：https://github.com/TangCan/lapdev/releases/tag/v1.0.3 。
+CI：https://github.com/TangCan/lapdev/actions/runs/36661051660 。
