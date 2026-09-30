@@ -1,5 +1,5 @@
-pub mod types;
 mod fs;
+pub mod types;
 
-pub use types::*;
 pub use fs::*;
+pub use types::*;
