@@ -1,6 +1,18 @@
 # 发布运行时核心验收：阶段结果
 
-## 最新结果：服务端请求关联（2026-09-30）
+## 最新结果：终端输入加载后授权复验与评审补丁（2026-09-30）
+
+主会话最终验证：后端 57 项（85 子步骤）、Node 发布四文件 33 项（0 failed/0 skipped）、权限门禁 4 项、git diff --check 全通过。三路评审完成，替换连接状态保护、有界测试等待和并发撤销/能力收紧回归已补齐。既有外层异常处理对退休连接状态的隔离（B3）单独延期；终端归属及处理器内部写入窗口未扩入本规格。
+
+最终资产目录：`_agile-output/runtime-archives/terminal-input-review-final-20260930/`。新包独立构建、归档校验、npm pack、CLI 安装/启动/健康/首页及核心 22/22 通过；包内 `./app/backend/src/websocket/fileWatcher.ts` 与工作区 cmp 一致。运行时 SHA-256：`56096815951b7c2db0f3bc83bdb5f4b5c4b10722035740f895b4a1be0fec21f3`；CLI SHA-256：`a573144b85ec4d34dc44b1fbb171fa3819a5da60b1e132061935f16484045567`。
+
+生产文件 SHA-256：`5f0910fe54b9a66dd59fa67a91d93b3c847fcd3bf27b23c459266feb180c97d1`。构建时基线/manifest commit 为 `a553c3155e6915da20a55fd050016845ae04461a`，包含当时未提交实现；执行 `git diff --binary --no-ext-diff --no-textconv a553c3155e6915da20a55fd050016845ae04461a -- backend/src/websocket/fileWatcher.ts | sha256sum` 得 `ad2a7d3b18c6e0d80a90bc1ec0c9c4c5e787bad9d005ffe79d1ddd6423dda748`。在独立检出该完整基线后，核对归档哈希并提取上述唯一生产修改文件覆盖同路径，可恢复该源码差异；不承诺工具链/依赖快照或逐位可复现。版本仍为 1.0.3，历史资产保留，归档不提交 Git，未推送或发布。
+
+最终实包命令：`RUNTIME_OUTPUT_DIR=_agile-output/runtime-archives/terminal-input-review-final-20260930 ./scripts/build-runtime-archive.sh linux-x64`；`./scripts/verify-runtime-archive.sh _agile-output/runtime-archives/terminal-input-review-final-20260930/lapdev-runtime-1.0.3-linux-x64.tar.gz linux-x64`；`npm pack ./cli --pack-destination _agile-output/runtime-archives/terminal-input-review-final-20260930`；`node scripts/smoke-release-cli.mjs _agile-output/runtime-archives/terminal-input-review-final-20260930/lapdev-cli-1.0.3.tgz _agile-output/runtime-archives/terminal-input-review-final-20260930/lapdev-runtime-1.0.3-linux-x64.tar.gz`。
+
+窗口矩阵由后端测试覆盖，不宣称原核心实包用例包含该矩阵。macOS、公开安装、真实 LSP 功能仍未验证（实包仅检查 LSP 状态契约），前端既有大 chunk 警告保留。以下均为历史阶段记录，不替代本节最终结果。
+
+## 历史结果：服务端请求关联（2026-09-30）
 
 **最终收尾：评审与独立复验通过。** 用户批准监听测试缓存加固后，在临时隔离 DENO_DIR 中异步预热一次依赖（180 秒独立期限），六种模式共享该缓存并用 cached-only 启动，原 20 秒服务启动限制及所有监听/健康/TLS 回退断言不变。缓存准备输出有界，失败/超时/启动失败直接报错并清理；独立补充检查无发现。
 
@@ -374,3 +386,38 @@ git diff --binary --no-ext-diff --no-textconv d1feb45e30b74d16dd4c556f82e132cd05
 该差异只含 `backend/src/main.ts`、`backend/src/security/authSession.ts`、`backend/src/security/capability.ts`、`backend/src/handlers/terminalHandler.ts`、`backend/src/websocket/fileWatcher.ts`。其余未改 backend/src 生产源码来自基线。上述五个修改文件在已有 `http-audit-isolation-20260930/lapdev-runtime-1.0.3-linux-x64.tar.gz` 的 `./app/backend/src/` 对应路径中，逐个提取与当前源码字节比较一致。基线加此代码差异描述未提交生产代码快照；manifest commit 单独不能重建本轮代码。未宣称发布或从提交重建，本次未构建或覆盖资产；新增测试不在旧运行时包中。
 
 本次仅执行 `npm run test:backend -- src/security/httpAudit.test.ts src/handlers/terminalPolicy.test.ts`：4 passed，0 failed；`git diff --check` 通过。夹具初次误用文件树路径，修正为既有 `/workspace` 句柄，未降低状态码断言。未运行全量测试或发布验收，交由主会话执行。
+
+## 终端输入加载后复验验收（2026-09-30）
+
+完整读取 `spec-terminal-input-revalidation.md`，frontmatter 为 `context: []`。terminalInput 在 loader 恢复后同步验证连接仍受管理且开放、会话有效、当前 terminal 能力及既有绑定，至 forwardTerminalInput 调用之间没有新增 await。失效会话清理并以 4001 关闭，能力拒绝仅移除本连接终端映射并返回 CAPABILITY_DENIED，绑定拒绝返回 SESSION_MISMATCH 并记录安全关联审计；关闭或清理后的连接不转发、不回复。有效输入包括未注册终端映射的输入仍以原参数恰好转发一次。入口和其他消息行为保留。
+
+可控 Promise 的 13 个窗口用例实际执行有效/未注册、撤销/过期、CLOSING/CLOSED、onclose/onerror、能力收紧、远程切换本地、绑定变化、loader/处理器异常；断言调用、错误、关闭、映射、跨连接隔离及所有 console 无合成凭据、输入、异常正文。首轮隔离验证在全局能力收紧后直接尝试另一连接输出，按生产策略被拒绝；修正测试为先确认其映射不受影响，再恢复策略验证输出，未放宽生产策略或原断言。
+
+- `npm run test:backend -- src/websocket/fileWatcher.test.ts`：3 passed（43 steps），0 failed。
+- `npm run test:backend`：56 passed（82 steps），0 failed。
+- `node --test tests/release-runtime-acceptance.test.mjs tests/release-listener.test.mjs tests/release-packaging.test.mjs tests/cli-download.test.mjs`：33 passed，0 failed，0 skipped。
+- `./scripts/release-permission-gate.sh`：4 passed；`git diff --check` 通过。
+- 独立 Linux 前端构建、Rust release、Deno compile、归档校验及 npm pack 通过；smoke 安装、启动、健康、首页及原 22 项实包检查全部通过，退出码 0。
+
+新资产目录 `_agile-output/runtime-archives/terminal-input-revalidation-20260930/`；版本 1.0.3，manifest commit `a553c3155e6915da20a55fd050016845ae04461a`。包包含本轮未提交源码，该 commit 本身不含此修改。历史资产保留。
+
+```sh
+RUNTIME_OUTPUT_DIR=_agile-output/runtime-archives/terminal-input-revalidation-20260930 ./scripts/build-runtime-archive.sh linux-x64
+./scripts/verify-runtime-archive.sh _agile-output/runtime-archives/terminal-input-revalidation-20260930/lapdev-runtime-1.0.3-linux-x64.tar.gz linux-x64
+npm pack ./cli --pack-destination _agile-output/runtime-archives/terminal-input-revalidation-20260930
+node scripts/smoke-release-cli.mjs _agile-output/runtime-archives/terminal-input-revalidation-20260930/lapdev-cli-1.0.3.tgz _agile-output/runtime-archives/terminal-input-revalidation-20260930/lapdev-runtime-1.0.3-linux-x64.tar.gz
+```
+
+历史资产 SHA-256：运行时 `5ac761ca5b6ffa88d55a61d1df24459a759bac41ea093f332568e25c0e500346`；CLI `a573144b85ec4d34dc44b1fbb171fa3819a5da60b1e132061935f16484045567`。构建时相对固定基线 `a553c3155e6915da20a55fd050016845ae04461a` 的 code-only diff 字节流 SHA-256 为 `cf9c3317dc56027c6ba2e09c6f38a633432d7be6d52a4f2e60026c85f1da4c26`；该时点命令为 `git diff --binary --no-ext-diff --no-textconv a553c3155e6915da20a55fd050016845ae04461a -- backend/src/websocket/fileWatcher.ts | sha256sum`。历史文件 SHA-256 `ff89403709ea1d50ccc54a03248c5eff9bc79d503042f292633f3055bb0f0b11`；构建时归档 `./app/backend/src/websocket/fileWatcher.ts` 提取后与源码 cmp 一致。
+
+历史生产源码重建：以完整固定基线 `a553c3155e6915da20a55fd050016845ae04461a` 的源码为起点，将上述历史归档中的 `./app/backend/src/websocket/fileWatcher.ts` 覆盖到对应源码路径；本轮仅此生产文件有修改，其余生产源码来自固定基线。先核对归档 SHA-256 和提取文件 SHA-256，再在重建源码中运行上述固定基线 diff 命令，可核对历史差异 hash。manifest commit 单独不能重建该未提交文件；当前工作树已包含下述评审修订，不能用于重新计算历史差异。此说明不保证构建工具链或二进制可重复构建。
+
+本规格实现及验证无剩余项。新增窗口矩阵由生产分发函数的注入 loader 测试证明，原 22 项实包检查未新增该矩阵，也不证明真实远程终端正向全过程。终端归属和处理器内部 stdinWriter.write 异步窗口继续延期，不宣称原子取消已开始的写入。macOS、公开 URL 安装及真实 LSP 功能未实测，语言服务器缺失和 rust-analyzer 探测失败，前端大 chunk 警告保留。没有改权限、部署、文件树/路径或历史日志，没有提交、推送或发布。
+
+### 终端输入评审补丁（2026-09-30，待主会话全量验证及新资产）
+
+以上完成声明及资产为评审前历史结果。身份不匹配现在直接退出，不清理新状态；仅匹配状态但非开放时清理。其他消息和外层 catch 未修改。夹具对 loader 入口、消息完成和清理等待设 1 秒上限，入口同时竞争提前消息完成，原始失败保留；新增提前完成/超时检测回归。旧状态 onclose 后在同 socket 安装新状态，恢复旧输入零转发，并验证新终端映射、文件/Git 订阅及实际输出保留；先清理旧心跳，finally 清理新心跳。三条同时等待的输入分别覆盖撤销与能力收紧，全部零转发；撤销仅首次恢复清理/关闭/拒绝审计，其余在身份守卫退出；能力拒绝逐条回复及安全审计，其他连接映射保留。原有效/未注册及其他断言保留。
+
+本次仅运行 `npm run test:backend -- src/websocket/fileWatcher.test.ts`：4 passed（46 steps），0 failed；未运行全量套件或构建包，未修改旧归档、规格状态或提交。主会话将执行全量验证并构建新最终资产。
+
+当前评审补丁生产文件 SHA-256 为 `5f0910fe54b9a66dd59fa67a91d93b3c847fcd3bf27b23c459266feb180c97d1`；固定基线 code-only 命令 `git diff --binary --no-ext-diff --no-textconv a553c3155e6915da20a55fd050016845ae04461a -- backend/src/websocket/fileWatcher.ts | sha256sum` 结果为 `ad2a7d3b18c6e0d80a90bc1ec0c9c4c5e787bad9d005ffe79d1ddd6423dda748`。旧归档包含评审前文件，不包含此补丁。

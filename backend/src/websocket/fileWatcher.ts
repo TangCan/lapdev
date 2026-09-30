@@ -290,6 +290,35 @@ export function handleWebSocket(
           // Forward terminal input to the backend process
           if (message.sessionId && message.input) {
             const { forwardTerminalInput } = await loadTerminalHandlers();
+            // Loading can yield while the connection, session or policy changes.
+            if (clientStates.get(ws) !== clientState) break;
+            if (ws.readyState !== WebSocket.OPEN) {
+              cleanupClient(ws);
+              break;
+            }
+            const current = currentClientContext(clientState);
+            if (!validateClientSession(clientState)) {
+              auditCapabilityDecision(auditContext(clientState, current), 'terminal', { allowed: false, code: 'UNAUTHENTICATED', message: 'Session expired or revoked' });
+              break;
+            }
+            const decision = authorizeCapability(current, 'terminal');
+            auditCapabilityDecision(auditContext(clientState, current), 'terminal', decision);
+            if (!decision.allowed) {
+              removeCapabilityMappings(ws, 'terminal');
+              await ws.send(JSON.stringify({ type: 'error', code: 'CAPABILITY_DENIED', message: decision.message }));
+              break;
+            }
+            if (!isSessionBound(clientState.context, message.sessionId)) {
+              const context = auditContext(clientState, current);
+              emitSecurityAuditEvent({
+                outcome: 'denied', reason: 'SESSION_MISMATCH',
+                principalId: context.principalId, workspaceId: context.workspaceId,
+                sessionId: context.auditSessionId!, requestId: context.requestId,
+                revision: nextAuditRevision(context.workspaceId), capability: 'terminal', profile: context.profile,
+              });
+              await ws.send(JSON.stringify({ type: 'error', code: 'SESSION_MISMATCH', message: 'WebSocket session does not match terminal session' }));
+              break;
+            }
             await forwardTerminalInput(message.sessionId, message.input);
           }
           break;

@@ -1,7 +1,179 @@
-import { assertEquals, assert } from 'jsr:@std/assert@1';
+import { assertEquals, assert, assertRejects } from 'jsr:@std/assert@1';
 import { AuthSessionStore } from '../security/authSession.ts';
 import { auditCapabilityDecision, authorizeCapability, resolveCapabilityContext } from '../security/capability.ts';
 import { broadcastFileChange, broadcastGitStatus, getTerminalClient, handleWebSocket, registerTerminalClient, sendTerminalOutput, unregisterTerminalClient } from './fileWatcher.ts';
+
+async function bounded<T>(promise: Promise<T>, label: string, timeoutMs = 1000): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([promise, new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${label}: timed out`)), timeoutMs);
+    })]);
+  } finally { clearTimeout(timer); }
+}
+
+function loaderEntry(entry: Promise<void>, completion: Promise<void>, timeoutMs = 1000): Promise<void> {
+  return bounded(Promise.race([entry, completion.then(() => {
+    throw new Error('loader entry: message completed before loader');
+  })]), 'loader entry', timeoutMs);
+}
+
+Deno.test('loader fixture detects early completion and bounded timeouts', async () => {
+  const never = new Promise<void>(() => {});
+  await assertRejects(() => loaderEntry(never, Promise.resolve()), Error, 'message completed before loader');
+  await assertRejects(() => loaderEntry(never, never, 10), Error, 'loader entry: timed out');
+  await assertRejects(() => bounded(never, 'message completion', 10), Error, 'message completion: timed out');
+  await assertRejects(() => bounded(never, 'fixture cleanup', 10), Error, 'fixture cleanup: timed out');
+});
+
+Deno.test('terminalInput revalidates after a controlled loader wait', async (t) => {
+  const previous = ['CAPABILITY_POLICY_PROFILE', 'CAPABILITY_ALLOWLIST'].map((key) => [key, Deno.env.get(key)] as const);
+  const originalConsole = { info: console.info, log: console.log, error: console.error, warn: console.warn };
+  const logs: string[] = [];
+  for (const level of ['info', 'log', 'error', 'warn'] as const) console[level] = (...args: unknown[]) => { logs.push(args.map(String).join(' ')); };
+  function socket() {
+    return {
+      readyState: WebSocket.OPEN, messages: [] as Record<string, unknown>[], closes: [] as unknown[][],
+      send(data: string) { this.messages.push(JSON.parse(data)); },
+      close(...args: unknown[]) { this.closes.push(args); },
+      onmessage: undefined as undefined | ((event: { data: string }) => Promise<void>),
+      onclose: undefined as undefined | (() => void),
+      onerror: undefined as undefined | (() => void),
+    };
+  }
+  try {
+    for (const action of ['valid', 'unregistered', 'revoke', 'expire', 'closing', 'closed', 'onclose', 'onerror', 'deny', 'mode', 'binding', 'loader-error', 'handler-error', 'replacement', 'concurrent-revoke', 'concurrent-deny'] as const) {
+      await t.step(action, async () => {
+        Deno.env.set('CAPABILITY_POLICY_PROFILE', 'remote-shared');
+        Deno.env.set('CAPABILITY_ALLOWLIST', 'files,git,terminal');
+        logs.length = 0;
+        let now = 0;
+        const store = new AuthSessionStore({ bootstrapToken: 'input-fixture', workspaceId: 'input-workspace', ttlMs: 1000, now: () => now });
+        const contextFor = () => {
+          const session = store.exchangeBootstrapToken('input-fixture')!.session;
+          return resolveCapabilityContext(new Request('http://localhost/ws', { headers: { Authorization: `Bearer ${session.sessionId}` } }), [], store);
+        };
+        const context = contextFor();
+        now = 500;
+        const otherContext = contextFor();
+        const ws = socket(); const other = socket();
+        const calls: string[][] = [];
+        const input = 'synthetic-private-input';
+        let resume!: () => void; let reject!: (reason: Error) => void;
+        const pause = new Promise<void>((resolve, fail) => { resume = resolve; reject = fail; });
+        const concurrent = action === 'concurrent-revoke' || action === 'concurrent-deny';
+        const count = concurrent ? 3 : 1;
+        let entries = 0;
+        let entered!: () => void;
+        const waiting = new Promise<void>((resolve) => { entered = resolve; });
+        handleWebSocket(ws, context, store, async () => {
+          if (++entries === count) entered(); await pause;
+          return { flushPendingOutput: async () => {}, forwardTerminalInput: async (id, value) => {
+            calls.push([id, value]);
+            if (action === 'handler-error') throw new Error(`${id}:${value}:synthetic-exception`);
+          } };
+        });
+        handleWebSocket(other, otherContext, store, async () => ({ flushPendingOutput: async () => {}, forwardTerminalInput: async () => {} }));
+        const id = context.sessionId;
+        if (action !== 'unregistered') registerTerminalClient(id, ws);
+        registerTerminalClient(otherContext.sessionId, other);
+        let pending: Promise<void> | undefined;
+        let failed = false;
+        try {
+          const inputs = Array.from({ length: count }, (_, index) => ws.onmessage!({ data: JSON.stringify({ type: 'terminalInput', sessionId: id, input: concurrent ? `${input}-${index}` : input }) }));
+          pending = Promise.all(inputs).then(() => {});
+          await loaderEntry(waiting, Promise.race(inputs));
+          assertEquals(entries, count);
+          assertEquals(calls, []);
+          if (action === 'replacement') {
+            ws.onclose!(); // Clear the old heartbeat before installing the new state.
+            handleWebSocket(ws, otherContext, store, async () => ({ flushPendingOutput: async () => {}, forwardTerminalInput: async () => { throw new Error('unexpected replacement input'); } }));
+            registerTerminalClient(otherContext.sessionId, ws);
+            await bounded(ws.onmessage!({ data: JSON.stringify({ type: 'subscribe' }) }), 'replacement files subscription');
+            await bounded(ws.onmessage!({ data: JSON.stringify({ type: 'subscribeToGit' }) }), 'replacement git subscription');
+            ws.messages.length = 0;
+          }
+          if (action === 'revoke' || action === 'concurrent-revoke') store.revoke(id);
+          if (action === 'expire') now = 1000;
+          if (action === 'closing') ws.readyState = WebSocket.CLOSING;
+          if (action === 'closed') ws.readyState = WebSocket.CLOSED;
+          if (action === 'onclose') ws.onclose!();
+          if (action === 'onerror') ws.onerror!();
+          if (action === 'deny' || action === 'concurrent-deny') Deno.env.set('CAPABILITY_ALLOWLIST', 'files,git');
+          if (action === 'mode') { Deno.env.set('CAPABILITY_POLICY_PROFILE', 'local-trusted'); Deno.env.delete('CAPABILITY_ALLOWLIST'); }
+          // Keep the authenticated context valid while tightening the existing binding.
+          if (action === 'binding') context.sessionId = otherContext.sessionId;
+          if (action === 'loader-error') reject(new Error(`${id}:${input}:synthetic-exception`)); else resume();
+          await bounded(pending, 'message completion');
+          const forwards = ['valid', 'unregistered', 'handler-error'].includes(action);
+          assertEquals(calls, forwards ? [[id, input]] : []);
+          const code = action === 'deny' || action === 'concurrent-deny' || action === 'mode' ? 'CAPABILITY_DENIED' : action === 'binding' ? 'SESSION_MISMATCH' : undefined;
+          assertEquals(ws.messages.map((message) => message.code), code ? Array(count).fill(code) : []);
+          const closes = ['revoke', 'concurrent-revoke', 'expire', 'onerror', 'loader-error', 'handler-error'].includes(action);
+          assertEquals(ws.closes.length, closes ? 1 : 0);
+          if (action === 'revoke' || action === 'concurrent-revoke' || action === 'expire') assertEquals(ws.closes[0], [4001, 'Session expired or revoked']);
+          if (['onerror', 'loader-error', 'handler-error'].includes(action)) assertEquals(ws.closes[0], [1011, 'WebSocket operation failed']);
+          assertEquals(getTerminalClient(id), action === 'valid' || action === 'binding' ? ws : undefined);
+          assertEquals(getTerminalClient(otherContext.sessionId), action === 'replacement' ? ws : other);
+          assertEquals(other.closes, []); assertEquals(other.messages, []);
+          const events = logs.filter((line) => line.startsWith('{')).map((line) => JSON.parse(line));
+          const audits = events.filter((event) => event.type === 'security_audit');
+          const denial = audits.find((event) => event.outcome === 'denied');
+          if (code || action === 'revoke' || action === 'concurrent-revoke' || action === 'expire') {
+            assert(denial);
+            assertEquals(denial.reason, code || 'UNAUTHENTICATED');
+            assertEquals(denial.details.capability, 'terminal');
+            assertEquals(denial.correlation.requestId, context.requestId);
+            assertEquals(denial.correlation.principalId, context.principalId);
+            assertEquals(denial.correlation.workspaceId, context.workspaceId);
+            assertEquals(denial.correlation.sessionId, audits[0].correlation.sessionId);
+          }
+          if (concurrent) {
+            const denials = audits.filter((event) => event.outcome === 'denied');
+            // Revocation clears state on the first resume; later inputs exit at identity guard.
+            assertEquals(denials.length, action === 'concurrent-deny' ? count : 1);
+            for (const event of denials) {
+              assertEquals(event.reason, code || 'UNAUTHENTICATED');
+              assertEquals(event.correlation.requestId, context.requestId);
+              assertEquals(event.correlation.sessionId, audits[0].correlation.sessionId);
+            }
+          }
+          if (action === 'revoke' || action === 'concurrent-revoke' || action === 'expire') {
+            assertEquals(events.find((event) => event.type === 'security_session_invalidated').sessionId, denial.correlation.sessionId);
+          }
+          const captured = logs.join('\n');
+          for (const secret of [id, otherContext.sessionId, input, 'synthetic-exception', 'input-fixture']) assert(!captured.includes(secret));
+          Deno.env.set('CAPABILITY_POLICY_PROFILE', 'remote-shared');
+          Deno.env.set('CAPABILITY_ALLOWLIST', 'files,git,terminal');
+          await bounded(sendTerminalOutput(otherContext.sessionId, 'other-output'), 'terminal output');
+          if (action === 'replacement') {
+            await bounded(broadcastFileChange('modify', '/workspace/replacement'), 'replacement files output');
+            await bounded(broadcastGitStatus({ replacement: true }), 'replacement git output');
+            assertEquals(ws.messages.map((message) => message.type), ['terminalOutput', 'fileModified', 'gitStatus']);
+            assertEquals(ws.messages[0].output, 'other-output');
+            assertEquals(getTerminalClient(otherContext.sessionId), ws);
+            assertEquals(ws.closes, []);
+          } else assertEquals(other.messages.at(-1)?.output, 'other-output');
+          ws.onclose!(); ws.onclose!();
+          assertEquals(getTerminalClient(otherContext.sessionId), action === 'replacement' ? undefined : other);
+        } catch (error) {
+          failed = true;
+          throw error;
+        } finally {
+          resume();
+          try {
+            if (pending) await bounded(pending, 'fixture cleanup');
+          } catch (error) {
+            if (!failed) throw error; // Preserve the original entry/completion failure.
+          } finally { ws.onclose!(); other.onclose!(); }
+        }
+      });
+    }
+  } finally {
+    Object.assign(console, originalConsole);
+    for (const [key, value] of previous) { if (value === undefined) Deno.env.delete(key); else Deno.env.set(key, value); }
+  }
+});
 
 Deno.test('WebSocket 消息分发执行当前能力策略、会话有效性和终端绑定', async () => {
   const previous = ['CAPABILITY_POLICY_PROFILE', 'CAPABILITY_ALLOWLIST'].map((key) => [key, Deno.env.get(key)] as const);

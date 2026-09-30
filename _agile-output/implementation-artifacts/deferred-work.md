@@ -83,3 +83,20 @@
 ## 请求标签目标最终收尾（2026-09-30）
 
 `spec-server-request-correlation.md` 已完成评审补丁、获批监听测试缓存加固及主会话独立复验：后端 55 项（69 子步骤）、Node 33 项、权限门禁 4 项、Linux 实包 22/22 全部通过。此前冷下载导致的 Node 31/32 失败保留为历史，当前阻碍已解决。X-Request-Id 标签风险关闭；完整构建输入/工具链复现及其他独立风险不关闭。
+
+## 终端输入加载窗口解决记录（2026-09-30）
+
+- source_spec: `spec-terminal-input-revalidation.md`
+  resolves: 上述“在终端异步加载后、实际副作用执行前再次校验权限和会话”及“在终端入站异步加载后重验会话、能力和连接状态”目标。
+  status: done
+  evidence: loader 恢复后同步重验开放且受管理的连接、会话、动态 terminal 能力和既有绑定；无新增 await 插入有效复验至调用之间。13 个可控 Promise 窗口用例验证零转发拒绝、一次有效转发、未注册仍可输入、映射清理/其他连接隔离、关闭/错误和安全审计无合成凭据/输入/异常正文。后端 56 项（82 子步骤）、Node 33 项、权限门禁 4 项及独立 Linux 实包原 22/22 通过；源码快照和新资产哈希见 release-runtime-core-acceptance.md。原发现保留为历史；分发替身用例不冒充真实远程终端正向验收。
+- source_spec: `spec-terminal-input-revalidation.md`
+  summary: 终端处理器内部 stdinWriter.write 的异步窗口继续延期。
+  evidence: 本次仅在 forwardTerminalInput 调用前重验，未改变处理器或进程归属，也不保证原子取消已开始的写入；需独立规格与验证。既有远程认证会话与实际进程归属问题仍未关闭。
+
+- source_spec: `spec-terminal-input-revalidation.md`
+  summary: 统一隔离已退休 WebSocket 异步处理器的异常，避免关闭后重复关闭或误清理替换状态。
+  evidence: B3，medium；基线外层 catch 按 ws 无条件 closeFailedClient，loader 在 onclose/onerror 后拒绝可重复 close，重初始化后旧拒绝也可能清理新状态。本轮只保护 loader 成功恢复后的授权和身份检查；需覆盖所有异步消息异常与状态归属后独立修复。
+# 2026-09-30 终端输入评审最终复验补充
+
+主会话确认评审补丁后后端 57 项（85 子步骤）、Node 发布测试 33 项、权限门禁 4 项及最终 Linux 实包核心 22/22 全通过；新资产目录为 `terminal-input-review-final-20260930/`，源码与包内一致。加载成功恢复后的授权窗口已关闭；既有异常生命周期隔离 B3、处理器内部写入窗口及终端归属仍按各延期条目保留，未因此扩大生产权限或修改异常处理目标。
