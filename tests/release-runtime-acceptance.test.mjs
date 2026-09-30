@@ -80,6 +80,46 @@ test('fixtures use temporary workspace skills and never inherit runtime credenti
   assert.equal(existsSync(root), false);
 });
 
+test('fixture Git initialization does not launch automatic maintenance', () => {
+  const root = mkdtempSync(join(tmpdir(), 'release-git-lifecycle-test-'));
+  try {
+    const workspace = join(root, 'workspace');
+    const env = isolatedEnvironment(root, { PATH: process.env.PATH });
+    const tracePath = join(root, 'git-trace.log');
+    const eventPath = join(root, 'git-events.jsonl');
+    // 合成命令级环境强制开启维护，夹具自身的 -c 设置仍应优先禁止它。
+    Object.assign(env, {
+      GIT_TRACE: tracePath,
+      GIT_TRACE2_EVENT: eventPath,
+      GIT_CONFIG_COUNT: '2',
+      GIT_CONFIG_KEY_0: 'maintenance.auto', GIT_CONFIG_VALUE_0: 'true',
+      GIT_CONFIG_KEY_1: 'gc.auto', GIT_CONFIG_VALUE_1: '1',
+    });
+    const fixtures = prepareFixtures(workspace, root, env);
+    assert.equal(fixtures.gitError, undefined);
+    const trace = readFileSync(tracePath, 'utf8');
+    const builtins = trace.split('\n').filter(line => line.includes('built-in: git '));
+    const starts = readFileSync(eventPath, 'utf8').trim().split('\n').map(line => JSON.parse(line)).filter(event => event.event === 'start');
+    assert.equal(builtins.length, 3);
+    assert.equal(starts.length, 3);
+    for (const operation of ['init', 'add', 'commit']) {
+      const invocation = builtins.find(line => new RegExp(`built-in: git .*\\b${operation}\\b`).test(line));
+      assert.ok(invocation, `fixture Git ${operation} invocation missing`);
+      const start = starts.find(event => event.argv.includes(operation));
+      assert.ok(start, `fixture Git ${operation} process start missing`);
+      assert.deepEqual(start.argv.slice(1, 5), ['-c', 'maintenance.auto=false', '-c', 'gc.auto=0']);
+    }
+    assert.doesNotMatch(trace, /(?:run_command:|built-in:).*\bgit\b.*\b(?:maintenance|gc)(?:\s|$)/);
+    const gitEnv = { ...env };
+    delete gitEnv.GIT_TRACE;
+    delete gitEnv.GIT_TRACE2_EVENT;
+    assert.equal(execFileSync('git', ['rev-list', '--count', 'HEAD'], { cwd: workspace, env: gitEnv, encoding: 'utf8', timeout: 10000 }).trim(), '1');
+    assert.match(execFileSync('git', ['status', '--porcelain'], { cwd: workspace, env: gitEnv, encoding: 'utf8', timeout: 10000 }), / M tracked\.txt/);
+    assert.match(execFileSync('git', ['diff', '--', 'tracked.txt'], { cwd: workspace, env: gitEnv, encoding: 'utf8', timeout: 10000 }), /modified-release-fixture/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+  assert.equal(existsSync(root), false);
+});
+
 test('cleanup kills a process group even when its launcher has already exited', async () => {
   const child = spawn(process.execPath, ['-e', `const {spawn}=require('node:child_process'); const p=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'}); console.log(p.pid); p.unref();`], { detached: true, stdio: ['ignore', 'pipe', 'ignore'] });
   const exited = once(child, 'exit');

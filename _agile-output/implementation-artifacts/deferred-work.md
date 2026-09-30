@@ -1,5 +1,9 @@
 # 后续工作记录
 
+- source_spec: `spec-fixture-git-maintenance.md`
+  summary: 远端复验临时 Git 生命周期加固并定位 CI 临时根目录重建的确切写入者。
+  evidence: 运行 36697946904 两次在 rmSync 后 existsSync 为 true 失败；本地 Git 2.43/2.55 循环未复现。strace 证实原夹具 Git 2.55 commit 派生 detached maintenance，现命令级禁用维护并以 trace 回归保护，但未证明该子进程重建目录。需授权推送后检验 CI，若再失败采集合成临时目录结构/安全进程时序，不打印真实环境或放宽删除断言。B3 证据链接和已执行命令已补充；未宣称最新 main 全绿。
+
 ## macOS 终端参数修复收尾（2026-09-30）
 
 `spec-macos-terminal-launch.md` 已完成：提交 `ed948e71ef525b045d4a1abffff886a9873259dc` 已推送，Runtime Release `36697156609` 成功；Linux/macOS 各 22/22，包括真实终端输出与关闭。AC4 不再待验。以下原 pending 交接记录仅为历史，清理错误掩盖首个失败阶段的独立改进仍开放。

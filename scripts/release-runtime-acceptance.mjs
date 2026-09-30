@@ -25,10 +25,11 @@ export function prepareFixtures(workspace, root, env) {
   let gitError;
   try {
     // The only commit is in this disposable fixture repository.
+    // 临时夹具不能留下超出同步 Git 命令生命周期的自动维护进程。
     for (const args of [
       ['init', '--quiet'], ['add', 'tracked.txt'],
       ['-c', 'user.name=Release Fixture', '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'fixture'],
-    ]) execFileSync('git', args, { cwd: workspace, env, stdio: 'pipe', timeout: 10000 });
+    ]) execFileSync('git', ['-c', 'maintenance.auto=false', '-c', 'gc.auto=0', ...args], { cwd: workspace, env, stdio: 'pipe', timeout: 10000 });
     writeFileSync(join(workspace, 'tracked.txt'), 'modified-release-fixture\n');
   } catch { gitError = 'Git dependency or disposable repository initialization failed'; }
   return { identity, blockedIdentity, skillContent, sentinel, sentinelContent, gitError };
