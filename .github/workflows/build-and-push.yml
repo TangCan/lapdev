@@ -1,14 +1,8 @@
-name: Build and Push Docker Image
+name: Legacy Docker validation (manual only)
 
 on:
-  push:
-    branches:
-      - main
-    tags:
-      - 'v*'
-  pull_request:
-    branches:
-      - main
+  # Historical diagnostic only; supported releases use runtime-release.yml.
+  workflow_dispatch:
 
 env:
   REGISTRY: crpi-ygp4wzq7icdrlm64.cn-shenzhen.personal.cr.aliyuncs.com

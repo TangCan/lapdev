@@ -2,6 +2,8 @@
 
 当前安装见 [Release 安装](../release-installation.md)。以下原文仅供历史查阅。
 
+旧 Docker CI 已停止由 push、标签和 pull request 自动触发，仅保留手动历史诊断入口；镜像发布默认关闭。这不是受支持的发布或部署方案，当前发布使用 CLI 与 GitHub Release 平台运行时。
+
 # Lapdev Docker 镜像
 
 基于 Web 的 AI 驱动开发环境，内置 BMAD 工作流。

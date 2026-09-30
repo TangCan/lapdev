@@ -1,5 +1,14 @@
 import { assert, assertStringIncludes } from 'jsr:@std/assert@1';
 
+Deno.test('legacy Docker workflow is manual-only and image publishing stays disabled', async () => {
+  const workflow = await Deno.readTextFile(new URL('../../.github/workflows/build-and-push.yml', import.meta.url));
+  const triggers = workflow.split('\non:\n')[1]?.split('\nenv:\n')[0];
+  assert(triggers);
+  assertStringIncludes(triggers, 'workflow_dispatch:');
+  assert(!/^\s+(push|pull_request|schedule):/m.test(triggers));
+  assertStringIncludes(workflow, "PUBLISH_IMAGE: 'false'");
+});
+
 Deno.test('release entrypoint uses explicit profile permissions', async () => {
   const source = await Deno.readTextFile(new URL('../../scripts/entrypoint.sh', import.meta.url));
   assert(!source.includes(' deno run --no-lock -A '));
