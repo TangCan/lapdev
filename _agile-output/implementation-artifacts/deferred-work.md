@@ -60,3 +60,11 @@
 ## 主会话验证收尾
 
 2026-09-30：上述出站授权及文件订阅两项目标通过三路评审补丁与独立复验，状态为 done。后端 50 项（69 子步骤）、Node 32 项、权限门禁 4 项及评审后 Linux 实包 22/22 通过；资产见 release-runtime-core-acceptance.md。原发现与 implemented 交接记录保留为历史，当前尚未解决的是“出站授权评审留存”中的独立问题。
+
+- source_spec: `spec-http-audit-credential-isolation.md`
+  summary: 为客户端请求关联标签制定安全输入策略，防止任意敏感值经 X-Request-Id 进入日志。
+  evidence: B1，high；resolveCapabilityContext 在基线及当前均保留该请求头，审计 correlation.requestId 不脱敏。客户端主动填入合成认证凭据时可回显。此轮仅分离服务端认证 sessionId 与审计 ID，未宣称任意请求字段安全；需明确兼容性和关联策略后单独修复。
+
+## HTTP 审计目标解决记录（2026-09-30）
+
+先前“将 WebSocket 之外的认证凭据与审计关联标识分离”目标已由 `spec-http-audit-credential-isolation.md` 完成：独立服务端关联 ID、真实 HTTP/WS 握手及高风险终端拒绝回归通过。主会话复验后端 55 项（69 子步骤）、Node 32 项、权限门禁 4 项和 Linux 实包 22/22。原发现保留为历史；此记录不关闭上述 X-Request-Id 标签风险或其他独立延期项。

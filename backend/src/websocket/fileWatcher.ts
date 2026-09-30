@@ -90,7 +90,7 @@ export async function sendTerminalOutput(sessionId: string, output: string): Pro
         emitSecurityAuditEvent({
           outcome: 'denied', reason: 'SESSION_MISMATCH',
           principalId: context.principalId, workspaceId: context.workspaceId,
-          sessionId: context.sessionId, requestId: context.requestId,
+          sessionId: context.auditSessionId!, requestId: context.requestId,
           revision: nextAuditRevision(context.workspaceId), capability: 'terminal', profile: context.profile,
         });
         terminalClients.delete(sessionId);
@@ -104,7 +104,7 @@ export async function sendTerminalOutput(sessionId: string, output: string): Pro
 }
 
 function auditContext(state: ClientState, context: CapabilityContext): CapabilityContext {
-  return { ...context, sessionId: state.auditSessionId };
+  return { ...context, auditSessionId: state.auditSessionId };
 }
 
 function closeFailedClient(ws: WebSocket): void {

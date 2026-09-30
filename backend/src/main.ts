@@ -134,8 +134,9 @@ async function handleRequest(req: Request): Promise<Response> {
   }
 
   const capability = capabilityForPath(url.pathname);
+  const requestContext = capability ? resolveCapabilityContext(req, [], undefined, capability) : undefined;
   if (capability) {
-    const context = resolveCapabilityContext(req, [], undefined, capability);
+    const context = requestContext!;
     const decision = authorizeCapability(context, capability);
     auditCapabilityDecision(context, capability, decision);
     if (!decision.allowed) return capabilityError(context, decision);
@@ -253,7 +254,7 @@ async function handleRequest(req: Request): Promise<Response> {
       break;
     case '/api/v1/terminal/command':
       if (req.method === 'POST') {
-        response = await handleTerminalCommand(req);
+        response = await handleTerminalCommand(req, requestContext);
       } else {
         response = new Response('Method Not Allowed', { status: 405 });
       }

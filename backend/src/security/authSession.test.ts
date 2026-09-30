@@ -9,6 +9,22 @@ const options = {
   now: () => 10_000,
 };
 
+Deno.test('audit identifiers are stable copies and never authenticate', () => {
+  const store = new AuthSessionStore(options);
+  const first = store.exchangeBootstrapToken(options.bootstrapToken)!;
+  const second = store.exchangeBootstrapToken(options.bootstrapToken)!;
+  assertNotEquals(first.session.auditSessionId, first.session.sessionId);
+  assertNotEquals(first.session.auditSessionId, second.session.auditSessionId);
+  const id = first.session.auditSessionId;
+  first.session.auditSessionId = 'mutated-copy';
+  assertEquals(store.resolveSession(first.session.sessionId)?.auditSessionId, id);
+  const attempts: HeadersInit[] = [{ Cookie: `__Host-lapdev_session=${id}` }, { Authorization: `Bearer ${id}` }];
+  for (const headers of attempts) {
+    assertEquals(store.resolveRequest(new Request('http://localhost', { headers })), null);
+  }
+  assertEquals(store.resolveSession(id), null);
+});
+
 Deno.test('exchanges the bootstrap token for an opaque short-lived session cookie', () => {
   const store = new AuthSessionStore(options);
   const exchange = store.exchangeBootstrapToken(options.bootstrapToken);

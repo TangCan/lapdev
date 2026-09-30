@@ -228,6 +228,7 @@ Deno.test('业务出站：订阅、静默失效、动态能力、模式切换及
       const correlated = audits.map((line) => JSON.parse(line)).filter((event) => event.correlation?.requestId === a.context.requestId);
       assertEquals(new Set(correlated.map((event) => event.correlation.sessionId)).size, 1);
       assert(bindingDenial.correlation.sessionId !== a.context.sessionId);
+      assert(bindingDenial.correlation.sessionId !== a.context.auditSessionId);
       const untracked = socket(); registerTerminalClient('untracked', untracked);
       await sendTerminalOutput('untracked', 'private-payload');
       assertEquals(untracked.messages, []); assertEquals(getTerminalClient('untracked'), undefined);

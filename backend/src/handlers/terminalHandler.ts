@@ -1,5 +1,8 @@
 import { sendTerminalOutput } from '../websocket/fileWatcher.ts';
 import { CommandPolicy } from '../security/commandPolicy.ts';
+import { auditSessionIdForContext, nextAuditRevision, resolveCapabilityContext } from '../security/capability.ts';
+import type { CapabilityContext } from '../security/capability.ts';
+import { emitSecurityAuditEvent } from '../security/audit.ts';
 
 interface TerminalSession {
   id: string;
@@ -153,7 +156,7 @@ export async function flushPendingOutput(sessionId: string): Promise<void> {
   }
 }
 
-export async function handleTerminalCommand(req: Request): Promise<Response> {
+export async function handleTerminalCommand(req: Request, context?: CapabilityContext): Promise<Response> {
   try {
     const body = await req.json();
     const { sessionId, command } = body;
@@ -169,8 +172,14 @@ export async function handleTerminalCommand(req: Request): Promise<Response> {
     }
 
     if (isHighRiskCommand(command)) {
-      const requestId = req.headers.get('X-Request-Id') || crypto.randomUUID();
-      console.info(JSON.stringify({ type: 'terminal_command_denied', requestId, sessionId, reason: 'high-risk-command' }));
+      const auditContext = context ?? resolveCapabilityContext(req, [], undefined, 'terminal');
+      const requestId = auditContext.requestId;
+      emitSecurityAuditEvent({
+        outcome: 'denied', reason: 'high-risk-command',
+        principalId: auditContext.principalId || 'anonymous', workspaceId: auditContext.workspaceId,
+        sessionId: auditSessionIdForContext(auditContext), requestId,
+        revision: nextAuditRevision(auditContext.workspaceId), capability: 'terminal', profile: auditContext.profile,
+      });
       return new Response(JSON.stringify({ error: { code: 'HIGH_RISK_COMMAND', message: 'Command denied by active policy', requestId } }), {
         headers: { 'Content-Type': 'application/json', 'X-Request-Id': requestId },
         status: 403,

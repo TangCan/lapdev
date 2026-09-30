@@ -1,5 +1,6 @@
 export interface AuthenticatedSession {
   sessionId: string;
+  auditSessionId: string;
   principalId: string;
   workspaceId: string;
   capabilities: string[];
@@ -80,6 +81,7 @@ export class AuthSessionStore {
 
     const session: AuthenticatedSession = {
       sessionId: crypto.randomUUID(),
+      auditSessionId: crypto.randomUUID(),
       principalId: this.principalId,
       workspaceId: this.workspaceId,
       capabilities: [...this.capabilities],
@@ -87,7 +89,7 @@ export class AuthSessionStore {
     };
     this.sessions.set(session.sessionId, session);
     const cookie = `${SESSION_COOKIE}=${session.sessionId}; Max-Age=${Math.floor(this.ttlMs / 1_000)}; Secure; HttpOnly; SameSite=Lax; Path=/`;
-    return { session, cookieHeader: cookie.split(';', 1)[0], setCookie: cookie };
+    return { session: { ...session, capabilities: [...session.capabilities] }, cookieHeader: cookie.split(';', 1)[0], setCookie: cookie };
   }
 
   resolveRequest(request: Request): AuthenticatedSession | null {

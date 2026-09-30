@@ -1,5 +1,13 @@
 # 发布运行时核心验收：阶段结果
 
+## 最新结果：HTTP 审计凭据隔离（2026-09-30）
+
+三路评审及最小补丁完成，主会话独立执行后端 **55 项（69 子步骤）**、Node **32 项**（0 skipped）、权限门禁 **4 项**及 git diff --check，全部通过。真实 HTTP/WS 握手验证与远程终端处理器 supplied/fallback 回归已纳入全量测试。
+
+`http-audit-isolation-20260930/` 的 Linux 归档再次校验、安装/启动/健康/首页及原核心 **22/22** 全部通过；五个修改的生产源码与包内文件逐一 cmp 一致，代码补丁 SHA-256 与末尾记录一致。评审补丁只改测试/文档，因此保留既有包，不冒充新的公开资产。生成归档不纳入源码提交，没有推送或发布。
+
+本轮修复服务端认证 sessionId 被 HTTP/握手审计自动记录以及高风险终端拒绝日志回显 body 身份/命令的路径。客户端任意 X-Request-Id 可进入关联日志的问题仍延期，不能宣称任意日志已脱敏。macOS、公开安装和真实 LSP 功能的历史限制仍在。下列出站授权摘要是此前阶段历史，HTTP 最新验收与事件迁移说明见末尾。
+
 ## 主会话最终复验资产（2026-09-30，三路评审修订后）
 
 归档目录：`_agile-output/runtime-archives/ws-outbound-review-final-20260930/`。运行时 SHA-256：`ae9916f588e2ec3e73943c57ee4e3ca1241eb633f0445dab2fcae693dfd17815`；CLI SHA-256：`a573144b85ec4d34dc44b1fbb171fa3819a5da60b1e132061935f16484045567`。版本仍为 1.0.3，manifest 基线未包含未提交改动；这些资产不是更新后的公开 Release。
@@ -293,3 +301,43 @@ SHA-256：运行时 `8713026acf97ec01ce39076332ab773c6496a75a98ace9518d3864b4511
 针对性回归：`npm run test:backend -- src/websocket/fileWatcher.test.ts`，**2 passed（30 steps）、0 failed**。新增全部 console 捕获，断言无认证凭据/业务载荷，同时核对稳定关联、身份/工作区/请求关联及绑定拒绝；覆盖实际畸形消息、处理器/发送异常关闭和其他客户端隔离、flush 移除/撤销/能力拒绝/发送失败、本地 Git 能力收紧及恢复须重订阅。发送替身抛出的错误包含原始业务消息，验证日志不会泄漏异常正文。新增夹具首轮有字符串引号语法错误，修正后针对性测试通过。
 
 旧“最终”摘要已标为历史，后续工作记录仅追加两项已实施目标的解决说明，原条目原样保留。没有运行更广测试、重新构建实包、提交、推送或发布；全量验证及独立评审由主会话执行，历史包不含本轮修订。
+
+## HTTP 审计凭据隔离验收（2026-09-30）
+
+完整读取 `spec-http-audit-credential-isolation.md`，frontmatter 为 `context: []`。认证仓库生成独立 auditSessionId，认证索引仍只使用原 sessionId；exchange 返回复制，避免调用方修改服务端关联。HTTP/WS 握手审计使用安全 ID；匿名、本地及旧内部 context 缺失字段时生成 UUID fallback，绝不回退凭据。终端高风险拒绝复用入口 context 和 version 1 生产 emitter，不记录 body.sessionId 或命令。WebSocket 后续事件保留连接级 UUID；认证、撤销、过期、绑定、公共认证响应、权限及审计 correlation 结构不变。
+
+生产函数日志捕获覆盖同会话 Cookie/Bearer 允许/拒绝、不同会话、audit ID 不能认证（401）、匿名/撤销/过期、本地及旧远程 context fallback、握手形状及后续 WebSocket 推送、终端拒绝关联和内容不泄露。仅用合成凭据，未读取真实凭据或历史日志。
+
+- `npm run test:backend`：53 passed（69 steps），0 failed，最后测试补强后完整复跑通过。首次新增测试的 HeadersInit 联合类型推导错误已修正。
+- Node 四文件发布回归：32 passed，0 failed，0 skipped。
+- `./scripts/release-permission-gate.sh`：4 passed；`git diff --check` 通过。
+- 新 Linux 前端构建、Rust release、Deno compile、归档校验及 npm pack 通过；smoke-release-cli 安装、启动、健康、HTML 首页及原 22 项实包检查全部通过，退出码 0。
+
+新目录 `_agile-output/runtime-archives/http-audit-isolation-20260930/`，版本 1.0.3，manifest commit `d1feb45e30b74d16dd4c556f82e132cd05397d4f`；资产含本轮未提交修改，该提交本身不含本轮实现。历史资产未覆盖。
+
+```sh
+RUNTIME_OUTPUT_DIR=_agile-output/runtime-archives/http-audit-isolation-20260930 ./scripts/build-runtime-archive.sh linux-x64
+./scripts/verify-runtime-archive.sh _agile-output/runtime-archives/http-audit-isolation-20260930/lapdev-runtime-1.0.3-linux-x64.tar.gz linux-x64
+npm pack ./cli --pack-destination _agile-output/runtime-archives/http-audit-isolation-20260930
+node scripts/smoke-release-cli.mjs _agile-output/runtime-archives/http-audit-isolation-20260930/lapdev-cli-1.0.3.tgz _agile-output/runtime-archives/http-audit-isolation-20260930/lapdev-runtime-1.0.3-linux-x64.tar.gz
+```
+
+SHA-256：运行时 `a6b70d784ed19f807554ebd970e73c727c32cafe01afe9ee0d8af6cde47d384d`；CLI `a573144b85ec4d34dc44b1fbb171fa3819a5da60b1e132061935f16484045567`。
+
+范围限制：关联矩阵由生产函数回归证明，不冒充完整网络矩阵、跨平台验收或任意业务日志脱敏。macOS、公开 URL 安装及真实 LSP 功能未实测；语言服务器缺失及 rust-analyzer 版本探测失败，实包只证明 LSP 状态契约。前端仍有大 chunk 警告。未改变终端归属、入站异步窗口、文件边界、部署、外部身份或历史日志；未提交、推送或发布。本规格范围内无剩余实现项。
+
+### 审计评审最小补丁（2026-09-30）
+
+终端拒绝监控事件从 `type: terminal_command_denied` 迁移到 `type: security_audit, version: 1, outcome: denied, reason: high-risk-command`。旧顶层 `requestId` 对应新 `correlation.requestId`；旧顶层 `sessionId` 来自未经验证的 body，已移除，不能作为新标识延续；新 `correlation.sessionId` 是服务端安全审计关联 ID。`correlation.principalId/workspaceId/revision` 来自入口上下文及服务端 revision。命令内容不进入事件。监控方应更新事件筛选及字段路径；搜索 backend/frontend/scripts/tests 未找到仓库内 `terminal_command_denied` 消费者。
+
+新增 `backend/src/security/httpAudit.test.ts` 由 backend 测试发现，启动真实 main.ts 子进程，清空环境并显式白名单配置、临时工作区、回环监听、合成凭据、请求/启动/关闭限时及 finally 清理。覆盖无 X-Request-Id 终端 HTTP 拒绝的入口/拒绝事件、响应 body/header 共享请求 ID 和安全关联，Cookie/Bearer 允许/拒绝 HTTP、实际 WS 101/401 握手审计及全部子进程输出不含凭据/命令。终端直接测试显式隔离/恢复策略环境，验证认证远程 supplied-context 及 omitted-context fallback。未改生产路由、公共 export、策略或执行权限。
+
+代码快照补充：基线为 `d1feb45e30b74d16dd4c556f82e132cd05397d4f`。以下从仓库根执行的 code-only diff 字节流 SHA-256 为 `31d564428e19991fa519544f2204b7024d33f1028ccbe5a3e485bd5eedf3ae66`，排除 docs/tests，避免文档哈希循环：
+
+```sh
+git diff --binary --no-ext-diff --no-textconv d1feb45e30b74d16dd4c556f82e132cd05397d4f -- backend/src ':!backend/src/**/*.test.ts' | sha256sum
+```
+
+该差异只含 `backend/src/main.ts`、`backend/src/security/authSession.ts`、`backend/src/security/capability.ts`、`backend/src/handlers/terminalHandler.ts`、`backend/src/websocket/fileWatcher.ts`。其余未改 backend/src 生产源码来自基线。上述五个修改文件在已有 `http-audit-isolation-20260930/lapdev-runtime-1.0.3-linux-x64.tar.gz` 的 `./app/backend/src/` 对应路径中，逐个提取与当前源码字节比较一致。基线加此代码差异描述未提交生产代码快照；manifest commit 单独不能重建本轮代码。未宣称发布或从提交重建，本次未构建或覆盖资产；新增测试不在旧运行时包中。
+
+本次仅执行 `npm run test:backend -- src/security/httpAudit.test.ts src/handlers/terminalPolicy.test.ts`：4 passed，0 failed；`git diff --check` 通过。夹具初次误用文件树路径，修正为既有 `/workspace` 句柄，未降低状态码断言。未运行全量测试或发布验收，交由主会话执行。

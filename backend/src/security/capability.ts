@@ -10,6 +10,7 @@ export interface CapabilityContext {
   userId: string;
   workspaceId: string;
   sessionId: string;
+  auditSessionId?: string;
   capabilities: Capability[];
   profile: PolicyProfile;
   authenticated: boolean;
@@ -32,6 +33,17 @@ const remoteAuthStore = new AuthSessionStore({
 });
 
 const auditRevisionByWorkspace = new Map<string, number>();
+const fallbackAuditIds = new WeakMap<CapabilityContext, string>();
+
+export function auditSessionIdForContext(context: CapabilityContext): string {
+  if (context.auditSessionId) return context.auditSessionId;
+  let id = fallbackAuditIds.get(context);
+  if (!id) {
+    id = crypto.randomUUID();
+    fallbackAuditIds.set(context, id);
+  }
+  return id;
+}
 
 export function nextAuditRevision(workspaceId: string): number {
   const nextRevision = (auditRevisionByWorkspace.get(workspaceId) || 0) + 1;
@@ -81,6 +93,7 @@ export function resolveCapabilityContext(
       userId: session?.principalId || '',
       workspaceId: session?.workspaceId || '',
       sessionId: session?.sessionId || '',
+      auditSessionId: session?.auditSessionId || crypto.randomUUID(),
       // Capabilities are resolved from the current policy on every request; the
       // session only proves identity and workspace and cannot carry stale grants.
       capabilities: [...new Set([...capabilities, ...configured])] as Capability[],
@@ -96,6 +109,7 @@ export function resolveCapabilityContext(
     userId: header(req, 'X-User-Id', 'local-user'),
     workspaceId: header(req, 'X-Workspace-Id', Deno.env.get('WORKSPACE_ID') || 'default-workspace'),
     sessionId: header(req, 'X-Session-Id', 'http-request'),
+    auditSessionId: crypto.randomUUID(),
     capabilities: [...new Set([...capabilities, ...configured])],
     profile,
     authenticated: true,
@@ -141,7 +155,7 @@ export function auditCapabilityDecision(context: CapabilityContext, capability: 
     reason: decision.code,
     principalId: context.principalId || 'anonymous',
     workspaceId: context.workspaceId,
-    sessionId: context.sessionId,
+    sessionId: auditSessionIdForContext(context),
     requestId: context.requestId,
     revision: nextAuditRevision(context.workspaceId),
     capability,
