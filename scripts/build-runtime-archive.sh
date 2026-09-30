@@ -61,6 +61,6 @@ MANIFEST
 
 mkdir -p "${OUT_ROOT}"
 ARCHIVE="${OUT_ROOT}/lapdev-runtime-${VERSION}-${TARGET}.tar.gz"
-tar -C "${STAGE}" --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner -czf "$ARCHIVE" .
+tar -C "${STAGE}" -czf "$ARCHIVE" .
 printf 'runtime archive: %s\n' "$ARCHIVE"
 printf 'target: %s (%s)\n' "$TARGET" "$RUST_TARGET"
