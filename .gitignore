@@ -18,6 +18,8 @@ yarn.lock
 dist/
 build/
 *.log
+# Local runtime build and acceptance archives
+/_agile-output/runtime-archives/
 
 # IDE
 .vscode/
