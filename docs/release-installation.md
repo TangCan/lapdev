@@ -4,6 +4,10 @@
 npm 账号或 Docker。用户需要 Node.js 18+、npm 和系统 tar；当前预构建运行时支持
 Linux x64、macOS arm64。以下以 1.0.3 为例，需在该版本正式发布后执行。
 
+旧 Docker Compose 部署已停止支持，配置仅保存在 [历史归档](legacy/docker-compose.yml)。
+仓库根目录不再提供默认 Compose 入口，端口更新脚本不再更新旧 Compose 或历史部署文档。
+已有容器、卷和工作区数据不会因此被停止或删除。
+
 ## 安装与启动
 
 ```sh
@@ -17,7 +21,19 @@ lapdev web --no-open --workspace /absolute/path/to/project
 按终端提示访问本机地址。CLI 首次启动会下载固定版本的运行时并验证长度及
 SHA-256，随后缓存到 `~/.cache/lapdev/<version>/<platform>-<arch>/`。
 `lapdev doctor` 检查已安装的运行时；首次下载前出现 runtime WARN 是正常的。
-Git、LSP 等功能仍需对应工具。不需要用 sudo 安装。
+Git 功能需要系统 Git。终端当前依赖 `/usr/bin/script` 和 `/bin/bash`，其中
+`script -qc` 使用 Linux 参数；macOS 兼容性必须由真实包验收确认。运行时归档
+不包含语言服务器。LSP 状态查询通过只代表接口契约可用，不代表语言功能已验证。
+不需要用 sudo 安装。
+
+## 监听地址（修改后源码构建包）
+
+HTTP、HTTPS 和 TLS 失败回退默认绑定 `127.0.0.1`；`remote-shared` profile
+也不会自动改变监听地址。部署需要外部监听时显式设置 `LAPDEV_HOST`。监听配置不改变会话验证或 capability
+授权；受限入口的其他地址仍须满足现有 `DENO_NET_ALLOWLIST` 权限。
+不要将 `local-trusted` 实例暴露到网络；外部部署需单独检查会话认证、能力策略和 TLS。
+CLI 显示配置的地址和 TLS 协议；若 TLS 启动失败，以后端 HTTP 回退提示为准。
+该行为只适用于包含本次修复的新源码构建包，既有公开 v1.0.3 资产未修改。
 
 CLI 会显示获取 manifest、下载进度与速度、完整性校验、解包和缓存安装阶段。
 manifest 每次请求限时 30 秒，运行时每次传输限时 5 分钟；暂时性网络错误或
@@ -78,8 +94,19 @@ SHA256SUMS，创建草稿 Release，附齐资产后公开。
 状态与已上传文件，不要盲目重跑或移动 tag。
 
 发布后 Linux 与 macOS job 会无凭据下载校验全部资产，再从公开 URL 安装 CLI，
-自动下载运行时并检查 `/health` 和前端首页。普通 main/PR CI 用本次构建产物验证，
+自动下载运行时，检查 `/health`、前端首页及文件、Git、终端、WebSocket、
+工作区 Codex 技能、LSP 状态与远程授权。构建包和公开 URL 安装均复用
+`scripts/smoke-release-cli.mjs` 验收入口；核心断言失败使流程非零退出。
+普通 main/PR CI 用本次构建产物验证，
 不代表真实公开下载验证已经完成。
+
+验收使用必要环境白名单和临时 HOME/缓存/工作区；认证代理仅进入安装和下载进程，
+通过 CLI `web --download-only` 完成校验与缓存后，再以隔离环境启动服务和终端。
+项目主/旧技能来源及文件须位于 canonical 工作区内，外部或悬空链接产生诊断并拒绝加载。
+远程 files-only 会话同时检查 WebSocket 文件订阅和受限 Git/终端消息；任何未授权成功都会失败。
+本次 Linux 新源码包的最终结果和剩余授权缺口见
+[验收记录](../_agile-output/implementation-artifacts/release-runtime-core-acceptance.md)，
+macOS、公开 URL 和真实 LSP 功能仍未实测；旧 v1.0.3 资产未修改。
 
 npm registry 发布默认跳过；仅当仓库变量 `NPM_PUBLISH_ENABLED=true` 时启用。
 启用步骤见 [可选 npm 发布](npm-release-bootstrap.md)。

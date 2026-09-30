@@ -1,3 +1,5 @@
+# 历史归档：旧 Compose 部署不受支持。相对路径保留原样，不保证从归档位置运行。
+# 当前安装：docs/release-installation.md；不得据此修改正在运行的容器或数据。
 version: '3.8'
 
 services:

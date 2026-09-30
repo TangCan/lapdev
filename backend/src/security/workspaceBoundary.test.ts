@@ -32,11 +32,37 @@ Deno.test('rejects existing and new paths that escape through symlinks', async (
   try {
     await Deno.writeTextFile(`${outside}/secret.txt`, 'secret');
     await Deno.symlink(outside, `${root}/linked`);
+    await Deno.symlink(`${outside}/secret.txt`, `${root}/external-file`);
+    await Deno.symlink(`${outside}/missing`, `${root}/dangling`);
     const boundary = new WorkspaceBoundary({ root, workspaceId: 'workspace-a' });
     assertEquals(boundary.resolve('workspace-a', '/workspace/linked/secret.txt'), null);
     assertEquals(boundary.resolve('workspace-a', '/workspace/linked/new.txt'), null);
+    assertEquals(boundary.resolve('workspace-a', '/workspace/linked'), null);
+    assertEquals(boundary.resolve('workspace-a', '/workspace/external-file'), null);
+    assertEquals(boundary.resolve('workspace-a', '/workspace/dangling'), null);
+    assertEquals(boundary.resolve('workspace-a', '/workspace/dangling/new.txt'), null);
   } finally {
     await Deno.remove(root, { recursive: true });
     await Deno.remove(outside, { recursive: true });
+  }
+});
+
+Deno.test('accepts internal links and canonicalizes a symlinked workspace root', async () => {
+  const temp = await Deno.makeTempDir({ prefix: 'lapdev-canonical-root-' });
+  try {
+    const root = `${temp}/real`;
+    await Deno.mkdir(`${root}/directory`, { recursive: true });
+    await Deno.writeTextFile(`${root}/directory/file.txt`, 'inside');
+    await Deno.symlink(root, `${temp}/alias`);
+    await Deno.symlink(`${root}/directory`, `${root}/internal-directory`);
+    await Deno.symlink(`${root}/directory/file.txt`, `${root}/internal-file`);
+    for (const configuredRoot of [root, `${temp}/alias`]) {
+      const boundary = new WorkspaceBoundary({ root: configuredRoot, workspaceId: 'workspace-a' });
+      for (const child of ['', '/internal-file', '/internal-directory', '/internal-directory/file.txt', '/internal-directory/new/deep.txt', '/new/deep.txt']) {
+        assertEquals(boundary.resolve('workspace-a', `/workspace${child}`), `${configuredRoot}${child}`);
+      }
+    }
+  } finally {
+    await Deno.remove(temp, { recursive: true });
   }
 });

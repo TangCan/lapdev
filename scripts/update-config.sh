@@ -198,56 +198,8 @@ update_dockerfile() {
     log_success "Dockerfile 更新完成"
 }
 
-# 更新 Docker Compose
-update_docker_compose() {
-    log_info "更新 Docker Compose..."
-    
-    local docker_compose="$PROJECT_ROOT/docker-compose.yml"
-    local podman_compose="$PROJECT_ROOT/podman-compose.yml"
-    
-    # 更新 docker-compose.yml
-    if [ -f "$docker_compose" ]; then
-        # 更新环境变量默认值
-        sed -i "s/\${BACKEND_PORT:-[0-9]*}/\${BACKEND_PORT:-$BACKEND_PORT}/g" "$docker_compose"
-        sed -i "s/\${HOST_BACKEND_PORT:-[0-9]*}/\${HOST_BACKEND_PORT:-$HOST_BACKEND_PORT}/g" "$docker_compose"
-        sed -i "s/\${CONTAINER_PORT:-[0-9]*}/\${CONTAINER_PORT:-$CONTAINER_PORT}/g" "$docker_compose"
-        log_success "docker-compose.yml 更新完成"
-    fi
-    
-    # 更新 podman-compose.yml
-    if [ -f "$podman_compose" ]; then
-        sed -i "s/\${BACKEND_PORT:-[0-9]*}/\${BACKEND_PORT:-$BACKEND_PORT}/g" "$podman_compose"
-        sed -i "s/\${HOST_BACKEND_PORT:-[0-9]*}/\${HOST_BACKEND_PORT:-$HOST_BACKEND_PORT}/g" "$podman_compose"
-        sed -i "s/\${CONTAINER_PORT:-[0-9]*}/\${CONTAINER_PORT:-$CONTAINER_PORT}/g" "$podman_compose"
-        log_success "podman-compose.yml 更新完成"
-    fi
-}
-
-# 更新文档
-update_docs() {
-    log_info "更新文档..."
-    
-    # 更新 README.Docker.md
-    local readme_docker="$PROJECT_ROOT/README.Docker.md"
-    if [ -f "$readme_docker" ]; then
-        sed -i "s/3000:3000/$HOST_BACKEND_PORT:$CONTAINER_PORT/g" "$readme_docker"
-        sed -i "s/DENO_PORT.*3000/DENO_PORT | Deno 端口 | $BACKEND_PORT/g" "$readme_docker"
-    fi
-    
-    # 更新 RELEASE_GUIDE.md
-    local release_guide="$PROJECT_ROOT/RELEASE_GUIDE.md"
-    if [ -f "$release_guide" ]; then
-        sed -i "s/3000:3000/$HOST_BACKEND_PORT:$CONTAINER_PORT/g" "$release_guide"
-    fi
-    
-    # 更新 RELEASE_SUMMARY.md
-    local release_summary="$PROJECT_ROOT/RELEASE_SUMMARY.md"
-    if [ -f "$release_summary" ]; then
-        sed -i "s/3000:3000/$HOST_BACKEND_PORT:$CONTAINER_PORT/g" "$release_summary"
-    fi
-    
-    log_success "文档更新完成"
-}
+# 旧 Compose 与历史部署文档不再自动更新。
+# 当前安装见 docs/release-installation.md。
 
 # 创建 .env 文件（用于开发环境）
 create_env_file() {
@@ -335,8 +287,6 @@ main() {
     update_tests_config
     update_scripts_config
     update_dockerfile
-    update_docker_compose
-    update_docs
     create_env_file
     
     # 验证更新

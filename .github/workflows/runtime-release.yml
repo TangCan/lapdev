@@ -30,7 +30,7 @@ jobs:
       - name: Run packed npx install and smoke test
         run: deno test --allow-all tests/unit/cli-6-6.test.ts
       - name: Test Release packaging and integrity failures
-        run: node --test tests/release-packaging.test.mjs tests/cli-download.test.mjs
+        run: node --test tests/release-runtime-acceptance.test.mjs tests/release-listener.test.mjs tests/release-packaging.test.mjs tests/cli-download.test.mjs
       - name: Prepare npm package artifact directory
         run: mkdir -p _npm
       - name: Pack CLI
@@ -80,7 +80,7 @@ jobs:
         with:
           name: npm-cli
           path: _npm
-      - name: Install packed CLI and start built runtime
+      - name: Install packed CLI and accept built runtime core and security
         run: node scripts/smoke-release-cli.mjs "_npm/lapdev-cli-$(node -p "require('./package.json').version").tgz" "_agile-output/runtime-archives/lapdev-runtime-$(node -p "require('./package.json').version")-${{ matrix.target }}.tar.gz"
       - name: Upload runtime artifact
         uses: actions/upload-artifact@v4
@@ -162,7 +162,7 @@ jobs:
           done
       - name: Verify release manifest and checksums
         run: node scripts/verify-runtime-release.mjs _release
-      - name: Install CLI from public URL and launch downloaded runtime
+      - name: Install CLI from public URL and accept runtime core and security
         run: node scripts/smoke-release-cli.mjs "https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/lapdev-cli-${GITHUB_REF_NAME#v}.tgz"
 
   publish-cli:

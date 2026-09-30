@@ -1,4 +1,6 @@
 export const PORT = parseInt(Deno.env.get('PORT') || '3333');
+export const HOST = Deno.env.get('LAPDEV_HOST') || '127.0.0.1';
+export const LISTEN_ADDRESS = HOST.includes(':') ? `[${HOST}]` : HOST;
 
 export const FRONTEND_PORT = parseInt(Deno.env.get('FRONTEND_PORT') || '5173');
 

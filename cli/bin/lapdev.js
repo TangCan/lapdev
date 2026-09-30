@@ -25,7 +25,7 @@ const EXIT_RUNTIME = 3;
 
 function usage() {
   console.error('Usage: lapdev <web|doctor|version> [options]');
-  console.error('  web [--runtime-dir DIR] [--workspace DIR] [--port PORT] [--no-open] [--offline] [--manifest-url URL]');
+  console.error('  web [--runtime-dir DIR] [--workspace DIR] [--port PORT] [--no-open] [--offline] [--manifest-url URL] [--download-only]');
   console.error('  doctor [--runtime-dir DIR]');
   console.error('  version');
 }
@@ -43,6 +43,8 @@ function parseArgs(argv) {
     const arg = rest[i];
     if (arg === '--no-open') {
       options.noOpen = true;
+    } else if (arg === '--download-only') {
+      options.downloadOnly = true;
     } else if (arg === '--offline') {
       options.offline = true;
     } else if (arg === '--runtime-dir' || arg === '--workspace' || arg === '--port' || arg === '--manifest-url') {
@@ -261,6 +263,7 @@ async function web(options) {
   }
   const runtime = validateRuntime(runtimeDirFrom(options));
   if (runtime.error) return fail(runtime.error);
+  if (options.downloadOnly) return 0;
   const port = options.port || process.env.PORT || '3333';
   if (!/^\d{1,5}$/.test(port) || Number(port) < 1 || Number(port) > 65535) return fail('port must be between 1 and 65535', EXIT_USAGE);
   const child = spawn(runtime.launcher, [], {
@@ -273,7 +276,9 @@ async function web(options) {
     if (signal) process.exitCode = 1;
     else process.exitCode = code ?? 1;
   });
-  console.log(`Lapdev runtime started at http://127.0.0.1:${port}`);
+  const host = process.env.LAPDEV_HOST || '127.0.0.1';
+  const address = host.includes(':') ? `[${host}]` : host;
+  console.log(`Lapdev runtime started at ${process.env.TLS_ENABLED === 'true' ? 'https' : 'http'}://${address}:${port}`);
   if (!options.noOpen) console.log('Browser opening is disabled until a desktop opener is configured.');
   return 0;
 }

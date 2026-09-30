@@ -55,7 +55,7 @@ import { handleBMADInstall, handleBMADStatus, handleBMADUpgrade } from './handle
 import { handleSkillLoad, handleSkillMatch, handleSkillRegister, handleSkillList } from './handlers/skillHandler.ts';
 import { handleAgentReadFile, handleAgentListFiles, handleAgentSearchCode, handleAgentWriteFile, handleAgentGetLogs, handleAgentClearLogs } from './handlers/agentHandler.ts';
 import { join, extname } from 'https://deno.land/std@0.224.0/path/mod.ts';
-import { PORT, ALLOWED_ORIGINS, TLS_ENABLED, TLS_CERT_PATH, TLS_KEY_PATH } from './config/index.ts';
+import { PORT, HOST, LISTEN_ADDRESS, ALLOWED_ORIGINS, TLS_ENABLED, TLS_CERT_PATH, TLS_KEY_PATH } from './config/index.ts';
 import { auditCapabilityDecision, authorizeCapability, capabilityError, capabilityForPath, currentPolicyProfile, getRemoteAuthSessionStore, resolveCapabilityContext } from './security/capability.ts';
 import { extractBootstrapToken } from './security/authSession.ts';
 import { validateDeploymentProfile } from './security/deploymentProfile.ts';
@@ -655,11 +655,12 @@ if (TLS_ENABLED) {
     const cert = await Deno.readTextFile(TLS_CERT_PATH);
     const key = await Deno.readTextFile(TLS_KEY_PATH);
     
-    console.log(`Server running on https://localhost:${PORT} (TLS 1.3)`);
+    console.log(`Server running on https://${LISTEN_ADDRESS}:${PORT} (TLS 1.3)`);
     console.log(`TLS Certificate: ${TLS_CERT_PATH}`);
     console.log(`TLS Key: ${TLS_KEY_PATH}`);
     
     Deno.serve({
+      hostname: HOST,
       port: PORT,
       cert,
       key,
@@ -667,10 +668,10 @@ if (TLS_ENABLED) {
   } catch (error) {
     console.error(`Failed to start TLS server: ${error.message}`);
     console.error("Falling back to HTTP...");
-    console.log(`Server running on http://localhost:${PORT}`);
-    Deno.serve({ port: PORT }, handleRequest);
+    console.log(`Server running on http://${LISTEN_ADDRESS}:${PORT}`);
+    Deno.serve({ hostname: HOST, port: PORT }, handleRequest);
   }
 } else {
-  console.log(`Server running on http://localhost:${PORT}`);
-  Deno.serve({ port: PORT }, handleRequest);
+  console.log(`Server running on http://${LISTEN_ADDRESS}:${PORT}`);
+  Deno.serve({ hostname: HOST, port: PORT }, handleRequest);
 }

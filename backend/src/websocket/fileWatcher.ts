@@ -1,6 +1,7 @@
 // Deno WebSocket API is built-in, no external import needed
-import { getRemoteAuthSessionStore, isCapabilityContextCurrent } from '../security/capability.ts';
-import type { CapabilityContext } from '../security/capability.ts';
+import { auditCapabilityDecision, authorizeCapability, currentPolicyProfile, getRemoteAuthSessionStore, isCapabilityContextCurrent, nextAuditRevision, resolveCapabilityContext } from '../security/capability.ts';
+import { emitSecurityAuditEvent } from '../security/audit.ts';
+import type { Capability, CapabilityContext } from '../security/capability.ts';
 
 const WORKSPACE_DIR = Deno.env.get('WORKSPACE_PATH') || `${Deno.cwd()}/../workspace`;
 
@@ -33,6 +34,10 @@ interface ClientState {
   isAlive: boolean;
   heartbeatTimer?: number;
   subscribedToGit: boolean;
+  subscribedToFiles: boolean;
+  sessionStore: ReturnType<typeof getRemoteAuthSessionStore>;
+  wasRemote: boolean;
+  auditSessionId: string;
   context?: CapabilityContext;
 }
 const clientStates = new Map<WebSocket, ClientState>();
@@ -71,7 +76,6 @@ export function unregisterTerminalClient(sessionId: string): void {
 
 export async function sendTerminalOutput(sessionId: string, output: string): Promise<void> {
   const ws = terminalClients.get(sessionId);
-  console.log(`[sendTerminalOutput] sessionId: ${sessionId}, ws exists: ${!!ws}, output length: ${output.length}`);
   if (ws) {
     try {
       const message = JSON.stringify({
@@ -79,22 +83,114 @@ export async function sendTerminalOutput(sessionId: string, output: string): Pro
         sessionId,
         output,
       });
+      if (!canSendBusiness(ws, 'terminal')) return;
+      if (!isSessionBound(clientStates.get(ws)?.context, sessionId)) {
+        const state = clientStates.get(ws)!;
+        const context = auditContext(state, currentClientContext(state));
+        emitSecurityAuditEvent({
+          outcome: 'denied', reason: 'SESSION_MISMATCH',
+          principalId: context.principalId, workspaceId: context.workspaceId,
+          sessionId: context.sessionId, requestId: context.requestId,
+          revision: nextAuditRevision(context.workspaceId), capability: 'terminal', profile: context.profile,
+        });
+        terminalClients.delete(sessionId);
+        return;
+      }
       await ws.send(message);
-      console.log(`[sendTerminalOutput] Sent ${output.length} bytes with sessionId: ${sessionId}`);
-    } catch (e) {
-      console.error(`[sendTerminalOutput] Send error: ${e instanceof Error ? e.message : e}`);
-      terminalClients.delete(sessionId);
+    } catch {
+      closeFailedClient(ws);
     }
-  } else {
-    console.log(`[sendTerminalOutput] No WebSocket for session ${sessionId}`);
   }
+}
+
+function auditContext(state: ClientState, context: CapabilityContext): CapabilityContext {
+  return { ...context, sessionId: state.auditSessionId };
+}
+
+function closeFailedClient(ws: WebSocket): void {
+  cleanupClient(ws);
+  try { ws.close?.(1011, 'WebSocket operation failed'); } catch { /* 已清理 */ }
+}
+
+function currentClientContext(state: ClientState): CapabilityContext {
+  const context = state.context;
+  const remote = state.wasRemote || currentPolicyProfile() === 'remote-shared';
+  const current = resolveCapabilityContext(new Request('http://localhost', {
+    headers: remote && context?.sessionId ? { Authorization: `Bearer ${context.sessionId}` } : {},
+  }), [], state.sessionStore);
+  // 原属远程的连接在部署模式改变后仍按远程策略授权。
+  if (remote) {
+    current.profile = 'remote-shared';
+    current.deploymentProfile = 'remote-shared';
+    current.authenticated = Boolean(context?.profile === 'remote-shared' && isCapabilityContextCurrent(context, state.sessionStore) && context.authenticated);
+    current.userId = current.authenticated ? context!.userId : '';
+  }
+  if (context) {
+    current.requestId = context.requestId;
+    current.principalId = context.principalId;
+    current.workspaceId = context.workspaceId;
+    current.sessionId = context.sessionId;
+  }
+  return current;
+}
+
+function removeCapabilityMappings(ws: WebSocket, capability: Capability): void {
+  const state = clientStates.get(ws);
+  if (capability === 'files' && state) state.subscribedToFiles = false;
+  if (capability === 'git') {
+    gitSubscribers.delete(ws);
+    if (state) state.subscribedToGit = false;
+  }
+  if (capability === 'terminal') {
+    for (const [id, client] of terminalClients) if (client === ws) terminalClients.delete(id);
+  }
+}
+
+function validateClientSession(state: ClientState): boolean {
+  if (!state.context || isCapabilityContextCurrent(state.context, state.sessionStore)) return true;
+  console.info(JSON.stringify({
+    type: 'security_session_invalidated',
+    requestId: state.context.requestId || 'unknown',
+    principalId: state.context.principalId || 'anonymous',
+    workspaceId: state.context.workspaceId || 'unknown',
+    sessionId: state.auditSessionId,
+    reason: 'expired-or-revoked',
+  }));
+  cleanupClient(state.ws);
+  try { state.ws.close?.(4001, 'Session expired or revoked'); } catch { /* 已清理 */ }
+  return false;
+}
+
+function canSendBusiness(ws: WebSocket, capability: Capability): boolean {
+  const state = clientStates.get(ws);
+  if (!state || ws.readyState !== WebSocket.OPEN) {
+    cleanupClient(ws);
+    return false;
+  }
+  if (!validateClientSession(state)) {
+    const current = currentClientContext(state);
+    auditCapabilityDecision(auditContext(state, current), capability, { allowed: false, code: 'UNAUTHENTICATED', message: 'Session expired or revoked' });
+    return false;
+  }
+  const current = currentClientContext(state);
+  const decision = authorizeCapability(current, capability);
+  auditCapabilityDecision(auditContext(state, current), capability, decision);
+  if (!decision.allowed) removeCapabilityMappings(ws, capability);
+  return decision.allowed;
 }
 
 export function getTerminalClient(sessionId: string): WebSocket | undefined {
   return terminalClients.get(sessionId);
 }
 
-export function handleWebSocket(ws: WebSocket, context?: CapabilityContext): void {
+type TerminalHandlers = Pick<typeof import('../handlers/terminalHandler.ts'), 'flushPendingOutput' | 'forwardTerminalInput'>;
+
+export function handleWebSocket(
+  ws: WebSocket,
+  context?: CapabilityContext,
+  sessionStore = getRemoteAuthSessionStore(),
+  loadTerminalHandlers: () => Promise<TerminalHandlers> = () => import('../handlers/terminalHandler.ts'),
+): void {
   clients.add(ws);
   
   // Initialize client state for heartbeat tracking
@@ -103,6 +199,10 @@ export function handleWebSocket(ws: WebSocket, context?: CapabilityContext): voi
     lastActivity: Date.now(),
     isAlive: true,
     subscribedToGit: false,
+    subscribedToFiles: false,
+    sessionStore,
+    wasRemote: context?.profile === 'remote-shared' || currentPolicyProfile() === 'remote-shared',
+    auditSessionId: crypto.randomUUID(),
     context,
   };
   clientStates.set(ws, clientState);
@@ -117,21 +217,29 @@ export function handleWebSocket(ws: WebSocket, context?: CapabilityContext): voi
 
   ws.onmessage = async (event: { data: string }) => {
     try {
-      if (clientState.context && !isCapabilityContextCurrent(clientState.context, getRemoteAuthSessionStore())) {
-        console.info(JSON.stringify({
-          type: 'security_session_invalidated',
-          requestId: clientState.context?.requestId || 'unknown',
-          principalId: clientState.context?.principalId || 'anonymous',
-          workspaceId: clientState.context?.workspaceId || 'unknown',
-          sessionId: clientState.context?.sessionId || 'unknown',
-          reason: 'expired-or-revoked',
-        }));
-        cleanupClient(ws);
-        if (typeof ws.close === 'function') ws.close(4001, 'Session expired or revoked');
-        return;
-      }
+      if (!clientStates.has(ws) || !validateClientSession(clientState)) return;
       const message = JSON.parse(event.data);
       clientState.lastActivity = Date.now();
+      const capabilities: Record<string, Capability> = {
+        subscribe: 'files', unsubscribe: 'files',
+        subscribeToGit: 'git', unsubscribeFromGit: 'git',
+        terminalRegister: 'terminal', terminalInput: 'terminal', terminalUnregister: 'terminal',
+      };
+      const capability = Object.hasOwn(capabilities, message.type) ? capabilities[message.type] : undefined;
+      if (capability) {
+        const current = currentClientContext(clientState);
+        const decision = authorizeCapability(current, capability);
+        auditCapabilityDecision(auditContext(clientState, current), capability, decision);
+        if (!decision.allowed) {
+          removeCapabilityMappings(ws, capability);
+          await ws.send(JSON.stringify({ type: 'error', code: 'CAPABILITY_DENIED', message: decision.message }));
+          return;
+        }
+        if (capability === 'terminal' && message.sessionId && !isSessionBound(clientState.context, message.sessionId)) {
+          await ws.send(JSON.stringify({ type: 'error', code: 'SESSION_MISMATCH', message: 'WebSocket session does not match terminal session' }));
+          return;
+        }
+      }
       
       switch (message.type) {
         case 'ping':
@@ -166,21 +274,22 @@ export function handleWebSocket(ws: WebSocket, context?: CapabilityContext): voi
               await ws.send(JSON.stringify({ type: 'error', code: 'SESSION_MISMATCH', message: 'WebSocket session does not match terminal session' }));
               break;
             }
-            console.log(`[terminalRegister] Received for session ${message.sessionId}`);
+            console.log('[terminalRegister] Received');
             registerTerminalClient(message.sessionId, ws);
-            const { flushPendingOutput } = await import('../handlers/terminalHandler.ts');
+            const { flushPendingOutput } = await loadTerminalHandlers();
             await flushPendingOutput(message.sessionId);
+            if (!canSendBusiness(ws, 'terminal') || terminalClients.get(message.sessionId) !== ws) break;
             await ws.send(JSON.stringify({
               type: 'terminalRegistered',
               sessionId: message.sessionId,
             }));
-            console.log(`[terminalRegister] Completed for session ${message.sessionId}`);
+            console.log('[terminalRegister] Completed');
           }
           break;
         case 'terminalInput':
           // Forward terminal input to the backend process
           if (message.sessionId && message.input) {
-            const { forwardTerminalInput } = await import('../handlers/terminalHandler.ts');
+            const { forwardTerminalInput } = await loadTerminalHandlers();
             await forwardTerminalInput(message.sessionId, message.input);
           }
           break;
@@ -196,14 +305,15 @@ export function handleWebSocket(ws: WebSocket, context?: CapabilityContext): voi
             message: 'Unknown message type'
           }));
       }
-    } catch (error) {
-      console.error('Error handling WebSocket message:', error);
+    } catch {
+      console.error('Error handling WebSocket message');
+      closeFailedClient(ws);
     }
   };
 
-  ws.onerror = (error: unknown) => {
-    console.error('WebSocket error:', error);
-    cleanupClient(ws);
+  ws.onerror = () => {
+    console.error('WebSocket error');
+    closeFailedClient(ws);
   };
 
   ws.onclose = () => {
@@ -232,7 +342,7 @@ function startHeartbeat(ws: WebSocket, state: ClientState): void {
       await ws.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
     } catch {
       console.log('Failed to send ping, closing connection');
-      cleanupClient(ws);
+      closeFailedClient(ws);
     }
   }, HEARTBEAT_INTERVAL) as unknown as number;
 }
@@ -253,7 +363,7 @@ function cleanupClient(ws: WebSocket): void {
   for (const [sessionId, client] of terminalClients) {
     if (client === ws) {
       terminalClients.delete(sessionId);
-      console.log(`Unregistered terminal client: ${sessionId}`);
+      console.log('Unregistered terminal client');
     }
   }
 }
@@ -271,8 +381,8 @@ export async function broadcastGitStatus(status: unknown): Promise<void> {
       status,
       timestamp: new Date().toISOString()
     });
-  } catch (serializationError) {
-    console.error('[WebSocket] Failed to serialize Git status:', serializationError);
+  } catch {
+    console.error('[WebSocket] Failed to serialize Git status');
     return;
   }
 
@@ -285,22 +395,16 @@ export async function broadcastGitStatus(status: unknown): Promise<void> {
   for (const client of gitSubscribers) {
     try {
       // Check if connection is still open before sending
-      if (client.readyState !== WebSocket.OPEN) {
-        failedClients.push(client);
-        continue;
-      }
+      if (!canSendBusiness(client, 'git')) continue;
       
       await client.send(message);
       successCount++;
-    } catch (sendError) {
+    } catch {
       failCount++;
       failedClients.push(client);
+      closeFailedClient(client);
       
-      // Log detailed error information
-      const errorType = sendError instanceof Error ? sendError.name : 'UnknownError';
-      const errorMessage = sendError instanceof Error ? sendError.message : String(sendError);
-      
-      console.error(`[WebSocket] Failed to send Git status to client: ${errorType} - ${errorMessage}`);
+      console.error('[WebSocket] Failed to send Git status');
     }
   }
 
@@ -381,14 +485,17 @@ export function stopCleanupTimer(): void {
 }
 
 async function handleSubscribe(ws: WebSocket, _message: unknown): Promise<void> {
+  const state = clientStates.get(ws);
+  if (state) state.subscribedToFiles = true;
   await ws.send(JSON.stringify({
     type: 'subscribed',
     message: 'File watcher subscribed'
   }));
 }
 
-async function handleUnsubscribe(_ws: WebSocket, _message: unknown): Promise<void> {
-  // No specific action needed for unsubscribe
+async function handleUnsubscribe(ws: WebSocket, _message: unknown): Promise<void> {
+  const state = clientStates.get(ws);
+  if (state) state.subscribedToFiles = false;
 }
 
 export async function broadcastFileChange(eventType: string, path: string): Promise<void> {
@@ -411,8 +518,8 @@ export async function broadcastFileChange(eventType: string, path: string): Prom
       path,
       timestamp: new Date().toISOString()
     });
-  } catch (serializationError) {
-    console.error('[WebSocket] Failed to serialize file change message:', serializationError);
+  } catch {
+    console.error('[WebSocket] Failed to serialize file change message');
     return;
   }
 
@@ -422,24 +529,19 @@ export async function broadcastFileChange(eventType: string, path: string): Prom
   const failedClients: WebSocket[] = [];
 
   for (const client of clients) {
+    if (!clientStates.get(client)?.subscribedToFiles) continue;
     try {
       // Check if connection is still open before sending
-      if (client.readyState !== WebSocket.OPEN) {
-        failedClients.push(client);
-        continue;
-      }
+      if (!canSendBusiness(client, 'files')) continue;
       
       await client.send(message);
       successCount++;
-    } catch (sendError) {
+    } catch {
       failCount++;
       failedClients.push(client);
+      closeFailedClient(client);
       
-      // Log detailed error information
-      const errorType = sendError instanceof Error ? sendError.name : 'UnknownError';
-      const errorMessage = sendError instanceof Error ? sendError.message : String(sendError);
-      
-      console.error(`[WebSocket] Failed to send file change to client: ${errorType} - ${errorMessage}`);
+      console.error('[WebSocket] Failed to send file change');
     }
   }
 
@@ -452,7 +554,7 @@ export async function broadcastFileChange(eventType: string, path: string): Prom
 
   // Log broadcast summary
   const duration = Date.now() - startTime;
-  console.log(`[WebSocket] File change broadcast completed: ${successCount} sent, ${failCount} failed, ${duration}ms, event: ${eventType}, path: ${path}`);
+  console.log(`[WebSocket] File change broadcast completed: ${successCount} sent, ${failCount} failed, ${duration}ms`);
 }
 
 /**

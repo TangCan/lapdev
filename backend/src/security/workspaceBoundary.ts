@@ -38,15 +38,20 @@ export class WorkspaceBoundary {
 
     const candidate = resolve(this.root, relativeHandle);
     if (!this.isBelowRoot(candidate)) return null;
-    if (this.isCanonicalPathInsideRoot(candidate)) return candidate;
-
-    let parent = dirname(candidate);
-    while (parent !== this.root && !this.pathExists(parent)) {
+    let parent = candidate;
+    while (true) {
+      try {
+        // lstat distinguishes a dangling link from a genuinely absent path.
+        Deno.lstatSync(parent);
+        return this.isCanonicalPathInsideRoot(parent) ? candidate : null;
+      } catch (error) {
+        if (!(error instanceof Deno.errors.NotFound)) return null;
+      }
+      if (parent === this.root) return null;
       const next = dirname(parent);
       if (next === parent) return null;
       parent = next;
     }
-    return this.isCanonicalPathInsideRoot(parent) ? candidate : null;
   }
 
   private toRelativeHandle(handle: string): string | null {
@@ -60,19 +65,11 @@ export class WorkspaceBoundary {
     return candidate === this.root || candidate.startsWith(`${this.root}/`);
   }
 
-  private pathExists(path: string): boolean {
-    try {
-      Deno.statSync(path);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
   private isCanonicalPathInsideRoot(path: string): boolean {
     try {
+      const realRoot = Deno.realPathSync(this.root);
       const realPath = Deno.realPathSync(path);
-      return realPath === this.root || realPath.startsWith(`${this.root}/`);
+      return realPath === realRoot || realPath.startsWith(`${realRoot}/`);
     } catch (error) {
       if (!(error instanceof Deno.errors.NotFound)) return false;
       return false;

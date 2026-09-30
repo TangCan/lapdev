@@ -3,6 +3,8 @@
 > **版本**: v1.1.0  
 > **最后更新**: 2026-07-15
 
+当前安装使用 [GitHub Release CLI 和平台运行时](release-installation.md)。旧 Docker Compose 部署已停止支持；下文 Docker/Podman 部署与排障示例仅作历史资料保留，不是当前安装推荐。
+
 ---
 
 ## 📖 目录
@@ -38,62 +40,18 @@
 
 - **浏览器**: Chrome 90+, Firefox 88+, Safari 14+, Edge 90+
 - **网络**: 需要访问 AI API（OpenAI/DeepSeek/Anthropic）
-- **容器**: Docker 或 Podman（本地运行）
+- **安装**: Node.js、npm 和系统 tar；详见 [Release 安装](release-installation.md)
 
 ---
 
 ## 2. 快速开始
 
-### 2.1 方式一：使用 Docker（推荐）
+### 2.1 从 GitHub Release 安装
 
-```bash
-# 运行镜像
-docker run -d \
-  --name lapdev \
-  -p 3333:3333 \
-  -v $(pwd)/workspace:/workspace \
-  crpi-ygp4wzq7icdrlm64.cn-shenzhen.personal.cr.aliyuncs.com/lapdev/lapdev:main
+使用 [Release CLI 和平台运行时安装指南](release-installation.md)。
 
-# 访问应用
-open http://localhost:3333
-```
-
-### 2.2 方式二：使用 Podman
-
-```bash
-# 运行镜像
-podman run -d \
-  --name lapdev \
-  -p 3333:3333 \
-  -v $(pwd)/workspace:/workspace \
-  crpi-ygp4wzq7icdrlm64.cn-shenzhen.personal.cr.aliyuncs.com/lapdev/lapdev:main
-
-# 访问应用
-open http://localhost:3333
-```
-
-### 2.3 方式三：使用 Docker Compose
-
-创建 `docker-compose.yml`:
-
-```yaml
-version: '3.8'
-services:
-  lapdev:
-    image: crpi-ygp4wzq7icdrlm64.cn-shenzhen.personal.cr.aliyuncs.com/lapdev/lapdev:main
-    ports:
-      - "3333:3333"
-    volumes:
-      - ./workspace:/workspace
-    restart: unless-stopped
-```
-
-运行：
-
-```bash
-docker-compose up -d
-open http://localhost:3333
-```
+旧 Compose 部署已停止支持，配置仅保存在 [历史归档](legacy/docker-compose.yml)。
+Docker/Podman 示例属于历史资料，当前安装继续使用上述 Release 入口。
 
 ---
 
@@ -313,7 +271,7 @@ Lapdev 根据任务类型自动匹配相关 Skill。
 | `TLS_CERT_PATH` | ./backend/cert/cert.pem | TLS 证书文件路径 |
 | `TLS_KEY_PATH` | ./backend/cert/key.pem | TLS 密钥文件路径 |
 
-### 6.2 Docker 部署示例
+### 6.2 历史 Docker 部署示例
 
 ```bash
 docker run -d \
@@ -469,7 +427,7 @@ docker logs --tail 100 lapdev
 
 ### 基础功能测试
 
-- [ ] 1.1 Docker/Podman 镜像启动成功
+- [ ] 1.1 Release CLI 和平台运行时启动成功
 - [ ] 1.2 浏览器访问 http://localhost:3333
 - [ ] 1.3 主页加载正常，无控制台错误
 

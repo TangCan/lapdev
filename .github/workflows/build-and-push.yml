@@ -86,6 +86,7 @@ jobs:
         run: |
           IMAGE_REF="$(printf '%s\n' '${{ steps.meta.outputs.tags }}' | head -n 1)"
           docker run -d --name lapdev-test -p 3333:3333 \
+            -e LAPDEV_HOST=0.0.0.0 \
             -e DEPLOYMENT_PROFILE=remote-shared \
             -e DENO_NET_ALLOWLIST=deno.land:443,jsr.io:443 \
             "$IMAGE_REF"

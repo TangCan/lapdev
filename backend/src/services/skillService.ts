@@ -9,13 +9,16 @@ export class SkillService {
   private globalSkillsDir: string;
   private projectSkillsDir: string;
   private codexSkillsDir: string;
+  private projectRoot: string;
   private diagnostics: SkillDiscoveryDiagnostic[] = [];
 
   constructor() {
     const home = Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '/';
+    const workspace = Deno.env.get('WORKSPACE_PATH') || Deno.cwd();
+    this.projectRoot = workspace;
     this.globalSkillsDir = `${home}/.lapdev/skills`;
-    this.projectSkillsDir = `${Deno.cwd()}/.lapdev/skills`;
-    this.codexSkillsDir = `${Deno.cwd()}/.agents/skills`;
+    this.projectSkillsDir = `${workspace}/.lapdev/skills`;
+    this.codexSkillsDir = `${workspace}/.agents/skills`;
   }
 
   validateSkillPath(filePath: string): void {
@@ -68,12 +71,12 @@ export class SkillService {
     let projectCount = 0;
 
     const sources: SkillLoadResult['sources'] = [
-      { path: '.agents/skills', label: 'codex-primary', available: this.existsSync(this.codexSkillsDir) },
-      { path: '.lapdev/skills', label: 'lapdev-legacy', available: this.existsSync(this.projectSkillsDir) },
+      { path: '.agents/skills', label: 'codex-primary', available: this.projectPath(this.codexSkillsDir, 'codex-primary') !== null },
+      { path: '.lapdev/skills', label: 'lapdev-legacy', available: this.projectPath(this.projectSkillsDir, 'lapdev-legacy') !== null },
       { path: '~/.lapdev/skills', label: 'lapdev-global', available: this.existsSync(this.globalSkillsDir) },
     ];
 
-    if (this.existsSync(this.codexSkillsDir)) {
+    if (sources[0].available) {
       const primary = this.loadCodexSkills(this.codexSkillsDir);
       allSkills.push(...primary);
       projectCount += primary.length;
@@ -93,8 +96,8 @@ export class SkillService {
       globalCount = globalSkills.length;
     }
 
-    if (this.existsSync(this.projectSkillsDir)) {
-      const projectSkills = this.loadSkillsFromDir(this.projectSkillsDir).map((skill) => ({ ...skill, source: 'lapdev-legacy' as const }));
+    if (sources[1].available) {
+      const projectSkills = this.loadSkillsFromDir(this.projectSkillsDir, true).map((skill) => ({ ...skill, source: 'lapdev-legacy' as const }));
       
       for (const projectSkill of projectSkills) {
         const existingIndex = allSkills.findIndex(s => s.name === projectSkill.name);
@@ -114,15 +117,20 @@ export class SkillService {
   private loadCodexSkills(dir: string): Skill[] {
     const skills: Skill[] = [];
     try {
-      for (const entry of Deno.readDirSync(dir)) {
-        if (!entry.isDirectory) continue;
+      const canonicalDir = this.projectPath(dir, 'codex-primary');
+      if (!canonicalDir) return skills;
+      for (const entry of Deno.readDirSync(canonicalDir)) {
+        if (!entry.isDirectory && !entry.isSymlink) continue;
+        const directory = this.projectPath(`${dir}/${entry.name}`, 'codex-primary');
+        if (!directory || !Deno.statSync(directory).isDirectory) continue;
         const skillPath = `${dir}/${entry.name}/SKILL.md`;
-        if (!this.existsSync(skillPath)) {
+        const canonicalFile = this.projectPath(skillPath, 'codex-primary');
+        if (!canonicalFile) {
           this.diagnostics.push({ code: 'missing-skill-file', source: 'codex-primary', path: skillPath, message: 'Skill directory has no SKILL.md', severity: 'warning' });
           continue;
         }
         try {
-          const skill = this.parseSkillContent(Deno.readTextFileSync(skillPath), 'SKILL.md');
+          const skill = this.parseSkillContent(Deno.readTextFileSync(canonicalFile), 'SKILL.md');
           const withSource = { ...skill, source: 'codex-primary' as const };
           const duplicate = skills.some((candidate) => candidate.name === withSource.name);
           if (duplicate) {
@@ -149,12 +157,27 @@ export class SkillService {
     }
   }
 
-  private loadSkillsFromDir(dir: string): Skill[] {
+  private projectPath(path: string, source: string): string | null {
+    try {
+      const root = Deno.realPathSync(this.projectRoot);
+      const canonical = Deno.realPathSync(path);
+      const prefix = root.endsWith('/') ? root : `${root}/`;
+      if (canonical !== root && !canonical.startsWith(prefix)) throw new Error('Project skill path escapes canonical workspace');
+      return canonical;
+    } catch (error) {
+      this.diagnostics.push({ code: 'source-unavailable', source, path, message: error instanceof Error ? error.message : String(error), severity: 'error' });
+      return null;
+    }
+  }
+
+  private loadSkillsFromDir(dir: string, project = false): Skill[] {
     const skills: Skill[] = [];
     
     try {
       this.validateSkillPath(dir);
-      const files = Deno.readDirSync(dir);
+      const canonicalDir = project ? this.projectPath(dir, 'lapdev-legacy') : dir;
+      if (!canonicalDir) return skills;
+      const files = Deno.readDirSync(canonicalDir);
       
       for (const fileInfo of files) {
         if (!fileInfo.name.endsWith('.skill.md')) continue;
@@ -162,8 +185,10 @@ export class SkillService {
         const filePath = `${dir}/${fileInfo.name}`;
         this.validateSkillPath(filePath);
         
-        if (fileInfo.isFile) {
-          const content = Deno.readTextFileSync(filePath);
+        const canonicalFile = project ? this.projectPath(filePath, 'lapdev-legacy') : filePath;
+        if (!canonicalFile) continue;
+        if (fileInfo.isFile || (project && fileInfo.isSymlink && Deno.statSync(canonicalFile).isFile)) {
+          const content = Deno.readTextFileSync(canonicalFile);
           try {
             const skill = this.parseSkillContent(content, fileInfo.name);
             skills.push(skill);
