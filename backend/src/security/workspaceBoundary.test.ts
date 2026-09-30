@@ -1,6 +1,36 @@
 import { assertEquals, assertMatch } from 'jsr:@std/assert@1';
 import { WorkspaceBoundary } from './workspaceBoundary.ts';
 
+Deno.test('内部精确路径保留字面名称并验证存在性、身份和 canonical 边界', async () => {
+  const temp = await Deno.makeTempDir();
+  try {
+    const root = `${temp}/root`;
+    await Deno.mkdir(`${root}/a`, { recursive: true });
+    await Deno.writeTextFile(`${root}/a/b`, 'separator');
+    await Deno.writeTextFile(`${root}/a\\b`, 'literal');
+    await Deno.writeTextFile(`${temp}/outside`, 'outside');
+    await Deno.symlink(root, `${temp}/alias`);
+    await Deno.symlink(`${root}/a\\b`, `${root}/inside`);
+    await Deno.symlink(`${temp}/outside`, `${root}/escape`);
+    await Deno.symlink(`${root}/missing`, `${root}/dangling`);
+    for (const configuredRoot of [root, `${temp}/alias`]) {
+      const boundary = new WorkspaceBoundary({ root: configuredRoot, workspaceId: 'a' });
+      assertEquals(boundary.validateExistingPath('a', `${configuredRoot}/a\\b`), `${root}/a\\b`);
+      assertEquals(boundary.validateExistingPath('a', `${configuredRoot}/inside`), `${root}/a\\b`);
+      assertEquals(boundary.validateExistingPath('a', configuredRoot), root);
+      for (const child of ['missing', 'escape', 'dangling']) {
+        assertEquals(boundary.validateExistingPath('a', `${configuredRoot}/${child}`), null);
+      }
+      assertEquals(boundary.validateExistingPath('b', configuredRoot), null);
+      assertEquals(boundary.validateExistingPath('a', `${temp}/outside`), null);
+      assertEquals(boundary.resolve('a', '/workspace/a\\b'), `${configuredRoot}/a/b`);
+      assertEquals(boundary.resolve('a', `${configuredRoot}/a\\b`), null);
+    }
+  } finally {
+    await Deno.remove(temp, { recursive: true });
+  }
+});
+
 Deno.test('normalizes only the assigned workspace handle and relative child paths', async () => {
   const root = await Deno.makeTempDir({ prefix: 'lapdev-workspace-' });
   try {

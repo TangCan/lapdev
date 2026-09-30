@@ -71,7 +71,12 @@ export async function getFileTree(path: string, depth: number = 3): Promise<File
     }
     
     const safeDepth = Math.min(Math.max(0, depth), MAX_DEPTH);
-    const info = await readDirRecursive(sanitizedPath, safeDepth, WORKSPACE_DIR);
+    const workspaceId = Deno.env.get('WORKSPACE_ID') || 'default-workspace';
+    const logicalPath = WORKSPACE_BOUNDARY.normalize(workspaceId, path);
+    if (!logicalPath) throw new Error('Invalid workspace path');
+    const canonicalPath = WORKSPACE_BOUNDARY.validateExistingPath(workspaceId, sanitizedPath);
+    if (!canonicalPath) throw new Error('Invalid workspace path');
+    const info = await readDirRecursive(sanitizedPath, safeDepth, logicalPath, canonicalPath, new Set());
     
     return {
       status: 'success',
@@ -109,20 +114,24 @@ function toWorkspacePath(absolutePath: string): string {
 async function readDirRecursive(
   path: string,
   depth: number,
-  rootPath: string
+  logicalPath: string,
+  canonicalPath: string,
+  ancestors: Set<string>
 ): Promise<FileInfo> {
   const stat = await Deno.stat(path);
   
   if (stat.isDirectory) {
-    if (depth <= 0) {
+    if (depth <= 0 || ancestors.has(canonicalPath)) {
       return {
         name: path.split('/').pop() || '/',
-        path: toWorkspacePath(path),
+        path: logicalPath,
         type: 'directory',
         children: []
       };
     }
     const entries: FileInfo[] = [];
+    const branchAncestors = new Set(ancestors);
+    branchAncestors.add(canonicalPath);
     const ignorePatterns = await parseGitignore(path);
     
     for await (const entry of Deno.readDir(path)) {
@@ -137,7 +146,11 @@ async function readDirRecursive(
         continue;
       }
       
-      const childInfo = await readDirRecursive(entryPath, depth - 1, rootPath);
+      const canonicalChild = WORKSPACE_BOUNDARY.validateExistingPath(
+        Deno.env.get('WORKSPACE_ID') || 'default-workspace', entryPath,
+      );
+      if (!canonicalChild) continue;
+      const childInfo = await readDirRecursive(entryPath, depth - 1, `${logicalPath}/${entry.name}`, canonicalChild, branchAncestors);
       entries.push(childInfo);
     }
     
@@ -151,14 +164,14 @@ async function readDirRecursive(
     
     return {
       name: path.split('/').pop() || '/',
-      path: toWorkspacePath(path),
+      path: logicalPath,
       type: 'directory',
       children: entries
     };
   } else {
     return {
       name: path.split('/').pop() || '',
-      path: toWorkspacePath(path),
+      path: logicalPath,
       type: 'file',
       size: stat.size,
       lastModified: stat.mtime?.toISOString()
@@ -169,6 +182,7 @@ async function readDirRecursive(
 async function parseGitignore(dirPath: string): Promise<string[]> {
   const gitignorePath = `${dirPath}/.gitignore`;
   try {
+    if (!WORKSPACE_BOUNDARY.validateExistingPath(Deno.env.get('WORKSPACE_ID') || 'default-workspace', gitignorePath)) return [];
     const content = await Deno.readTextFile(gitignorePath);
     return content.split('\n')
       .filter(line => line.trim() && !line.trim().startsWith('#'));

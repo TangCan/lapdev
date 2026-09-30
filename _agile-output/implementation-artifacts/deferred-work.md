@@ -100,3 +100,37 @@
 # 2026-09-30 终端输入评审最终复验补充
 
 主会话确认评审补丁后后端 57 项（85 子步骤）、Node 发布测试 33 项、权限门禁 4 项及最终 Linux 实包核心 22/22 全通过；新资产目录为 `terminal-input-review-final-20260930/`，源码与包内一致。加载成功恢复后的授权窗口已关闭；既有异常生命周期隔离 B3、处理器内部写入窗口及终端归属仍按各延期条目保留，未因此扩大生产权限或修改异常处理目标。
+
+## 递归文件树边界解决记录（2026-09-30）
+
+- source_spec: `spec-recursive-file-tree-boundary.md`
+  resolves: RB8/B7 递归文件树外部链接绕过入口工作区边界的发现。
+  status: done
+  evidence: 每个可见子项及 .gitignore 在跟随读取前复用 WorkspaceBoundary；越界、悬空及无法安全解析子项跳过，合法内部链接保留逻辑路径；canonical 祖先集合仅截断当前分支循环。临时合成夹具覆盖真实/alias root、外部文件/目录、前缀相似兄弟、外部/内部规则链接、重复内部分支、普通元数据与排序、隐藏项、深度零/一及 20 层上限、根拒绝和普通 I/O 失败；stat/readDir/readTextFile 观察证明静态外部链接未被跟随读取。定向 5 项（2 steps）、全后端 58 项（87 steps）、Node 33 项、权限门禁 4 项、独立 Linux 实包原 22/22 均通过，源码与归档一致；证据见 release-runtime-core-acceptance.md。以上原发现与历史资产保留。
+
+B8 canonical 校验至 I/O 的路径替换竞态保持开放，本次未提供原子 I/O 保证。macOS、公开安装及真实 LSP 功能未验证；新增递归链接矩阵由服务测试证明，原实包 22 项不是该矩阵的端到端覆盖。
+
+递归树首轮 done/58 项记录是评审前实现交接历史；字面名称问题触发第二轮重新实现，当前待主会话复验及评审。最终关闭以随后追加的收尾记录为准。
+
+- source_spec: `spec-recursive-file-tree-boundary.md`
+  summary: 为文件树添加宽度/节点或响应预算，防止合法别名分支造成重复展开膨胀。
+  evidence: 第一轮 B2 medium；原递归已跟随内部链接且没有节点预算，当前祖先循环截断不限制合法不同分支，需独立可用性策略。
+- source_spec: `spec-recursive-file-tree-boundary.md`
+  summary: 验证非有限深度及非法 API 参数，防止 NaN 绕过递归深度 clamp。
+  evidence: 第一轮 B3 medium；基线与本轮均 Math.min(Math.max(0, depth), MAX_DEPTH)，NaN 使终止比较失效，未由此次边界修复引入。
+- source_spec: `spec-recursive-file-tree-boundary.md`
+  summary: 用原子目录/文件句柄解决递归子项与规则文件校验后的路径替换竞态。
+  evidence: 第一轮 E3/E4、第二轮 E2-1 high；基线校验与路径 I/O 分离，当前仅静态链接保护，合法路径或祖先可被工作区进程替换；B8 继续开放。
+- source_spec: `spec-recursive-file-tree-boundary.md`
+  summary: 明确 POSIX 字面反斜杠路径在文件树至读写 API 之间的无歧义往返契约。
+  evidence: 第二轮 B2-1 high；基线树已返回字面名称但共享外部 resolve 规范化反斜杠，a\\b 和 a/b 同时存在可能导致读写另一文件；本轮只修内部遍历身份，不改变外部入口语义。
+- source_spec: `spec-recursive-file-tree-boundary.md`
+  summary: 测量逐项同步 canonical 校验对文件树请求及后端事件循环响应的影响。
+  evidence: 第二轮 B2-2 medium unverified；每项新增同步 realPath 会增加调用成本，但未测量实际阻塞；需大树、慢文件系统及并发健康请求指标后确定严重程度及异步方案。
+
+## 递归文件树最终收尾（2026-09-30）
+
+- source_spec: `spec-recursive-file-tree-boundary.md`
+  resolves: RB8/B7 静态递归边界及规则文件越界读取目标。
+  status: done
+  evidence: 第二轮三路评审及覆盖补丁完成；主会话最终后端 59 项（87 子步骤）、Node 33 项、门禁 4 项及新 Linux 实包 22/22 全通过，两个生产文件 cmp 一致。字面名称内部遍历、root null 拒绝、子树路径、嵌套外部规则和嵌套迭代失败均已核验。第一轮 done/58 项及 pending 说明是历史，当前以本记录为准；新包路径与哈希见验收报告。独立延期项不关闭。

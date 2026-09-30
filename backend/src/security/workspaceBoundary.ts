@@ -54,6 +54,14 @@ export class WorkspaceBoundary {
     }
   }
 
+  /** Internal traversal only: preserve literal names and require an existing target. */
+  validateExistingPath(workspaceId: string, path: string): string | null {
+    if (workspaceId !== this.workspaceId || typeof path !== 'string' || path.includes('\0')) return null;
+    const candidate = resolve(path);
+    if (candidate !== path || !this.isBelowRoot(candidate)) return null;
+    return this.canonicalPathInsideRoot(candidate);
+  }
+
   private toRelativeHandle(handle: string): string | null {
     if (handle === this.handlePrefix) return '';
     if (handle.startsWith(`${this.handlePrefix}/`)) return handle.slice(this.handlePrefix.length + 1);
@@ -66,13 +74,16 @@ export class WorkspaceBoundary {
   }
 
   private isCanonicalPathInsideRoot(path: string): boolean {
+    return this.canonicalPathInsideRoot(path) !== null;
+  }
+
+  private canonicalPathInsideRoot(path: string): string | null {
     try {
       const realRoot = Deno.realPathSync(this.root);
       const realPath = Deno.realPathSync(path);
-      return realPath === realRoot || realPath.startsWith(`${realRoot}/`);
+      return realPath === realRoot || realPath.startsWith(`${realRoot}/`) ? realPath : null;
     } catch (error) {
-      if (!(error instanceof Deno.errors.NotFound)) return false;
-      return false;
+      return null;
     }
   }
 }

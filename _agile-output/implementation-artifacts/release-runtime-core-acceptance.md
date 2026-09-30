@@ -1,6 +1,14 @@
 # 发布运行时核心验收：阶段结果
 
-## 最新结果：终端输入加载后授权复验与评审补丁（2026-09-30）
+## 最新结果：递归文件树边界最终验收（2026-09-30）
+
+第二轮三路评审及测试补丁完成。主会话最终独立复跑：后端 59 项（87 子步骤）、Node 发布四文件 33 项（0 failed/0 skipped）、权限门禁 4 项、git diff --check 全通过。新 Linux 包归档校验、CLI 安装/启动/健康/首页及核心 22/22 全通过，两个生产文件包内与工作区 cmp 一致。内部精确路径校验避免把 POSIX 字面反斜杠名称误读为分隔路径；不安全子项跳过、内部链接保留、祖先循环截断、外部规则不读、root 复验失效明确拒绝。子树/相对/文件路径、嵌套外部规则与嵌套 I/O 失败均已补充并实际运行。
+
+最终资产：`_agile-output/runtime-archives/recursive-tree-boundary-review-final-20260930/`；运行时 SHA-256 `faf403ae198e62c66c3f89e39020b28103590d8c672afc17dbb35f54f11cdd12`，CLI `a573144b85ec4d34dc44b1fbb171fa3819a5da60b1e132061935f16484045567`。生产文件 SHA-256：fileService.ts `9edbb563a964e87702c45ff86433c4de91535d36dcf335e967ecbd689c89f446`，workspaceBoundary.ts `6bd3cdd413cc5dc62ef949d33473356eb1f272a299f637babfa3ced2433eacbd`；固定基线和两文件 code-only diff/re建说明见本报告第二轮交接节。构建后仅测试/文档补丁，不覆盖或重建相同资产。
+
+路径替换竞态、外部字面反斜杠句柄往返、遍历资源预算/非法深度及未测同步校验性能已独立留存，不声称全部安全风险关闭。macOS、公开安装及真实 LSP 仍未验证，前端大 chunk 警告保留。测试归档不加入 Git，没有推送或发布。以下是历史阶段记录。
+
+## 历史结果：终端输入加载后授权复验与评审补丁（2026-09-30）
 
 主会话最终验证：后端 57 项（85 子步骤）、Node 发布四文件 33 项（0 failed/0 skipped）、权限门禁 4 项、git diff --check 全通过。三路评审完成，替换连接状态保护、有界测试等待和并发撤销/能力收紧回归已补齐。既有外层异常处理对退休连接状态的隔离（B3）单独延期；终端归属及处理器内部写入窗口未扩入本规格。
 
@@ -421,3 +429,36 @@ node scripts/smoke-release-cli.mjs _agile-output/runtime-archives/terminal-input
 本次仅运行 `npm run test:backend -- src/websocket/fileWatcher.test.ts`：4 passed（46 steps），0 failed；未运行全量套件或构建包，未修改旧归档、规格状态或提交。主会话将执行全量验证并构建新最终资产。
 
 当前评审补丁生产文件 SHA-256 为 `5f0910fe54b9a66dd59fa67a91d93b3c847fcd3bf27b23c459266feb180c97d1`；固定基线 code-only 命令 `git diff --binary --no-ext-diff --no-textconv a553c3155e6915da20a55fd050016845ae04461a -- backend/src/websocket/fileWatcher.ts | sha256sum` 结果为 `ad2a7d3b18c6e0d80a90bc1ec0c9c4c5e787bad9d005ffe79d1ddd6423dda748`。旧归档包含评审前文件，不包含此补丁。
+
+## 历史：递归文件树第一轮边界验收（2026-09-30）
+
+以下为评审前历史，字面反斜杠名称兼容问题触发重新实现，不是最终评审完成的结论。
+
+`spec-recursive-file-tree-boundary.md` 完成。唯一生产修改是 `backend/src/services/fileService.ts`：每个递归子项及可选 .gitignore 读取前使用现有 WorkspaceBoundary；不安全子项跳过，普通 I/O 错误沿用服务错误。内部链接保留逻辑 /workspace 路径，canonical 祖先集合按分支截断循环。未扩大权限、修改认证或响应 schema，未改变其他写入操作。
+
+最终验证：
+
+- `npm run test:backend -- src/services/fileService.test.ts src/security/workspaceBoundary.test.ts`：5 passed（2 steps），0 failed，无跳过。夹具包含真实/alias root、嵌套外部文件和目录、前缀相似兄弟目录、悬空/模拟无法解析子项、外部及内部规则链接、内部文件/目录链接、重复分支和祖先循环；确定性验证排序、隐藏项、元数据、逻辑路径、深度零/一和 20 层上限、根拒绝、普通 I/O 错误。观察 stat/readDir/readTextFile 调用，断言静态外部目标没有跟随读取，不使用真实凭据。
+- `npm run test:backend`：58 passed（87 steps），0 failed；Node 四文件发布回归：33 passed，0 failed/0 skipped；`./scripts/release-permission-gate.sh`：4 passed；`git diff --check`：通过。
+- Linux 前端构建、Rust release、Deno compile、verify-runtime-archive、npm pack 均通过；smoke CLI 安装、启动、健康、首页及原核心/安全 22/22 全通过，退出码 0。
+
+新独立目录 `_agile-output/runtime-archives/recursive-tree-boundary-20260930/`，版本 1.0.3；manifest 基线 `603da238c093c763aaaa32ef3e476610c1aa79c8` 不包含本轮未提交修改。历史资产保留，未提交、推送或发布归档。
+
+```sh
+RUNTIME_OUTPUT_DIR=_agile-output/runtime-archives/recursive-tree-boundary-20260930 ./scripts/build-runtime-archive.sh linux-x64
+./scripts/verify-runtime-archive.sh _agile-output/runtime-archives/recursive-tree-boundary-20260930/lapdev-runtime-1.0.3-linux-x64.tar.gz linux-x64
+npm pack ./cli --pack-destination _agile-output/runtime-archives/recursive-tree-boundary-20260930
+node scripts/smoke-release-cli.mjs _agile-output/runtime-archives/recursive-tree-boundary-20260930/lapdev-cli-1.0.3.tgz _agile-output/runtime-archives/recursive-tree-boundary-20260930/lapdev-runtime-1.0.3-linux-x64.tar.gz
+tar -xOf _agile-output/runtime-archives/recursive-tree-boundary-20260930/lapdev-runtime-1.0.3-linux-x64.tar.gz ./app/backend/src/services/fileService.ts | cmp - backend/src/services/fileService.ts
+git diff --binary --no-ext-diff --no-textconv 603da238c093c763aaaa32ef3e476610c1aa79c8 -- backend/src/services/fileService.ts | sha256sum
+```
+
+SHA-256：运行时 `5afac1915c8bea29ffeb434622dbe526613e4355b3b7d813d8592fc98b0b375d`；CLI `a573144b85ec4d34dc44b1fbb171fa3819a5da60b1e132061935f16484045567`；fileService.ts `90383c4ca5c1be17f41752e0d5e7379f1cc4a9cdca2dda71e5ded43d7223db45`；以上 code-only diff `2779abad202614d819bd88523b0fcb84e88449e084cb2ac8483c89ba71e9ee28`。归档源码 cmp 退出码 0。生产源码重建可使用该固定基线，再从哈希已核对的归档提取唯一修改的 fileService.ts；其余生产源码来自基线。此证据不保证工具链或二进制可重复构建。
+
+规格内无剩余实现/验证项。RB8/B7 已追加解决记录，B8 校验与 I/O 间路径替换竞态仍开放；静态链接保护不保证原子 I/O。新增链接矩阵由服务测试证明，原实包 22 项未新增该矩阵。macOS、公开 URL 安装、真实 LSP 功能未实测，语言服务器缺失/rust-analyzer 探测失败，前端大 chunk 警告保留。
+
+## 递归文件树第二轮交接（待主会话复验与评审）
+
+第二轮实现代理：定向 6 passed（2 steps）、后端 59 passed（87 steps）、Node 33、权限门禁 4、新实包 22/22 全通过。生产修改为 fileService.ts 与 workspaceBoundary.ts；内部精确校验保留字面反斜杠身份，外部入口语义不变，normalize 失效明确拒绝。新增名冲突、普通 readDir 创建/迭代异常断言。
+
+最终候选目录 `recursive-tree-boundary-review-final-20260930/`，旧资产不覆盖；运行时 SHA-256 `faf403ae198e62c66c3f89e39020b28103590d8c672afc17dbb35f54f11cdd12`，CLI `a573144b85ec4d34dc44b1fbb171fa3819a5da60b1e132061935f16484045567`。manifest 基线仍为 `603da238c093c763aaaa32ef3e476610c1aa79c8`，构建时含未提交实现。执行 `git diff --binary --no-ext-diff --no-textconv 603da238c093c763aaaa32ef3e476610c1aa79c8 -- backend/src/security/workspaceBoundary.ts backend/src/services/fileService.ts | sha256sum` 得 `1f487019f51d6b9742971c2dfd7858af8258364ee18a190378c3dd17490549fa`。源码快照可在独立检出该固定基线后，从哈希已核对的新归档提取这两份生产文件覆盖同路径恢复；不承诺完整工具链/依赖或逐位复现。链接矩阵仍由服务测试证明，实包原 22 项不冒充该矩阵。
